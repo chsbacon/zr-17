@@ -1,6 +1,3 @@
-//Begin page main
-//Declare any variables shared between functions here
-
 void init(){
 	//This function is called once when your code is first loaded.
 
@@ -11,5 +8,3 @@ void init(){
 void loop(){
 	//This function is called once per second.  Use it to control the satellite.
 }
-
-//End page main
