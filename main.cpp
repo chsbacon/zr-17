@@ -10,5 +10,5 @@ void loop(){
 	
 }
 void lol() {
-    DEBUG(("getrekt"));
+    DEBUG(("getrekt, scruuub"));
 }
