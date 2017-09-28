@@ -4,6 +4,7 @@ void init(){
 	//IMPORTANT: make sure to set any variables that need an initial value.
 	//Do not assume variables will be set to 0 automatically!
 	DEBUG(("BACON"));
+	DEBUG(("Another Debug!"));
 }
 
 void loop(){
