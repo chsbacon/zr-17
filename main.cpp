@@ -50,7 +50,7 @@ void loop(){
                     game.square2pos(usefulIntVec,usefulVec);
                     mathVecSubtract(usefulVec,myPos,usefulVec,3);
                     usefulVec[2]=0;
-                    float score=mathVecMagnitude(usefulVec,3)-10*(mathVecMagnitude(enPos,3)>0.4f xor i*i+j*j<3);
+                    float score=mathVecMagnitude(usefulVec,3)-10*(mathVecMagnitude(enPos,3)>0.35f xor i*i+j*j<3);
                     if (score<maxDist and game.getDrills(usefulIntVec)<1 and i*i+j*j<7){
                         siteCoords[0]=i;siteCoords[1]=j;
                         DEBUG(("Changed %f", score));
