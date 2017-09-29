@@ -16,10 +16,13 @@ float enState[12];
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
 #define enRot (&enState[9])//These are pointers. They will have the values that
+int siteCoords[2];
+bool newLoc;
 //are described in their names, and act as length-3 float arrays
 
 float vcoef;
 void init(){
+    newLoc=true;
     vcoef=.154;//A coefficient for our movement speed
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
@@ -37,34 +40,36 @@ void loop(){
     enPos[2]=0;
     game.pos2square(myPos,mySquare);
     float maxDist=100;//Sets this large
-    int siteCoords[2];
-    for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
-    //closest to us and in the center. You should understand this search structure - it's important!
-        for (int j=-10;j<11;j++){
-            if ((i!=0) and (j!=0)){
-                //DEBUG(("%i %i",i,j));
-                usefulIntVec[0]=i;usefulIntVec[1]=j;usefulIntVec[2]=0;
-                game.square2pos(usefulIntVec,usefulVec);
-                mathVecSubtract(usefulVec,myPos,usefulVec,3);
-                usefulVec[2]=0;
-                float score=mathVecMagnitude(usefulVec,3)-(.038*(sqrtf(2)-1.0)*(i*i+j*j==5));
-                if (score<maxDist and game.getDrills(usefulIntVec)<1 and i*i+j*j<7){
-                    siteCoords[0]=i;siteCoords[1]=j;
-                    DEBUG(("Changed %f", score));
-                    maxDist = score;
+    if (newLoc){
+        for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
+        //closest to us and in the center. You should understand this search structure - it's important!
+            for (int j=-10;j<11;j++){
+                if ((i!=0) and (j!=0)){
+                    //DEBUG(("%i %i",i,j));
+                    usefulIntVec[0]=i;usefulIntVec[1]=j;usefulIntVec[2]=0;
+                    game.square2pos(usefulIntVec,usefulVec);
+                    mathVecSubtract(usefulVec,myPos,usefulVec,3);
+                    usefulVec[2]=0;
+                    float score=mathVecMagnitude(usefulVec,3)-10*(mathVecMagnitude(enPos,3)>0.4f xor i*i+j*j<3);
+                    if (score<maxDist and game.getDrills(usefulIntVec)<1 and i*i+j*j<7){
+                        siteCoords[0]=i;siteCoords[1]=j;
+                        DEBUG(("Changed %f", score));
+                        maxDist = score;
+                    }
                 }
             }
         }
+        newLoc=false;
     }
     DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
-    if (mathVecMagnitude(enPos,3)<.32f){//If they are close to the center
+    if (mathVecMagnitude(enPos,3)<.3f){//If they are close to the center
         vcoef=.120f;
         //Go to the position that is between them and the center, at .04 distance
         //so that they can't get into the zone
         memcpy(positionTarget,enPos,12);
         scale(positionTarget,.04f/mathVecMagnitude(enPos,3));
         game.stopDrill();
-        DEBUG(("En garde!"));
+        newLoc=true;
         
     }
     else{
@@ -83,12 +88,13 @@ void loop(){
         else{
             api.setAttRateTarget(zeroVec);
         }
-        if (game.getDrillError()){
+        if (game.getDrillError() or mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]){
             game.stopDrill();
         }
         if (game.checkSample()){
             game.pickupSample();
             game.stopDrill();
+            newLoc=true;
         }
         if (game.atBaseStation()){
             game.dropSample(0);
