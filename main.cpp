@@ -13,12 +13,12 @@ float enState[12];
 #define enAtt (&enState[6])
 #define enRot (&enState[9])
 
-#define SPHERERADIUS 0.11f
+#define SPHERE_RADIUS 0.11f
 #define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
 //}
 // DEBUG shorthand functions (F is for floats, I is for ints)
-#define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1],pr vec[2]))
+#define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]))
 #define PRINT_VEC_I(str, vec) DEBUG(("%s %d %d %d", str, vec[0], vec[1], vec[2]))
 
 float myScore;
@@ -26,14 +26,17 @@ float enScore;
 float pointVals[5]; // stores each point value for dropping off the various concentrations
 int enDrillSquares[3][2]; // where the enemy has drilled since dropping off
 int enDrillNumSinceDrop; // how many times the enemy has drilled since dropping off
+int myDrillSquares[3][2];
 
-bool possibleTenSquares[2][4][6]; // odds that a square is a 10, refers to -X+Y and +X+Y ten zones smushed together
+bool possibleTenSquares[2][4][6]; // true if a square could be a 10, refers to -X+Y and +X+Y ten zones smushed together
 
-bool samplesHeld[3];
-
-void init(){
+float vcoef;
+float positionTarget[3];
+float zeroVec[3];
+void init() {
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
-    api.setAttGains(0.45f,0.1f,2.8f);
+    api.setAttGains(0.45f, 0.1f, 2.8f);
+    vcoef = 0.154; // A coefficient for our movement speed
     
     myScore = 0.0f;
     enScore = 0.0f; // this is important because we use these to calculate change in score
@@ -50,23 +53,89 @@ void init(){
     enDrillNumSinceDrop = 0;
 
     memset(possibleTenSquares, 00000001, 48);
+    
+    memset(zeroVec, 0, 12);
 }
 
-void loop(){
+void loop() {
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
-	game.getSamplesHeld(samplesHeld);
 	
 	float myDeltaScore = game.getScore() - myScore;
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
+    
+    if (game.getNumSamplesHeld() == 3 || api.getTime() > 150) { // at some point, we should be more thoughtful about this
+        float dropOffAtt[3] = {0.0f, 0.0f, -1.0f};
+        api.setAttitudeTarget(dropOffAtt);
+        
+        memcpy(positionTarget, myPos, 12);
+        mathVecNormalize(positionTarget, 3);
+        scale(positionTarget, 0.14f - SPHERE_RADIUS);
+        
+        if(game.atBaseStation()){
+            game.dropSample(0);
+            game.dropSample(1);
+            game.dropSample(2);
+        }
+    }
+    else {
+        float drillAtt[3] = {1.0f, 0.0f, 0.0f};
+        api.setAttitudeTarget(drillAtt);
+        
+        int drillSquare[2]; // Will eventually store the optimal drilling square
+        float minPoints = 10; // Stores points for that square for comparisons
 
-    if (enDeltaScore == 1.0f || enDeltaScore == 2.0f || enDeltaScore == 3.0f){ //Possible score gains from drilling
+        for (int i=0; i<2; i++) { // Loop through left and right
+            // Find the average position of possibilities (aka the centroid)
+            int testSquare[3] = {0, 0, 0}; // not sure about z being 0
+            int possibilityCount = 0;
+            for (int j=0; j<4; j++) {
+                for (int k=0; k<6; k++) {
+                    if (possibleTenSquares[i][j][k]) {
+                        testSquare[0] += j;
+                        testSquare[1] += k;
+                        possibilityCount++;
+                    }
+                }
+            }
+            if (testSquare[0] == 0) continue; // skip if there's no way a 10 could be here
+            
+            testSquare[0] /= possibilityCount; // because it's an int, it is rounded automatically
+            testSquare[1] /= possibilityCount;
+            // at this moment, testSquare just stores a position in the possibleTenSquares array
+            
+            tableLocToSquare(testSquare, i, testSquare[0], testSquare[1]); // now it stores the actual square
+            // we iterate over the original value and its mirror image
+            for (int sign = 0; sign <= 1; sign++) {
+                testSquare[0] = sign ? -testSquare[0] : testSquare[0];
+                testSquare[1] = sign ? -testSquare[1] : testSquare[1];
+            
+                float testPos[3];
+                game.square2pos(testSquare, testPos);
+                float points = dist(myPos, testPos);
+                for (int samp = 0; samp < game.getNumSamplesHeld(); samp++) {
+                    game.square2pos(myDrillSquares[samp], testPos); // testPos changes meaning here
+                    points -= dist(myPos, testPos);
+                    scale(testPos, -1);
+                    points -= dist(myPos, testPos);
+                }
+                if (points < minPoints) {
+                    memcpy(drillSquare, testSquare, 8);
+                    minPoints = points;
+                }
+            }
+        }
+        drillAtSqr(drillSquare); // drill at the spot we picked
+    }
+    
+    if (enDeltaScore == 1.0f || enDeltaScore == 2.0f || enDeltaScore == 3.0f){ // Possible score gains from drilling
         DEBUG(("Enemy just drilled")); // @TODO make this based on rotatation to account for 4th drill in a single spot
         game.pos2square(enPos, enDrillSquares[enDrillNumSinceDrop]);
         enDrillNumSinceDrop++;
-        if (enDrillNumSinceDrop>2) enDrillNumSinceDrop = 0; // wrap, so that if they drill more than three before drop-off, we only catch the last three
+        if (enDrillNumSinceDrop>2) enDrillNumSinceDrop = 0; // wrap, so that if they drill more than three before drop-off,
+                                                            // we only catch the last three
         
     }
 	
@@ -90,6 +159,56 @@ void loop(){
 	    enDrillNumSinceDrop = 0;
 	}
 	
+	PRINT_VEC_F("positionTarget", positionTarget);
+	// Movement code
+	#define destination positionTarget
+	float distance,flocal,fvector[3];
+    #define ACCEL 0.0175f
+    mathVecSubtract(fvector, destination, myPos, 3); // vector from us to the target
+    distance = mathVecNormalize(fvector, 3); // distance to target
+    if (distance > 0.05f) { // If not close, pick a velocity
+        flocal = vcoef;
+        if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
+            flocal = sqrtf(distance*ACCEL)-.02f;
+            //DEBUG(("Slower"));
+        }
+        scale(fvector, flocal);
+        api.setVelocityTarget(fvector);
+    }
+    else {// if we are very close
+        api.setPositionTarget(destination);
+    }
+    
+    if (!game.getDrillEnabled() and myRot[2] > 0.037f){
+        api.setAttRateTarget(zeroVec);
+    }
+}
+
+bool drillAtSqr(int* sqr){
+    if (game.getDrillError()){
+        game.stopDrill();
+    }
+    DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
+    game.square2pos(sqr, positionTarget);
+    positionTarget[2] = 0.51;
+
+    if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
+    and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
+        DEBUG(("Starting Drill"));
+        game.startDrill();
+    }
+    else if (game.getDrillEnabled()) {
+        DEBUG(("Drilling"));
+        float drillVec[3] = { myAtt[1], -myAtt[0], 0};
+        api.setAttitudeTarget(drillVec);
+        if (game.checkSample()){
+            game.pickupSample();
+            game.stopDrill();
+            memcpy(myDrillSquares[game.getNumSamplesHeld()-1], sqr, 8);
+            return true;
+        }
+    }
+    return false;
 }
 
 // based on enemy's increase in points, goes through all possible sample concentration values, to determine which combination they got
@@ -123,7 +242,8 @@ void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
             for (int k=0; k<6; k++) {
                 if (possibleTenSquares[i][j][k]) {
                     if (scores[0] > 1 and scores[1] > 1 and scores[2] > 1 ) {
-                        possibleTenSquares[i][j][k] = false; // as long as any of the scores hit the target, we can assume that any locations not in their immedidate
+                        possibleTenSquares[i][j][k] = false; // as long as any of the scores hit the target,
+                            //we can assume that any locations not in their immedidate
                             // vicinity should default to impossible for the 10
                     }
                     else {
@@ -168,11 +288,11 @@ void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
                             // DEBUG(("testTen: %d %d  squareNorm: %d %d %d and.. it is a %s", testTen[0], testTen[1], squareNorm[0],
                             //     squareNorm[1], squareNorm[2], dist<=5&&possible?"go!":":("));
                             if (dist <= 5 and possible) {  // only update cells within the radius of the target
-                                possibleTenSquares[i][j][k] = true; // we only set cells to true with this statement
+                                possibleTenSquares[i][j][k] = true; // we only set cells to true (never to false) with this statement
                                 
                                 // This next bit is totally optional; it's just to prove that tableLocToSquare works
                                 int pos[2] = {-1, -1}; // initialize array to store a test position
-                                tableLocToSquare(pos, i, j, k, false); // convert to [col, row]-style square
+                                tableLocToSquare(pos, i, j, k); // convert to [col, row]-style square
                                 DEBUG(("the 10 could be at %d %d", pos[0], pos[1]));
                             }
                         }
@@ -183,13 +303,9 @@ void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
     }
 }
 
-void tableLocToSquare(int* result, int i, int j, int k, bool top) {
+void tableLocToSquare(int* result, int i, int j, int k) {
     result[0] = j + (i ? 3 : -6);
     result[1] = k + 3;
-    if (top) {
-        result[0] = -result[0];
-        result[1] = -result[1];
-    }
 }
 //Vector math functions {
 float dist(float* vec1, float* vec2) {
