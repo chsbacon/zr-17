@@ -1,7 +1,6 @@
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]))
 float positionTarget[3];
 int targetCoordinates[3];
-float dist[3];
 float zeroVec[3];
 float myState[12];
 float usefulVec[3];
@@ -11,12 +10,13 @@ float enState[12];
 #define myPos (&myState[0])
 #define myVel (&myState[3])
 #define myAtt (&myState[6])
-#define myRot (&myState[9]) //This is a comment
+#define myRot (&myState[9])
 #define enPos (&enState[0])
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
 #define enRot (&enState[9])//These are pointers. They will have the values that
-int siteCoords[2];
+#define MAXDRILLS 3
+int siteCoords[3];
 bool newLoc;
 //are described in their names, and act as length-3 float arrays
 
@@ -35,9 +35,7 @@ void init(){
 
 void loop(){
     api.getMyZRState(myState);
-    myPos[2]=0.f;
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
-    enPos[2]=0;
     game.pos2square(myPos,mySquare);
     float maxDist=100;//Sets this large
     if (newLoc){
@@ -48,10 +46,10 @@ void loop(){
                     //DEBUG(("%i %i",i,j));
                     usefulIntVec[0]=i;usefulIntVec[1]=j;usefulIntVec[2]=0;
                     game.square2pos(usefulIntVec,usefulVec);
+                    usefulVec[2]=0.51f;
                     mathVecSubtract(usefulVec,myPos,usefulVec,3);
-                    usefulVec[2]=0;
-                    float score=mathVecMagnitude(usefulVec,3)-10*(mathVecMagnitude(enPos,3)>0.35f xor i*i+j*j<3);
-                    if (score<maxDist and game.getDrills(usefulIntVec)<1 and i*i+j*j<7){
+                    float score=mathVecMagnitude(usefulVec,3)+.05/dist(usefulVec,myPos);
+                    if (score<maxDist and game.getDrills(usefulIntVec)<MAXDRILLS and not game.isGeyserHere(usefulIntVec) and (not game.isGeyserHere(mySquare) or dist(usefulVec,myPos)>.14f)){
                         siteCoords[0]=i;siteCoords[1]=j;
                         DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -61,51 +59,40 @@ void loop(){
         }
         newLoc=false;
     }
-    DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
-    if (mathVecMagnitude(enPos,3)<.3f){//If they are close to the center
-        vcoef=.120f;
-        //Go to the position that is between them and the center, at .04 distance
-        //so that they can't get into the zone
-        memcpy(positionTarget,enPos,12);
-        scale(positionTarget,.04f/mathVecMagnitude(enPos,3));
-        game.stopDrill();
+    if (game.getDrills(mySquare)>MAXDRILLS-1 or game.isGeyserHere(mySquare)){
         newLoc=true;
+    }
+    DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+    vcoef=.170f;
+    game.square2pos(siteCoords,positionTarget);
+    positionTarget[2]=0.51f;
+    if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and dist(myState,positionTarget)<0.08 and game.getNumSamplesHeld()<3 and not game.getDrillError()){
+        usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
+        api.setAttitudeTarget(usefulVec);
+        if (!game.getDrillEnabled()){
+            game.dropSample(2);
+            game.startDrill();
+        }
+        DEBUG(("Got it"));
         
     }
     else{
-        vcoef=.170f;
-        game.square2pos(siteCoords,positionTarget);
-        positionTarget[2]=myState[2];
-        if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and distsquared(myState,positionTarget)<0.0016 and game.getNumSamplesHeld()<3 and not game.getDrillError()){
-            usefulVec[0]=myState[7];usefulVec[1]=-1*myState[6];usefulVec[2]=0;
-            api.setAttitudeTarget(usefulVec);
-            if (!game.getDrillEnabled()){
-                game.startDrill();
-            }
-            DEBUG(("Got it"));
-            
-        }
-        else{
-            api.setAttRateTarget(zeroVec);
-        }
-        if (game.getDrillError() or mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]){
-            game.stopDrill();
-        }
-        if (game.checkSample()){
-            game.pickupSample();
-            game.stopDrill();
-            newLoc=true;
-        }
-        if (game.atBaseStation()){
-            game.dropSample(0);
-            game.dropSample(1);
-            game.dropSample(2);
-        }
+        memcpy(usefulVec,myRot,12);
+        scale(usefulVec,-1);
+        api.setAttRateTarget(usefulVec);
     }
+    if (game.getDrillError() or mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]){
+        game.stopDrill();
+    }
+    if (game.checkSample()){
+        game.pickupSample();
+        game.stopDrill();
+        newLoc=true;
+    }
+    game.dropSample(0);
     
     
     
-    positionTarget[2]=0;
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
     float distance,flocal,fvector[3];
@@ -133,19 +120,10 @@ void loop(){
         //}
     }
 }
-float distsquared(float pos1[3],float pos2[3]){//This gives the squared distance between to coordinates
-    float sum=0;
-    for (int i=0;i<2;i++){
-        sum+=(pos1[i]-pos2[i])*(pos1[i]-pos2[i]);
-    }
-    return (sum);
-}
-int distsquared(int pos1[3],int pos2[3]){//This gives the squared distance between to coordinates
-    int sum=0;
-    for (int i=0;i<2;i++){
-        sum+=(pos1[i]-pos2[i])*(pos1[i]-pos2[i]);
-    }
-    return (sum);
+float dist(float* vec1, float* vec2) {
+    float ansVec[3];
+    mathVecSubtract(ansVec, vec1, vec2, 3);
+    return mathVecMagnitude(ansVec, 3);
 }
 void scale (float* vec, float scale) {//This function scales a length-3 vector by a coeff.
     for (int i=0; i<3; i++) {
