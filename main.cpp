@@ -1,4 +1,4 @@
-//SmartBotv1.0
+//SmartBotv2.0 3d edition
 
 //Standard defines{
 float myState[12];
@@ -24,33 +24,38 @@ float enState[12];
 bool samplesHeld[3];
 float zeroVec[3];
 float drillVec[3];
-int nextMineSqr[2];
+int nextMineSqr[3];
 bool isBlue;
 float positionTarget[3];
 float sampVals[3];
 float searchVals[3];
 bool pregame;
-int pregameDrillSqrs[4][2];
+int pregameDrillSqrs[4][3];
 float tempVec[3];
 float tempVar;
 float vcoef;
 int stage;
 bool drillUp;
 bool keepSearching;
+float analyzer[2][3];
+bool pickUp[2];
 
+bool ifTesting;
+int test[3];
 
 void init(){
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
 	
-	/*//For Red Sphere
-	analyzer[0][0] = 0.30f;//MAKE 2D ARRAY
+	//For Red Sphere
+	analyzer[0][0] = 0.30f;
 	analyzer[0][1] = -0.48f;
-	analyzer[0][2] = 0.0f;
+	analyzer[0][2] = -0.36;
 	//For Blue Sphere
 	analyzer[1][0] = -0.30f;
 	analyzer[1][1] = 0.48f;
-	analyzer[1][2] = 0.0f;*/
+	analyzer[1][2] = -0.36;
+	
     memset(zeroVec, 0, 12);
     memset(searchVals, 0, 12);
     
@@ -63,15 +68,19 @@ void init(){
     
     pregameDrillSqrs[0][0] = (isBlue) ? 4 : -4;
     pregameDrillSqrs[0][1] = (isBlue) ? 4 : -4;
+    pregameDrillSqrs[0][2] = 8;
     
     pregameDrillSqrs[1][0] = (isBlue) ? -4 : 4;
     pregameDrillSqrs[1][1] = (isBlue) ? 7 : -7;
+    pregameDrillSqrs[1][2] = 8;
     
     pregameDrillSqrs[2][0] = (isBlue) ? -4 : 4;
     pregameDrillSqrs[2][1] = (isBlue) ? 4 : -4;
+    pregameDrillSqrs[2][2] = 8;
     
     pregameDrillSqrs[3][0] = (isBlue) ? 4 : -4;
     pregameDrillSqrs[3][1] = (isBlue) ? 7 : -7;
+    pregameDrillSqrs[3][2] = 8;
     
     //nextMineSqr[0] = 4 + (-8 * !isBlue);
     //nextMineSqr[1] = 4 + (-8 * !isBlue);
@@ -80,6 +89,11 @@ void init(){
     pregame = true;
     stage = 0;
     keepSearching = false;
+    
+    ifTesting = false;
+    test[0] = 4;
+    test[1] = 4;
+    test[2] = 8;
 }
 
 void loop(){
@@ -87,6 +101,10 @@ void loop(){
 	api.getOtherZRState(enState);
 	game.getSamplesHeld(samplesHeld);
 	//DEBUG((""));
+    if(ifTesting){
+        drillAtSqr((test));
+        goto end;
+    }
     if(api.getTime() >= 157 and game.getNumSamplesHeld() > 0){
         game.stopDrill();
         memcpy(positionTarget, myPos, 12);
@@ -95,10 +113,14 @@ void loop(){
     }
     else{
         if(pregame){//Pregame preparing
-            if(!samplesHeld[0]){//Drill at starting position
-                drillAtSqr((&pregameDrillSqrs[0][0]));
+            game.getAnalyzer(pickUp);
+            if(!pickUp[isBlue] and game.hasAnalyzer() - 1 != isBlue){
+                memcpy(positionTarget, &analyzer[isBlue], 12);
             }
-            else if(drillAtSqr(&pregameDrillSqrs[1][0])){
+            else if(!samplesHeld[0]){//Drill at starting position
+                drillAtSqr((&pregameDrillSqrs[1][0]));
+            }
+            else if(drillAtSqr(&pregameDrillSqrs[0][0])){
                 pregame = false;
                 game.getConcentrations(sampVals);
                 DEBUG(("ENDING PREGAME"));
@@ -393,7 +415,9 @@ void loop(){
     if(!game.getDrillEnabled() and myState[11] > 0.037f){
         api.setAttRateTarget(zeroVec);
     }
-    positionTarget[2] = 0.0f;
+    end: 1 + 1;
+    //positionTarget[2] *= -1.0f;
+    nextMineSqr[2] = 8;
     api.setPositionTarget(positionTarget);
 }
 
@@ -404,9 +428,10 @@ void loop(){
         }
         DEBUG(("%d, %d", sqr[0], sqr[1]));
         game.square2pos(sqr, positionTarget);
-        //DEBUG(("%f, %f, %f", positionTarget[0], positionTarget[1], positionTarget[2]));
+        positionTarget[2] -= 0.04f + SPHERERADIUS/2.0f;
+        DEBUG(("%f, %f, %f", positionTarget[0], positionTarget[1], positionTarget[2]));
         //DEBUG(("%d (%f) %d %d", dist(myPos, positionTarget) <= 0.03f, dist(myPos, positionTarget), mathVecMagnitude(myVel, 3) < 0.01f , !game.getDrillEnabled()));
-        if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.037f and !game.getDrillEnabled()){
+        if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.037f and !game.getDrillEnabled() and myState[2] > 0.5f){
             DEBUG(("Starting Drill"));
             game.startDrill();
         }
@@ -431,6 +456,10 @@ void loop(){
         }*/
         return false;
     }
+    /*while the edge of the SPHERES satellite is within 0.04m of the
+surface but does not crash onto the surface, with the satellite X Axis aligned within 11.25Â° of the
+XY plane. (Reminder: the SPHERES satellite radius is 0.11m, see Section 2.1.1.) The following
+figure illustrates the required start drill conditions:*/
 //}
 //Vector math functions{
     float dist(float* vec1, float* vec2){
