@@ -1,4 +1,6 @@
 
+//double check minus signs
+
 //Standard defines {
 float myState[12];
 float enState[12];
@@ -27,6 +29,7 @@ float pointVals[5]; // stores each point value for dropping off concentrations
 int enDrillSquares[3][2]; // where the enemy has drilled since dropping off
 int enDrillNumSinceDrop; // how many times the enemy has drilled since drop-off
 int myDrillSquares[3][2];
+bool infoFound; // have we gotten a 3, 6, or a 10?
 
 #define TEN_SPAWN_WIDTH 12
 #define TEN_SPAWN_HEIGHT 16
@@ -37,7 +40,9 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT];
 float vcoef;
 float positionTarget[3];
 float zeroVec[3];
+
 void init() {
+    infoFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
     vcoef = 0.154; // A coefficient for our movement speed
@@ -70,6 +75,7 @@ void loop() {
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
     
+    //if they are guarding drill other squares
     if (game.getNumSamplesHeld() == 3 || api.getTime() > 150) {
     // at some point, we should be more thoughtful about this logic
         DEBUG(("Heading back to base"));
@@ -87,7 +93,7 @@ void loop() {
                 int squares[1][2];
                 memcpy(squares[0], myDrillSquares[i], 8);
                 
-                DEBUG(("Samp #%d %f %d @ (%d, %d)", i, samples[0], 
+                DEBUG(("Samp #%d %f %d @ (%d, %d)", i, samples[i], 
                     concentrationToPointValsIndex(samples[i]),
                     squares[0][0], squares[0][1] ));
                     
@@ -107,16 +113,18 @@ void loop() {
         for (int i=0; i<TEN_SPAWN_WIDTH; i++) { // iterate over possibleTenSquares
             for (int j=0; j<TEN_SPAWN_HEIGHT; j++) {
                 if (!(i>3 and i<8 and j>5 and j<10)) { // exclude center
-                   
+                    int zeroSquare[2] = {0,0};
                     int square[2];
                     tableLocToSquare(square, i, j);
-                    for (int samp = 0; samp < game.getNumSamplesHeld(); samp++) {
-                        if (distSquared(square, myDrillSquares[samp]) <= 25) {
-                            goto skip; // skip if it's close to samples we already have
+                    if(!infoFound){
+                        for (int samp = 0; samp < game.getNumSamplesHeld(); samp++) {
+                            if (distSquared(square, myDrillSquares[samp]) <= 25 or distSquared(square, zeroSquare) <= 10) {
+                                goto skip; // skip if it's close to samples we already have or close to the center
+                            }
                         }
                     }
+                    // go to the closest point that is a possible ten
                     if (possibleTenSquares[i][j] == '*') {
-                        // unless the game is already well under way
                         float testPos[3];
                         game.square2pos(square, testPos);
                         testPos[2] = 0.65f;
@@ -278,6 +286,9 @@ void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
                                 || ((dist1==1 || dist1==2 || dist2==1 || dist2==2) && scores[idx] == 3) // a 6
                                 || ((dist1==4 || dist1==5 || dist2==4 || dist2==5) && scores[idx] == 2); // a 3
                                 // normal square (1 point) corresponds to 1 and thus will always be false
+                        if(possible){
+                            infoFound = true;    
+                        }
                                 
                         if (dist1 <= 5 || dist2 <= 5) {  // only update cells within the radius of the target
                             possibleTenSquares[i][j] = possible ? '*' : 'x';
