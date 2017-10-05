@@ -39,6 +39,7 @@ void loop(){
     game.pos2square(myPos,mySquare);
     float maxDist=100;//Sets this large
     if (newLoc){
+        DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
             for (int j=-10;j<11;j++){
@@ -59,7 +60,7 @@ void loop(){
         }
         newLoc=false;
     }
-    if (game.getDrills(mySquare)>MAXDRILLS-1 or game.isGeyserHere(mySquare)){
+    if (game.getDrills(mySquare)>MAXDRILLS-1 or game.isGeyserHere(mySquare) or (mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1])){
         newLoc=true;
     }
     DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
@@ -83,7 +84,10 @@ void loop(){
         scale(usefulVec,-1);
         api.setAttRateTarget(usefulVec);
     }
-    if (game.getDrillError() or mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]){
+    if (game.isGeyserHere(mySquare)){
+        newLoc=true;
+    }
+    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and mathVecMagnitude(myVel,3)>0.008f)){
         game.stopDrill();
     }
     if (game.checkSample()){
