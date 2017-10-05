@@ -94,6 +94,9 @@ void init(){
     test[0] = 4;
     test[1] = 4;
     test[2] = 8;
+    
+    memcpy(nextMineSqr, test, 12);
+    
 }
 
 void loop(){
@@ -102,10 +105,42 @@ void loop(){
 	game.getSamplesHeld(samplesHeld);
 	//DEBUG((""));
     if(ifTesting){
-        drillAtSqr((test));
+        if(game.getDrillError()){
+            game.stopDrill();
+        }
+        DEBUG(("%d, %d", nextMineSqr[0], nextMineSqr[1]));
+        game.square2pos(nextMineSqr, positionTarget);
+        positionTarget[2] -= 0.04f + SPHERERADIUS/2.0f;
+        memcpy(tempVec, myAtt, 12);
+        tempVec[2] = 0.0f;
+        api.setAttitudeTarget(tempVec);
+        DEBUG(("Samps (%d)", game.getNumSamplesHeld()));
+        DEBUG(("%f, %f, %f", positionTarget[0], positionTarget[1], positionTarget[2]));
+        //DEBUG(("%d (%f) %d %d", dist(myPos, positionTarget) <= 0.03f, dist(myPos, positionTarget), mathVecMagnitude(myVel, 3) < 0.01f , !game.getDrillEnabled()));
+        if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.04f and !game.getDrillEnabled() and myState[2] > 0.5f and fabsf(myAtt[2]) < 0.06f){
+            DEBUG(("Starting Drill"));
+            game.startDrill();
+        }
+        else if(game.getDrillEnabled()){
+            DEBUG(("Drilling"));
+            drillVec[0] = myState[7];
+            drillVec[1] = -1 * myState[6];
+            drillVec[2] = 0;
+            api.setAttitudeTarget(drillVec);
+            if(game.checkSample()){
+                game.pickupSample();
+                game.getConcentrations(sampVals);
+                DEBUG(("Num samples: %d", game.getNumSamplesHeld()));
+                if(game.getNumSamplesHeld() > 2){
+                    DEBUG(("Stopping Drill"));
+                    game.stopDrill();
+                    
+                }
+            }
+        }
         goto end;
     }
-    if(api.getTime() >= 157 and game.getNumSamplesHeld() > 0){
+    if(api.getTime() >= 150 and game.getNumSamplesHeld() > 0){
         game.stopDrill();
         memcpy(positionTarget, myPos, 12);
         mathVecNormalize(positionTarget, 3);
@@ -173,7 +208,7 @@ void loop(){
                     break;
                     //}
                     bacteriaFound: break;
-                case 1://Pick spot triple drill
+                case 1://Finding bacteria
                     if(drillAtSqr(nextMineSqr)){
                         game.getConcentrations(sampVals);
                         if(sampVals[0] > 0.1f or sampVals[1] > 0.1f){
@@ -187,6 +222,9 @@ void loop(){
                             DEBUG(("sampVals(%f, %f, %f)", sampVals[0], sampVals[1], sampVals[2]));
                             stage = 2;
                             break;
+                        }
+                        else if(game.getNumSamplesHeld() > 1){
+                            //Figure out what to do 
                         }
                         else{
                             memcpy(nextMineSqr, (&pregameDrillSqrs[3][0]), 8);
@@ -387,6 +425,7 @@ void loop(){
                     break;
                 case 4://Mining 10
                     DEBUG(("It's a 10 bb"));
+                    DEBUG(("Oh bb a triple"));
                     game.getConcentrations(sampVals);
                     if(game.getNumSamplesHeld() == 3){
                         memcpy(positionTarget, myPos, 12);
@@ -406,6 +445,7 @@ void loop(){
             }
         }
     }
+    end: 1 + 1;
     if(game.atBaseStation()){
         api.setVelocityTarget(zeroVec);
         game.dropSample(0);
@@ -415,7 +455,6 @@ void loop(){
     if(!game.getDrillEnabled() and myState[11] > 0.037f){
         api.setAttRateTarget(zeroVec);
     }
-    end: 1 + 1;
     //positionTarget[2] *= -1.0f;
     nextMineSqr[2] = 8;
     api.setPositionTarget(positionTarget);
@@ -428,11 +467,13 @@ bool drillAtSqr(int* sqr){
     }
     DEBUG(("%d, %d", sqr[0], sqr[1]));
     game.square2pos(sqr, positionTarget);
-    
     positionTarget[2] -= 0.04f + SPHERERADIUS/2.0f;
+    memcpy(tempVec, myAtt, 12);
+    tempVec[2] = 0.0f;
+    api.setAttitudeTarget(tempVec);
     DEBUG(("%f, %f, %f", positionTarget[0], positionTarget[1], positionTarget[2]));
     //DEBUG(("%d (%f) %d %d", dist(myPos, positionTarget) <= 0.03f, dist(myPos, positionTarget), mathVecMagnitude(myVel, 3) < 0.01f , !game.getDrillEnabled()));
-    if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.04f and !game.getDrillEnabled() and myState[2] > 0.5f){
+    if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.04f and !game.getDrillEnabled() and myState[2] > 0.5f and fabsf(myAtt[2]) < 0.06f){
         DEBUG(("Starting Drill"));
         game.startDrill();
     }
