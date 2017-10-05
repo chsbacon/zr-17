@@ -114,13 +114,13 @@ void loop(){
     else{
         if(pregame){//Pregame preparing
             game.getAnalyzer(pickUp);
-            if(!pickUp[isBlue] and game.hasAnalyzer() - 1 != isBlue){
+            if(!samplesHeld[0]){//Drill at starting position
+                drillAtSqr((&pregameDrillSqrs[0][0]));
+            }
+            else if(!pickUp[isBlue] and game.hasAnalyzer() - 1 != isBlue){
                 memcpy(positionTarget, &analyzer[isBlue], 12);
             }
-            else if(!samplesHeld[0]){//Drill at starting position
-                drillAtSqr((&pregameDrillSqrs[1][0]));
-            }
-            else if(drillAtSqr(&pregameDrillSqrs[0][0])){
+            else if(drillAtSqr(&pregameDrillSqrs[1][0])){
                 pregame = false;
                 game.getConcentrations(sampVals);
                 DEBUG(("ENDING PREGAME"));
@@ -144,7 +144,7 @@ void loop(){
                             memcpy(nextMineSqr, (&pregameDrillSqrs[i][0]), 8);
                             stage = 2;
                             
-                            drillUp = (isBlue) ? i : !i;
+                            drillUp = (!isBlue) ? i : !i;
                             
                             DEBUG(("SEARCHING AT %d", i));
                             DEBUG(("DrillUp = %d", drillUp));
@@ -173,7 +173,7 @@ void loop(){
                     break;
                     //}
                     bacteriaFound: break;
-                case 1://Drilling extra spots to find bacteria
+                case 1://Pick spot triple drill
                     if(drillAtSqr(nextMineSqr)){
                         game.getConcentrations(sampVals);
                         if(sampVals[0] > 0.1f or sampVals[1] > 0.1f){
@@ -422,45 +422,42 @@ void loop(){
 }
 
 //Game specific functions{
-    bool drillAtSqr(int* sqr){
-        if(game.getDrillError()){
-            game.stopDrill();
-        }
-        DEBUG(("%d, %d", sqr[0], sqr[1]));
-        game.square2pos(sqr, positionTarget);
-        positionTarget[2] -= 0.04f + SPHERERADIUS/2.0f;
-        DEBUG(("%f, %f, %f", positionTarget[0], positionTarget[1], positionTarget[2]));
-        //DEBUG(("%d (%f) %d %d", dist(myPos, positionTarget) <= 0.03f, dist(myPos, positionTarget), mathVecMagnitude(myVel, 3) < 0.01f , !game.getDrillEnabled()));
-        if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.037f and !game.getDrillEnabled() and myState[2] > 0.5f){
-            DEBUG(("Starting Drill"));
-            game.startDrill();
-        }
-        else if(game.getDrillEnabled()){
-            DEBUG(("Drilling"));
-            drillVec[0] = myState[7];
-            drillVec[1] = -1 * myState[6];
-            drillVec[2] = 0;
-            api.setAttitudeTarget(drillVec);
-            if(game.checkSample()){
-                DEBUG(("sampsBeforePickup(%f,%f,%f)", searchVals[0], searchVals[1], searchVals[2]));
-                game.pickupSample();
-                game.getConcentrations(sampVals);
-                DEBUG(("sampsAfterPickup(%f,%f,%f)", searchVals[0], searchVals[1], searchVals[2]));
-                DEBUG(("Stopping Drill"));
-                game.stopDrill();
-                return true;
-            }
-        }
-        /*else if(myState[11] > 0.037f){
-            api.setAttRateTarget(zeroVec);
-        }*/
-        return false;
+bool drillAtSqr(int* sqr){
+    if(game.getDrillError()){
+        game.stopDrill();
     }
-    /*while the edge of the SPHERES satellite is within 0.04m of the
-surface but does not crash onto the surface, with the satellite X Axis aligned within 11.25Â° of the
-XY plane. (Reminder: the SPHERES satellite radius is 0.11m, see Section 2.1.1.) The following
-figure illustrates the required start drill conditions:*/
-//}
+    DEBUG(("%d, %d", sqr[0], sqr[1]));
+    game.square2pos(sqr, positionTarget);
+    
+    positionTarget[2] -= 0.04f + SPHERERADIUS/2.0f;
+    DEBUG(("%f, %f, %f", positionTarget[0], positionTarget[1], positionTarget[2]));
+    //DEBUG(("%d (%f) %d %d", dist(myPos, positionTarget) <= 0.03f, dist(myPos, positionTarget), mathVecMagnitude(myVel, 3) < 0.01f , !game.getDrillEnabled()));
+    if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.04f and !game.getDrillEnabled() and myState[2] > 0.5f){
+        DEBUG(("Starting Drill"));
+        game.startDrill();
+    }
+    else if(game.getDrillEnabled()){
+        DEBUG(("Drilling"));
+        drillVec[0] = myState[7];
+        drillVec[1] = -1 * myState[6];
+        drillVec[2] = 0;
+        api.setAttitudeTarget(drillVec);
+        if(game.checkSample()){
+            DEBUG(("sampsBeforePickup(%f,%f,%f)", searchVals[0], searchVals[1], searchVals[2]));
+            game.pickupSample();
+            game.getConcentrations(sampVals);
+            DEBUG(("sampsAfterPickup(%f,%f,%f)", searchVals[0], searchVals[1], searchVals[2]));
+            DEBUG(("Stopping Drill"));
+            game.stopDrill();
+            return true;
+        }
+    }
+    /*else if(myState[11] > 0.037f){
+        api.setAttRateTarget(zeroVec);
+    }*/
+    return false;
+}
+
 //Vector math functions{
     float dist(float* vec1, float* vec2){
         float ansVec[3];
