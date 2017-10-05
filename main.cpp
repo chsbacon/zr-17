@@ -71,6 +71,8 @@ void loop(){
         api.setAttitudeTarget(usefulVec);
         if (!game.getDrillEnabled()){
             game.dropSample(2);
+            game.dropSample(1);
+            game.dropSample(0);
             game.startDrill();
         }
         DEBUG(("Got it"));
@@ -86,8 +88,11 @@ void loop(){
     }
     if (game.checkSample()){
         game.pickupSample();
-        game.stopDrill();
-        newLoc=true;
+        if (game.getNumSamplesHeld()==3){
+            game.stopDrill();
+            newLoc=true;
+        }
+        
     }
     game.dropSample(0);
     
