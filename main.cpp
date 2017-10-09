@@ -50,9 +50,9 @@ void loop(){
                     usefulVec[2]=0.51f;
                     mathVecSubtract(usefulVec,myPos,usefulVec,3);
                     float score=mathVecMagnitude(usefulVec,3)+.05/dist(usefulVec,myPos);
-                    if (score<maxDist and game.getDrills(usefulIntVec)<MAXDRILLS and not game.isGeyserHere(usefulIntVec) and (not game.isGeyserHere(mySquare) or dist(usefulVec,myPos)>.14f)){
+                    if (score<maxDist and game.getDrills(usefulIntVec)<MAXDRILLS and not game.isGeyserHere(usefulIntVec) and i*i+j*j>8){
                         siteCoords[0]=i;siteCoords[1]=j;
-                        DEBUG(("Changed %f", score));
+                        //DEBUG(("Changed %f", score));
                         maxDist = score;
                     }
                 }
@@ -62,10 +62,14 @@ void loop(){
     }
     if (game.getDrills(mySquare)>MAXDRILLS-1 or game.isGeyserHere(mySquare) or (mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1])){
         newLoc=true;
+        DEBUG(("Tripped"));
     }
     DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
     vcoef=.170f;
     game.square2pos(siteCoords,positionTarget);
+    for (int i=0;i<2;i++){
+        positionTarget[i]+=0.035f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
+    }
     positionTarget[2]=0.51f;
     if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and dist(myState,positionTarget)<0.08 and game.getNumSamplesHeld()<3 and not game.getDrillError()){
         usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
@@ -87,12 +91,12 @@ void loop(){
     if (game.isGeyserHere(mySquare)){
         newLoc=true;
     }
-    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and mathVecMagnitude(myVel,3)>0.008f)){
+    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and mathVecMagnitude(myVel,3)>0.006f)){
         game.stopDrill();
     }
     if (game.checkSample()){
         game.pickupSample();
-        if (game.getNumSamplesHeld()==3){
+        if (game.getNumSamplesHeld()==MAXDRILLS){
             game.stopDrill();
             newLoc=true;
         }
@@ -108,25 +112,17 @@ void loop(){
     #define ACCEL .0175f
     mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
-    if (distance > 0.05f) {//If not close, decide on our velocity
+    if (distance > 0.03f) {//If not close, decide on our velocity
         flocal = vcoef;
-        //flocal = 10.f;
-        //flocal=velocity+accel*6.f;
-        //if ( ( fabs(flocal - velocity) > 0.008f)){
-            //DEBUG(("VELOCITY CONTROL : vel = %f  des_vel = %f", velocity, flocal));
-            if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
-                flocal = sqrtf(distance*ACCEL)-.02f;
-                //DEBUG(("Slower"));
-            }
-            scale(fvector, flocal);
-            api.setVelocityTarget(fvector);
-        //}
+        if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
+            flocal = sqrtf(distance*ACCEL)-.02f;
+            //DEBUG(("Slower"));
+        }
+        scale(fvector, flocal);
+        api.setVelocityTarget(fvector);
     }
     else{//If close:
         api.setPositionTarget(destination);
-        //for (int i = 0; i<9; i++) {
-            //game.hasItem(i)==-1?
-        //}
     }
 }
 float dist(float* vec1, float* vec2) {
