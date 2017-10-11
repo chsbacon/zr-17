@@ -1,4 +1,4 @@
-#define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]))
+#define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]))//rotation speed improvements, removed arbitrary drop, changed distance from corner, changed drill to only start if in target square instead of pos-based (and moved pickup to prevent premature stop), geyser-avoiding selection of next point
 float positionTarget[3];
 int targetCoordinates[3];
 float zeroVec[3];
@@ -29,15 +29,30 @@ void init(){
 	#define SPEEDCONST 0.45f
     #define DERIVCONST 2.8f
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
-    api.setAttGains(0.45f,0.1f,2.8f);
+    api.setAttGains(0.6f,0.1f,2.8f);
 	
 }
 
 void loop(){
+    game.pickupSample();
     api.getMyZRState(myState);
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
+    game.square2pos(mySquare,usefulVec);
     float maxDist=100;//Sets this large
+    float modPos[3];
+    memcpy(modPos,myPos,12);
+    for (int i=0;i<2;i++){
+        modPos[i]+=(myPos[i]-usefulVec[i])*5*game.isGeyserHere(usefulIntVec);
+    }    
+    if (game.checkSample()){
+        //game.pickupSample();
+        if (game.getNumSamplesHeld()==MAXDRILLS){
+            game.stopDrill();
+            newLoc=true;
+        }
+        
+    }
     if (newLoc){
         DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
@@ -48,8 +63,8 @@ void loop(){
                     usefulIntVec[0]=i;usefulIntVec[1]=j;usefulIntVec[2]=0;
                     game.square2pos(usefulIntVec,usefulVec);
                     usefulVec[2]=0.51f;
-                    mathVecSubtract(usefulVec,myPos,usefulVec,3);
-                    float score=mathVecMagnitude(usefulVec,3)+.05/dist(usefulVec,myPos);
+                    mathVecSubtract(usefulVec,modPos,usefulVec,3);
+                    float score=mathVecMagnitude(usefulVec,3)+.05/dist(usefulVec,modPos);
                     if (score<maxDist and game.getDrills(usefulIntVec)<MAXDRILLS and not game.isGeyserHere(usefulIntVec) and i*i+j*j>8){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
@@ -71,7 +86,7 @@ void loop(){
         positionTarget[i]+=0.035f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
     }
     positionTarget[2]=0.51f;
-    if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and dist(myState,positionTarget)<0.08 and game.getNumSamplesHeld()<3 and not game.getDrillError()){
+    if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and not game.getDrillError() and (siteCoords[0]==mySquare[0] and siteCoords[1]==mySquare[1])){
         usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
         api.setAttitudeTarget(usefulVec);
         if (!game.getDrillEnabled()){
@@ -91,18 +106,10 @@ void loop(){
     if (game.isGeyserHere(mySquare)){
         newLoc=true;
     }
-    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and mathVecMagnitude(myVel,3)>0.006f)){
+    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) or mathVecMagnitude(myVel,3)>0.006f) or game.getNumSamplesHeld()==MAXDRILLS){
         game.stopDrill();
     }
-    if (game.checkSample()){
-        game.pickupSample();
-        if (game.getNumSamplesHeld()==MAXDRILLS){
-            game.stopDrill();
-            newLoc=true;
-        }
-        
-    }
-    game.dropSample(0);
+    
     
     
     
