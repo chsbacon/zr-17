@@ -43,9 +43,9 @@ void loop(){
     float modPos[3];
     memcpy(modPos,myPos,12);
     for (int i=0;i<2;i++){
-        modPos[i]+=(myPos[i]-usefulVec[i])*5*game.isGeyserHere(usefulIntVec);
+        modPos[i]+=(myPos[i]-usefulVec[i])*7*game.isGeyserHere(usefulIntVec);
     }    
-    if (game.getNumSamplesHeld()==MAXDRILLS or game.isGeyserHere(mySquare)){
+    if (game.getNumSamplesHeld()==MAXDRILLS or game.isGeyserHere(mySquare) or game.getDrills(mySquare)>MAXDRILLS-1){
         game.stopDrill();
         newLoc=true;
     }
@@ -60,8 +60,7 @@ void loop(){
                     usefulIntVec[0]=i;usefulIntVec[1]=j;usefulIntVec[2]=0;
                     game.square2pos(usefulIntVec,usefulVec);
                     usefulVec[2]=0.51f;
-                    mathVecSubtract(usefulVec,modPos,usefulVec,3);
-                    float score=mathVecMagnitude(usefulVec,3)+.05/dist(usefulVec,modPos);
+                    float score=dist(usefulVec,modPos);
                     if (score<maxDist and game.getDrills(usefulIntVec)<MAXDRILLS and not game.isGeyserHere(usefulIntVec) and i*i+j*j>8){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
@@ -71,9 +70,6 @@ void loop(){
             }
         }
         newLoc=false;
-    }
-    if (game.getDrills(mySquare)>MAXDRILLS-1 or game.isGeyserHere(mySquare)){
-        newLoc=true;
     }
     DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
     vcoef=.170f;
