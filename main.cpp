@@ -1,4 +1,4 @@
-#define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]))//rotation speed improvements, removed arbitrary drop, changed distance from corner, changed drill to only start if in target square instead of pos-based (and moved pickup to prevent premature stop), geyser-avoiding selection of next point
+#define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 float positionTarget[3];
 int targetCoordinates[3];
 float zeroVec[3];
@@ -45,14 +45,11 @@ void loop(){
     for (int i=0;i<2;i++){
         modPos[i]+=(myPos[i]-usefulVec[i])*5*game.isGeyserHere(usefulIntVec);
     }    
-    if (game.checkSample()){
-        //game.pickupSample();
-        if (game.getNumSamplesHeld()==MAXDRILLS){
-            game.stopDrill();
-            newLoc=true;
-        }
-        
+    if (game.getNumSamplesHeld()==MAXDRILLS or game.isGeyserHere(mySquare)){
+        game.stopDrill();
+        newLoc=true;
     }
+        
     if (newLoc){
         DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
@@ -75,9 +72,8 @@ void loop(){
         }
         newLoc=false;
     }
-    if (game.getDrills(mySquare)>MAXDRILLS-1 or game.isGeyserHere(mySquare) or (mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1])){
+    if (game.getDrills(mySquare)>MAXDRILLS-1 or game.isGeyserHere(mySquare)){
         newLoc=true;
-        DEBUG(("Tripped"));
     }
     DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
     vcoef=.170f;
@@ -95,16 +91,12 @@ void loop(){
             game.dropSample(0);
             game.startDrill();
         }
-        DEBUG(("Got it"));
         
     }
     else{
         memcpy(usefulVec,myRot,12);
         scale(usefulVec,-1);
         api.setAttRateTarget(usefulVec);
-    }
-    if (game.isGeyserHere(mySquare)){
-        newLoc=true;
     }
     if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) or mathVecMagnitude(myVel,3)>0.006f) or game.getNumSamplesHeld()==MAXDRILLS){
         game.stopDrill();
