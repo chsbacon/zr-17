@@ -18,6 +18,8 @@ float enState[12];
 #define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
 
+#define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
+#define PRINT_VEC_I(str, vec) DEBUG(("%s %d %d %d",str, vec[0], vec[1], vec[2]))
 //}
 
 //Variable declarations{
@@ -64,7 +66,7 @@ void init(){
 	analyzer[1][2] = -0.36;
 	
     memset(zeroVec, 0, 12);
-    memset(searchVals, 0, 12);
+    memset(searchVals, 0, 16);
     
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f,0.1f,2.8f);
@@ -73,38 +75,38 @@ void init(){
     
     //game.pos2square(myPos, nextMineSquare);
     
-    pregameDrillSqrs[0][0] = (isBlue) ? 5 : -5;
-    pregameDrillSqrs[0][1] = (isBlue) ? 2 : -2;
+    pregameDrillSqrs[0][0] = (isBlue) ? -4 : 4;
+    pregameDrillSqrs[0][1] = (isBlue) ? 7 : -7;
     pregameDrillSqrs[0][2] = 8;
-    //5, 2
-    pregameDrillSqrs[1][0] = (isBlue) ? -4 : 4;
-    pregameDrillSqrs[1][1] = (isBlue) ? 7 : -7;
-    pregameDrillSqrs[1][2] = 8;
     //-4, 7
-    pregameDrillSqrs[2][0] = (isBlue) ? -5 : 5;
-    pregameDrillSqrs[2][1] = (isBlue) ? 2 : -2;
-    pregameDrillSqrs[2][2] = 8;
+    pregameDrillSqrs[1][0] = (isBlue) ? -5 : 5;
+    pregameDrillSqrs[1][1] = (isBlue) ? 2 : -2;
+    pregameDrillSqrs[1][2] = 8;
     //-5, 2
-    pregameDrillSqrs[3][0] = (isBlue) ? -1 : 1;
-    pregameDrillSqrs[3][1] = (isBlue) ? 5 : -5;
-    pregameDrillSqrs[3][2] = 8;
+    pregameDrillSqrs[2][0] = (isBlue) ? -1 : 1;
+    pregameDrillSqrs[2][1] = (isBlue) ? 5 : -5;
+    pregameDrillSqrs[2][2] = 8;
     //-1, 5
-    pregameDrillSqrs[4][0] = (isBlue) ? 2 : -2;
-    pregameDrillSqrs[4][1] = (isBlue) ? 7 : -7;
-    pregameDrillSqrs[4][2] = 8;
+    pregameDrillSqrs[3][0] = (isBlue) ? 2 : -2;
+    pregameDrillSqrs[3][1] = (isBlue) ? 7 : -7;
+    pregameDrillSqrs[3][2] = 8;
     //2, 7
-    pregameDrillSqrs[5][0] = (isBlue) ? 5 : -5;
-    pregameDrillSqrs[5][1] = (isBlue) ? 6 : -6;
-    pregameDrillSqrs[5][2] = 8;
+    pregameDrillSqrs[4][0] = (isBlue) ? 5 : -5;
+    pregameDrillSqrs[4][1] = (isBlue) ? 6 : -6;
+    pregameDrillSqrs[4][2] = 8;
     //5, 6
-    pregameDrillSqrs[6][0] = (isBlue) ? 3 : -3;
-    pregameDrillSqrs[6][1] = (isBlue) ? 4 : -4;
-    pregameDrillSqrs[6][2] = 8;
+    pregameDrillSqrs[5][0] = (isBlue) ? 3 : -3;
+    pregameDrillSqrs[5][1] = (isBlue) ? 4 : -4;
+    pregameDrillSqrs[5][2] = 8;
     //3, 4
-    pregameDrillSqrs[7][0] = (isBlue) ? -6 : 6;
-    pregameDrillSqrs[7][1] = (isBlue) ? 5 : -5;
-    pregameDrillSqrs[7][2] = 8;
+    pregameDrillSqrs[6][0] = (isBlue) ? -6 : 6;
+    pregameDrillSqrs[6][1] = (isBlue) ? 5 : -5;
+    pregameDrillSqrs[6][2] = 8;
     //-6, 5
+    pregameDrillSqrs[7][0] = (isBlue) ? 5 : -5;
+    pregameDrillSqrs[7][1] = (isBlue) ? 2 : -2;
+    pregameDrillSqrs[7][2] = 8;
+    //5, 2
     
     //nextMineSqr[0] = 4 + (-8 * !isBlue);
     //nextMineSqr[1] = 4 + (-8 * !isBlue);
@@ -120,64 +122,79 @@ void init(){
     zPlusVec[2] = -1.0f;
     
     ifTesting = 0;
+    
     test[0] = 4;
     test[1] = 4;
     test[2] = 8;
     
     memcpy(nextMineSqr, test, 12);
-    
 }
 
 void loop(){
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
-	game.getSamplesHeld(samplesHeld);
+	game.getSamplesHeld(samplesHeld);	
 	//DEBUG((""));
     if(ifTesting){
-        if(game.getDrillError()){
-            game.stopDrill();
-        }
-        if(game.getNumSamplesHeld() == 3){
-            memcpy(positionTarget, zeroVec, 12);
-            api.setAttitudeTarget(zPlusVec);//point at -z
-            if(game.atBaseStation()){
-                //api.setVelocityTarget(zeroVec);
-                game.dropSample(0);
-                game.dropSample(1);
-                game.dropSample(2);
-            }
-            goto end;
-            //break;
-        }
-        DEBUG(("%d, %d", nextMineSqr[0], nextMineSqr[1]));
-        game.square2pos(nextMineSqr, positionTarget);
-        positionTarget[2] -= 0.04f + SPHERERADIUS/2.0f;
-        memcpy(tempVec, myAtt, 12);
-        tempVec[2] = 0.0f;
-        api.setAttitudeTarget(tempVec);
-        DEBUG(("Samps (%d)", game.getNumSamplesHeld()));
-        DEBUG(("%f, %f, %f", positionTarget[0], positionTarget[1], positionTarget[2]));
-        //DEBUG(("%d (%f) %d %d", dist(myPos, positionTarget) <= 0.03f, dist(myPos, positionTarget), mathVecMagnitude(myVel, 3) < 0.01f , !game.getDrillEnabled()));
-        if(dist(myPos, positionTarget) < .03f and mathVecMagnitude(myVel, 3) < 0.01f and myState[11] < 0.04f and !game.getDrillEnabled() and myState[2] > 0.5f and fabsf(myAtt[2]) < 0.06f){
-            DEBUG(("Starting Drill"));
-            game.startDrill();
-        }
-        else if(game.getDrillEnabled()){
-            DEBUG(("Drilling"));
-            drillVec[0] = myState[7];
-            drillVec[1] = -1 * myState[6];
-            drillVec[2] = 0;
-            api.setAttitudeTarget(drillVec);
-            if(game.checkSample()){
-                game.pickupSample();
+        DEBUG(("%s %.1f %.1f %.1f %.1f","search", searchVals[0], searchVals[1], searchVals[2], searchVals[3]));
+        if(searchVals[0] == 0.0f){
+            if(drillAtSqr(nextMineSqr)){
                 game.getConcentrations(sampVals);
-                DEBUG(("Num samples: %d", game.getNumSamplesHeld()));
-                if(game.getNumSamplesHeld() > 2){
-                    DEBUG(("Stopping Drill"));
-                    game.stopDrill();
-                    
+                if(sampVals[0] == 1.0f){
+                    stage = 2;
+                    goto end;
+                    //break;
                 }
+                nextMineSqr[1] += (isBlue) ? -1 : 1;
+                searchVals[0] = sampVals[0];
+                game.dropSample(0);
             }
+        }
+        if(searchVals[1] == 0.0f){
+            if(drillAtSqr(nextMineSqr)){
+                game.getConcentrations(sampVals);
+                if(sampVals[1] == 1.0f){
+                    stage = 2;
+                    goto end;
+                    //break;
+                }
+                nextMineSqr[0] += (isBlue) ? 1 : -1;
+                nextMineSqr[1] += (isBlue) ? 1 : -1;
+                searchVals[1] = sampVals[0];
+                game.dropSample(0);
+            }
+        }
+        else if(searchVals[2] == 0.0f){
+            if(drillAtSqr(nextMineSqr)){
+                game.getConcentrations(sampVals);
+                if(sampVals[2] == 1.0f){
+                    stage = 2;
+                    goto end;
+                    //break;
+                }
+                nextMineSqr[0] += (isBlue) ? 1 : -1;
+                nextMineSqr[1] += (isBlue) ? -2 : 2;
+                searchVals[2] = sampVals[0];
+                game.dropSample(0);
+            }
+        }
+        else if(searchVals[3] == 0.0f){
+            if(drillAtSqr(nextMineSqr)){
+                game.getConcentrations(sampVals);
+                if(sampVals[3] == 1.0f){
+                    stage = 2;
+                    goto end;
+                    //break;
+                }
+                
+                searchVals[3] = sampVals[0];
+                game.dropSample(0);
+            }
+        }
+        
+        else{
+            DEBUG(("Finding the ten bb"));
+            DEBUG(("%s %.1f %.1f %.1f %.1f","These are the vals", searchVals[0], searchVals[1], searchVals[2], searchVals[3]));
         }
         goto end;
     }
@@ -186,15 +203,12 @@ void loop(){
         memcpy(positionTarget, myPos, 12);
         mathVecNormalize(positionTarget, 3);
         scale(positionTarget, 0.14f);
+        api.setAttitudeTarget(zPlusVec);//point at -z
     }
     else{
         DEBUG(("STAGE(%d)", stage));
         switch(stage){
             case 0://Pregame drilling
-                if(pregameDrillSpot == 0){
-                    pregameDrillSpot = drillAtSqr(&pregameDrillSqrs[0][0]);
-                    break;
-                }
                 game.getAnalyzer(pickUp);
                 if(!pickUp[isBlue] and game.hasAnalyzer() - 1 != isBlue){
                     memcpy(positionTarget, &analyzer[isBlue], 12);
@@ -202,7 +216,7 @@ void loop(){
                 else{
                     if(drillAtSqr(&pregameDrillSqrs[pregameDrillSpot][0])){
                         game.getConcentrations(sampVals);
-                        if(sampVals[game.getNumSamplesHeld()] > 0.1f){
+                        if(sampVals[0] > 0.1f){
                             if(sampVals[game.getNumSamplesHeld()] == 1.0f){
                                 stage = 2;
                                 break;
@@ -211,29 +225,32 @@ void loop(){
                             searchVals[0] = sampVals[game.getNumSamplesHeld()];
                             DEBUG(("ENDING PREGAME"));
                             memcpy(nextMineSqr, &pregameDrillSqrs[pregameDrillSpot][0], 12);
+                            nextMineSqr[1] += (isBlue) ? -1 : 1;
                             stage = 1;
                             break;
                         }
                         else{
+                            game.dropSample(0); game.dropSample(1); game.dropSample(2);//drop all samples
                             pregameDrillSpot++;
                         }
                     }
                 }
                 break;
             case 1://Finding the 10
-                if(searchVals[1] == 0.0f){
+                DEBUG(("%s %.1f %.1f %.1f %.1f","search", searchVals[0], searchVals[1], searchVals[2], searchVals[3]));
+                /*if(searchVals[0] == 0.0f){
                     if(drillAtSqr(nextMineSqr)){
                         game.getConcentrations(sampVals);
-                        if(sampVals[1] == 1.0f){
+                        if(sampVals[0] == 1.0f){
                             stage = 2;
                             break;
                         }
-                        nextMineSqr[0] += (isBlue) ? -1 : 1;
-                        searchVals[1] = sampVals[0];
+                        nextMineSqr[1] += (isBlue) ? -1 : 1;
+                        searchVals[0] = sampVals[0];
                         game.dropSample(0);
                     }
-                }
-                else if(searchVals[2] == 0.0f){
+                }*/
+                if(searchVals[1] == 0.0f){
                     if(drillAtSqr(nextMineSqr)){
                         game.getConcentrations(sampVals);
                         if(sampVals[1] == 1.0f){
@@ -242,6 +259,19 @@ void loop(){
                         }
                         nextMineSqr[0] += (isBlue) ? 1 : -1;
                         nextMineSqr[1] += (isBlue) ? 1 : -1;
+                        searchVals[1] = sampVals[0];
+                        game.dropSample(0);
+                    }
+                }
+                else if(searchVals[2] == 0.0f){
+                    if(drillAtSqr(nextMineSqr)){
+                        game.getConcentrations(sampVals);
+                        if(sampVals[2] == 1.0f){
+                            stage = 2;
+                            break;
+                        }
+                        nextMineSqr[0] += (isBlue) ? -1 : 1;
+                        nextMineSqr[1] += (isBlue) ? 2 : -2;
                         searchVals[2] = sampVals[0];
                         game.dropSample(0);
                     }
@@ -249,24 +279,25 @@ void loop(){
                 else if(searchVals[3] == 0.0f){
                     if(drillAtSqr(nextMineSqr)){
                         game.getConcentrations(sampVals);
-                        if(sampVals[1] == 1.0f){
+                        if(sampVals[3] == 1.0f){
                             stage = 2;
                             break;
                         }
-                        nextMineSqr[0] += (isBlue) ? 1 : -1;
-                        nextMineSqr[1] += (isBlue) ? -2 : 2;
+                        
                         searchVals[3] = sampVals[0];
                         game.dropSample(0);
                     }
                 }
+                
                 else{
-                    //finding the 10 with given spots
+                    DEBUG(("Finding the ten bb"));
+                    DEBUG(("%s %.1f %.1f %.1f %.1f","These are the vals", searchVals[0], searchVals[1], searchVals[2], searchVals[3]));
                 }
                 break;
             case 2://Mining the 10
                 DEBUG(("It's a 10 bb"));
                 DEBUG(("Oh bb a triple"));
-                else if(game.isGeyserHere(nextMineSqr) and api.getTime() <= 120){
+                if(game.isGeyserHere(nextMineSqr) and api.getTime() <= 120){
                     nextMineSqr[0] *= -1;
                     nextMineSqr[1] *= -1;
                 }
@@ -322,7 +353,7 @@ void loop(){
         api.setAttRateTarget(zeroVec);
     }
     
-    #define destination positionTarget//This (next 20 or so lines) is movement code.
+    /*#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
     float distance,flocal,fvector[3];
     #define ACCEL .0175f
@@ -347,7 +378,7 @@ void loop(){
         //for (int i = 0; i<9; i++) {
             //game.hasItem(i)==-1?
         //}
-    }
+    }*/
     
     //positionTarget[2] *= -1.0f;
     nextMineSqr[2] = 8;
