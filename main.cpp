@@ -1,6 +1,5 @@
-//{"sha":"d8e0a43485410962f0709c68d98868511c08dbe7"}
 
-//Standard defines{
+
 float myState[12];
 float enState[12];
 
@@ -17,7 +16,7 @@ float enState[12];
 #define SPHERERADIUS 0.11f
 #define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
-//}
+
 
 //Variable declarations{
 //float analyzer[2][6];
@@ -79,32 +78,24 @@ bool moveDrill(int drillSquare[2]) {
     drillLoc[2] = .52;
     memcpy(tempVec, myAtt, 12);
     tempVec[2] = 0;
-        
-    if((game.getDrills(drillLoc) < 3 && !game.checkSample() == true)^(game.checkSample() == true)) {
+
+    if((game.getDrills(drillLoc) < 4 and !game.checkSample())xor(game.checkSample())) {
         api.setPositionTarget(drillLoc);
-        api.setAttRateTarget(zeroVec);
-        if(dist(myPos, drillLoc) < .01) {
+        api.setAttitudeTarget(tempVec); 
+        
+        if(dist(myPos, drillLoc) < 0.01f) {
             api.setVelocityTarget(zeroVec);
-            api.setAttitudeTarget(tempVec);  
-            if(mathVecMagnitude(myVel, 3) < .01 && angle(tempVec, myAtt) < .19634f) {
+            api.setAttRateTarget(zeroVec); 
+            if(mathVecMagnitude(myVel, 3) < 0.01 and angle(tempVec, myAtt) < .19634f) {
                 //checks to make sure the sphere is stopped and looking within the right constraints 
-                if(game.getDrillEnabled() == false && dist(myRot, zeroVec) < .01f) {
+                if(game.getDrillEnabled() == false and dist(myRot, zeroVec) < 0.01f) {
                     //if the drill is off and our sphere is not moving, start drilling
                     game.startDrill();
-                    /*memcpy(drillStartVec, myAtt, 12);
-                    drillStartVec[2] = 0;
-                    mathVecCross(endDrillVec, spinVec, drillStartVec);*/
                     DEBUG(("Drilling..."));
                 }
-                if(game.getDrillEnabled() == true) {
+                if(game.getDrillEnabled()) {
                     // if the drill is on, spin!!!
-                    //angleToComplete = ((2*3.1415) - angle(myAtt, endDrillVec));
-                    spinVec[0] = 0;
-                    //spinVec[2] = 2*sin((1/3)*angleToComplete);
-                    spinVec[1] = 0;
-                    spinVec[2] = .4;
                     api.setAttRateTarget(spinVec);
-                    //DEBUG(("%f", (180/3.1415)*angleToComplete));
                     DEBUG(("Spinning..."));
                 }
                 if(game.isGeyserHere(drillSquare)) {
@@ -116,14 +107,18 @@ bool moveDrill(int drillSquare[2]) {
                     // see a sample, pick it up
                     game.pickupSample();
                     DEBUG(("Picking up..."));
+                    return true;
                     if(game.getNumSamplesHeld() == 3) {
                         //at 3 samples, stop drilling, this is subject to change
                         game.stopDrill();
                         DEBUG(("Stopping Drill..."));
-                        return true;
+                        
                     }
                 }
             }
+        }
+        else if(game.getDrillEnabled()) {
+            game.stopDrill();
         }
     }
     else {
