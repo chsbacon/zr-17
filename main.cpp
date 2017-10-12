@@ -40,6 +40,9 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT];
 float vcoef;
 float positionTarget[3];
 float zeroVec[3];
+int currentSqr[2];
+float currentSqrCenter[3];
+float vecFromCurrentSqrCenter[3];
 
 void init() {
     infoFound = false;
@@ -141,6 +144,16 @@ void loop() {
         drillAtSqr(drillSquare); // drill at the spot we picked
     }
     
+    if(game.isGeyserHere(currentSqr)){
+        game.stopDrill();
+        DEBUG(("Avoiding Geyser"));
+        
+        currentSqrCenter[2] = myPos[2];
+        mathVecSubtract(vecFromCurrentSqrCenter, myPos, currentSqrCenter, 3);
+        scale(vecFromCurrentSqrCenter, 3);
+        memcpy(positionTarget, vecFromCurrentSqrCenter, 12);
+    }
+    
     if (enDeltaScore == 1.0f || enDeltaScore == 2.0f || enDeltaScore == 3.0f){ // Possible score gains from drilling
         DEBUG(("Enemy just drilled")); // @TODO make this based on rotatation to account for 4th drill in a single spot
         game.pos2square(enPos, enDrillSquares[enDrillNumSinceDrop]);
@@ -191,13 +204,19 @@ void loop() {
 }
 
 bool drillAtSqr(int* sqr){
+    
     if (game.getDrillError()){
         game.stopDrill();
     }
+    if(game.isGeyserHere(sqr)){
+        return false;
+    }
     DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
     game.square2pos(sqr, positionTarget);
+    
+    
     positionTarget[2] = 0.51;
-    positionTarget[0] += 0.03;
+    positionTarget[0] += 0.03; //shifts from center of square to improve geyser dodging
     positionTarget[1] += 0.03;
 
     if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
