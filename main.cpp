@@ -40,7 +40,7 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT];
 float vcoef;
 float positionTarget[3];
 float zeroVec[3];
-int currentSqr[2];
+int currentSqr[3];
 float currentSqrCenter[3];
 float vecFromCurrentSqrCenter[3];
 
@@ -48,7 +48,7 @@ void init() {
     infoFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
-    vcoef = 0.130; // A coefficient for our movement speed
+    vcoef = 0.120; // A coefficient for our movement speed
     
     myScore = 0.0f; // initialized because
     enScore = 0.0f; // we use these to calculate change in score
@@ -77,7 +77,9 @@ void loop() {
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
-    
+    game.pos2square(myPos, currentSqr);
+    game.square2pos(currentSqr, currentSqrCenter);
+    mathVecSubtract(vecFromCurrentSqrCenter, myPos, currentSqrCenter, 3);
     //if they are guarding drill other squares
     if (game.getNumSamplesHeld() == 3 || api.getTime() > 150) {
     // at some point, we should be more thoughtful about this logic
@@ -218,7 +220,7 @@ bool drillAtSqr(int* sqr){
     positionTarget[2] = 0.51;
     
 
-    if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
+    if (dist(myPos, positionTarget) < 0.04f and 0.64f-myPos[2] < 0.14f and mathVecMagnitude(myVel, 3) < 0.01f
     and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
         DEBUG(("Starting Drill"));
         game.startDrill();
@@ -234,8 +236,8 @@ bool drillAtSqr(int* sqr){
             return true;
         }
     }
-    positionTarget[0] += 0.03; //shifts from center of square to improve geyser dodging
-    positionTarget[1] += 0.03;
+    positionTarget[0] += 0.02; //shifts from center of square to improve geyser dodging
+    positionTarget[1] += 0.02;
     return false;
 }
 
