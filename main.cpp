@@ -39,12 +39,17 @@ bool drillUp;
 bool keepSearching;
 float drillSide;
 float spinVec[3];
+float xVec[3];
 int difDrill[2];
 
 void init(){
     spinVec[0] = 0.0f;
     spinVec[1] = 0.0f;
     spinVec[2] = 0.4f;
+    
+    xVec[0] = 1;
+    xVec[1] = 0;
+    xVec[2] = 0;
     
     vcoef=.154;//A coefficient for our movement speed
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
@@ -81,20 +86,17 @@ bool moveDrill(int drillSquare[2]) {
     memcpy(drillStartVec, myAtt, 12);
     drillStartVec[2] = 0;
     game.square2pos(drillSquare, drillLoc);
-    drillLoc[2] = .53;
+    drillLoc[2] = .52;
     mathVecCross(endDrillVec, spinVec, drillStartVec);
-    
+    //api.setAttitudeTarget(xVec);
+        
     if((game.getDrills(drillLoc) < 3 && !game.checkSample() == true)^(game.checkSample() == true)) {
         api.setPositionTarget(drillLoc);
-        spinVec[0] = 1;
-        spinVec[1] = 0;
-        spinVec[2] = 0;
+        api.setAttRateTarget(zeroVec);
         
-        api.setAttitudeTarget(spinVec);
-        
-        if(dist(myPos, drillLoc) < .04 && dist(myAtt, spinVec) < .04) {
+        if(dist(myPos, drillLoc) < .01) {
             api.setVelocityTarget(zeroVec);
-            api.setAttRateTarget(zeroVec);
+            
            
             if(mathVecMagnitude(myVel, 3) < .01) {
                 if(game.getDrillEnabled() == false && dist(myRot, zeroVec) < .01f) {
@@ -106,11 +108,11 @@ bool moveDrill(int drillSquare[2]) {
                 if(game.getDrillEnabled() == true) {
                     angleToComplete = ((2*3.1415) - angle(myAtt, endDrillVec));
                     spinVec[0] = 0;
-                    spinVec[2] = .5*cos((1/3)*angleToComplete);
+                    //spinVec[2] = 2*sin((1/3)*angleToComplete);
                     spinVec[1] = 0;
-                    //spinVec[2] = .5;
+                    spinVec[2] = .4;
                     api.setAttRateTarget(spinVec);
-                    DEBUG(("%f", angleToComplete));
+                    DEBUG(("%f", (180/3.1415)*angleToComplete));
                     DEBUG(("Spinning..."));
                 }
                 if(game.isGeyserHere(drillSquare)) {
