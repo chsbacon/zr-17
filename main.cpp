@@ -197,6 +197,8 @@ bool drillAtSqr(int* sqr){
     DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
     game.square2pos(sqr, positionTarget);
     positionTarget[2] = 0.51;
+    positionTarget[0] += 0.03;
+    positionTarget[1] += 0.03;
 
     if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
     and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
