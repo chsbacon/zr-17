@@ -48,7 +48,7 @@ void init() {
     infoFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
-    vcoef = 0.154; // A coefficient for our movement speed
+    vcoef = 0.130; // A coefficient for our movement speed
     
     myScore = 0.0f; // initialized because
     enScore = 0.0f; // we use these to calculate change in score
@@ -216,14 +216,15 @@ bool drillAtSqr(int* sqr){
     
     
     positionTarget[2] = 0.51;
-    positionTarget[0] += 0.03; //shifts from center of square to improve geyser dodging
-    positionTarget[1] += 0.03;
+    
 
     if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
     and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
         DEBUG(("Starting Drill"));
         game.startDrill();
     }
+    positionTarget[0] += 0.03; //shifts from center of square to improve geyser dodging
+    positionTarget[1] += 0.03;
     else if (game.getDrillEnabled()) {
         DEBUG(("Drilling"));
         float drillVec[3] = { myAtt[1], -myAtt[0], 0};
