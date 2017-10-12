@@ -223,8 +223,6 @@ bool drillAtSqr(int* sqr){
         DEBUG(("Starting Drill"));
         game.startDrill();
     }
-    positionTarget[0] += 0.03; //shifts from center of square to improve geyser dodging
-    positionTarget[1] += 0.03;
     else if (game.getDrillEnabled()) {
         DEBUG(("Drilling"));
         float drillVec[3] = { myAtt[1], -myAtt[0], 0};
@@ -236,6 +234,8 @@ bool drillAtSqr(int* sqr){
             return true;
         }
     }
+    positionTarget[0] += 0.03; //shifts from center of square to improve geyser dodging
+    positionTarget[1] += 0.03;
     return false;
 }
 
