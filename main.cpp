@@ -71,7 +71,6 @@ void loop() {
     // Update state
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
-	float myDeltaScore = game.getScore() - myScore;
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
@@ -172,7 +171,7 @@ void loop() {
 	if (enDeltaScore >= 2.5f && enDeltaScore != 3.0f) { // if they got points, but only drop-off points, not drilling points
 	    DEBUG(("enemy dropped samples off for a total increase of: %f", enDeltaScore));
 	    int numSamples = enDrillNumSinceDrop>3 ? 3 : enDrillNumSinceDrop;
-	    int enBatchPointVals[numSamples];
+	    int enBatchPointVals[3];
 	        // stores which indices in the pointVals array
 	        // that correspond to sample concentration values
 	    pointValues(enBatchPointVals, enDeltaScore, numSamples);
@@ -355,6 +354,7 @@ int concentrationToPointValsIndex(float concentration) {
             return i;
         }
     }
+    return -1;
 }
 //Vector math functions {
 float dist(float* vec1, float* vec2) {
