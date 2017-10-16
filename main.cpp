@@ -45,10 +45,6 @@ void loop(){
     for (int i=0;i<2;i++){
         modPos[i]+=(myPos[i]-usefulVec[i])*7*game.isGeyserHere(usefulIntVec);
     }    
-    if (game.getNumSamplesHeld()==MAXDRILLS or game.isGeyserHere(mySquare) or game.getDrills(mySquare)>MAXDRILLS-1){
-        game.stopDrill();
-        newLoc=true;
-    }
         
     if (newLoc){
         DEBUG(("reselecting"));
@@ -77,25 +73,27 @@ void loop(){
     for (int i=0;i<2;i++){
         positionTarget[i]+=0.035f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
     }
-    positionTarget[2]=0.51f;
-    if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and not game.getDrillError() and (siteCoords[0]==mySquare[0] and siteCoords[1]==mySquare[1])){
+    positionTarget[2]=0.33f;
+    if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and not game.getDrillError() and (siteCoords[0]==mySquare[0] and siteCoords[1]==mySquare[1]) and game.getNumSamplesHeld()<5){
         usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
         api.setAttitudeTarget(usefulVec);
         if (!game.getDrillEnabled()){
-            game.dropSample(2);
-            game.dropSample(1);
-            game.dropSample(0);
             game.startDrill();
         }
-        
     }
     else{
+        if (game.getNumSamplesHeld()>4){
+            for (int i=0;i<5;i++){
+                game.dropSample(i);
+            }
+        }
         memcpy(usefulVec,myRot,12);
         scale(usefulVec,-1);
         api.setAttRateTarget(usefulVec);
     }
-    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) or mathVecMagnitude(myVel,3)>0.006f) or game.getNumSamplesHeld()==MAXDRILLS){
+    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) or mathVecMagnitude(myVel,3)>0.006f) or game.getNumSamplesHeld()==5 or game.isGeyserHere(mySquare) or game.getDrills(mySquare)>MAXDRILLS-1){
         game.stopDrill();
+        newLoc=true;
     }
     
     
