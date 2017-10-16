@@ -47,7 +47,7 @@ void loop(){
         DEBUG(("%f",(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare)));
     }    
         
-    if (newLoc){
+    if (newLoc and !game.checkSample()){
         DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
@@ -71,11 +71,12 @@ void loop(){
     vcoef=.170f;
     if (game.getNumSamplesHeld()<5){
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+        DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
         for (int i=0;i<2;i++){
-            positionTarget[i]+=0.035f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
+            positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
         }
-        positionTarget[2]=0.34f;
+        positionTarget[2]=0.35f;
         if (mathVecMagnitude(myVel,3)<.01 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and not game.getDrillError() and (siteCoords[0]==mySquare[0] and siteCoords[1]==mySquare[1])){
             usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
             api.setAttitudeTarget(usefulVec);
