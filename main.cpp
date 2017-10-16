@@ -43,6 +43,7 @@ float spinVec[3];
 int difDrill[2];
 float endDrillVec[3];
 
+
 void init(){
     spinVec[0] = 0.0f;
     spinVec[1] = 0.0f;
@@ -93,19 +94,26 @@ void loop(){
 
 bool moveDrill(int drillSquare[2]) {
     float drillLoc[3];
+    
+    #define SATELLITE_DRILL_LOOK_ANGLE .19634f
+    #define VELOCITY_STOPPED 0.01f
+    #define POSITION_CLOSE 0.01f
+    #define ROTATION_STOPPED 0.01f
+    #define MAX_DRILLS_ON_SQUARE 4
+    
     game.square2pos(drillSquare, drillLoc);
     drillLoc[2] = .34;
     memcpy(tempVec, myAtt, 12);
     tempVec[2] = 0;
-    if((game.getDrills(drillLoc) < 4 and !game.checkSample())xor(game.checkSample())) {
+    if((game.getDrills(drillLoc) < MAX_DRILLS_ON_SQUARE and !game.checkSample())xor(game.checkSample())) {
         memcpy(positionTarget, drillLoc, 12);
         api.setAttitudeTarget(tempVec); 
-        if(dist(myPos, drillLoc) < 0.01f) {
+        if(dist(myPos, drillLoc) < POSITION_CLOSE) {
             api.setVelocityTarget(zeroVec);
             api.setAttRateTarget(zeroVec); 
-            if(mathVecMagnitude(myVel, 3) < 0.01 and angle(tempVec, myAtt) < .19634f) {
+            if(mathVecMagnitude(myVel, 3) < VELOCITY_STOPPED and angle(tempVec, myAtt) < SATELLITE_DRILL_LOOK_ANGLE) {
                 //checks to make sure the sphere is stopped and looking within the right constraints 
-                if(game.getDrillEnabled() == false and dist(myRot, zeroVec) < 0.01f) {
+                if(game.getDrillEnabled() == false and dist(myRot, zeroVec) < ROTATION_STOPPED) {
                     //if the drill is off and our sphere is not moving, start drilling
                     game.startDrill();
                     DEBUG(("Drilling..."));
