@@ -117,10 +117,10 @@ void loop(){
     #define ACCEL .0175f
     mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
-    if (distance > 0.04f) {//If not close, decide on our velocity
+    if (distance > 0.05f) {//If not close, decide on our velocity
         flocal = vcoef;
-        if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
-            flocal = sqrtf(distance*ACCEL)-.02f;
+        if (flocal*flocal/ACCEL>distance-.01f){//Cap on how fast we go
+            flocal = sqrtf(distance*ACCEL)-.01f;
             //DEBUG(("Slower"));
         }
         scale(fvector, flocal);
