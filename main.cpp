@@ -44,6 +44,7 @@ float zeroVec[3];
 #define SURFACE_Z 0.48f
 int sampNum;
 int drillSquare[2]; // Will eventually store the optimal drilling square
+float drillSquarePos[2];
 
 void init() {
     infoFound = false;
@@ -79,10 +80,11 @@ void loop() {
 	enScore = game.getOtherScore();
     #define Byte unsigned char
     //if they are guarding drill other squares
+    game.square2pos(drillSquare,drillSquarePos);
     if (game.getNumSamplesHeld() == 5 
     or api.getTime() > 150 
     or (game.getNumSamplesHeld() >= 2 
-    and angle((Byte*)myPos, (Byte*)&drillSquare, 2) > 2.8f)) {
+    and angle(myPos, drillSquarePos, 2) > 2.8f)) {
         // @mleblang is working on improving this logic
         DEBUG(("Heading back to base"));
         float dropOffAtt[3] = {0.0f, 0.0f, -1.0f};
@@ -407,9 +409,9 @@ float dist(float* vec1, float* vec2) {
 int distSquared(int* vec1, int* vec2) {
     return mathSquare(vec1[0]-vec2[0]) + mathSquare(vec1[1]-vec2[1]);
 }
-float angle(unsigned char* vec1, unsigned char* vec2, int length){
-    return acosf(mathVecInner((float*)&vec1, (float*)&vec2, length)
-        / (mathVecMagnitude((float*)&vec1, length) * mathVecMagnitude((float*)&vec2, length)));
+float angle(float* vec1, float* vec2, int len){
+    return acosf(mathVecInner(vec1, vec2, len)
+        / (mathVecMagnitude(vec1, len) * mathVecMagnitude(vec2, len)));
 }
 void scale(float* vec, float scale){
     for (int i=0; i<3; i++)
