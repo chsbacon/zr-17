@@ -1,5 +1,7 @@
 
 
+#define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
+#define PRINT_VEC_I(str, vec) DEBUG(("%s %d %d %d",str, vec[0], vec[1], vec[2]))
 float myState[12];
 float enState[12];
 
@@ -61,28 +63,43 @@ void init(){
 void loop(){
     api.getMyZRState(myState);
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
-    if(moveDrill(difDrill)) {
+    if(moveDrill(difDrill) && game.getNumSamplesHeld() == 3) {
         difDrill[0]--;
         difDrill[1]--;
     }
     moveDrill(difDrill);
+    
+    //PRINT_VEC_F("positionTarget", positionTarget);
+	// Movement code
+	float distance,flocal,fvector[3];
+    #define ACCEL 0.0175f
+    mathVecSubtract(fvector, positionTarget, myPos, 3); // vector from us to the target
+    distance = mathVecNormalize(fvector, 3); // distance to target
+    if (distance > 0.05f) { // If not close, pick a velocity
+        flocal = vcoef;
+        if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
+            flocal = sqrtf(distance*ACCEL)-.02f;
+            //DEBUG(("Slower"));
+        }
+        scale(fvector, flocal);
+        api.setVelocityTarget(fvector);
+    }
+    else {// if we are very close
+        api.setPositionTarget(positionTarget);
+    }
+  
 	//This function is called once per second.  Use it to control the satellite.
 }
 
 bool moveDrill(int drillSquare[2]) {
     float drillLoc[3];
-    float drillStartVec[3];
-    float angleToComplete;
-    //float angleToComplete;
     game.square2pos(drillSquare, drillLoc);
-    drillLoc[2] = .52;
+    drillLoc[2] = .34;
     memcpy(tempVec, myAtt, 12);
     tempVec[2] = 0;
-
     if((game.getDrills(drillLoc) < 4 and !game.checkSample())xor(game.checkSample())) {
-        api.setPositionTarget(drillLoc);
+        memcpy(positionTarget, drillLoc, 12);
         api.setAttitudeTarget(tempVec); 
-        
         if(dist(myPos, drillLoc) < 0.01f) {
             api.setVelocityTarget(zeroVec);
             api.setAttRateTarget(zeroVec); 
@@ -108,12 +125,6 @@ bool moveDrill(int drillSquare[2]) {
                     game.pickupSample();
                     DEBUG(("Picking up..."));
                     return true;
-                    if(game.getNumSamplesHeld() == 3) {
-                        //at 3 samples, stop drilling, this is subject to change
-                        game.stopDrill();
-                        DEBUG(("Stopping Drill..."));
-                        
-                    }
                 }
             }
         }
