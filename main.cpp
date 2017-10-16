@@ -43,7 +43,8 @@ void loop(){
     float modPos[3];
     memcpy(modPos,myPos,12);
     for (int i=0;i<2;i++){
-        modPos[i]+=(myPos[i]-usefulVec[i])*7*game.isGeyserHere(usefulIntVec);
+        modPos[i]+=(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare);
+        DEBUG(("%f",(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare)));
     }    
         
     if (newLoc){
@@ -55,7 +56,7 @@ void loop(){
                     //DEBUG(("%i %i",i,j));
                     usefulIntVec[0]=i;usefulIntVec[1]=j;usefulIntVec[2]=0;
                     game.square2pos(usefulIntVec,usefulVec);
-                    usefulVec[2]=0.51f;
+                    usefulVec[2]=0.34f;
                     float score=dist(usefulVec,modPos);
                     if (score<maxDist and game.getDrills(usefulIntVec)<MAXDRILLS and not game.isGeyserHere(usefulIntVec) and i*i+j*j>8){
                         siteCoords[0]=i;siteCoords[1]=j;
@@ -67,29 +68,40 @@ void loop(){
         }
         newLoc=false;
     }
-    DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
     vcoef=.170f;
-    game.square2pos(siteCoords,positionTarget);
-    for (int i=0;i<2;i++){
-        positionTarget[i]+=0.035f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
-    }
-    positionTarget[2]=0.33f;
-    if (mathVecMagnitude(myVel,3)<.008 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and not game.getDrillError() and (siteCoords[0]==mySquare[0] and siteCoords[1]==mySquare[1]) and game.getNumSamplesHeld()<5){
-        usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
-        api.setAttitudeTarget(usefulVec);
-        if (!game.getDrillEnabled()){
-            game.startDrill();
+    if (game.getNumSamplesHeld()<5){
+        DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+        game.square2pos(siteCoords,positionTarget);
+        for (int i=0;i<2;i++){
+            positionTarget[i]+=0.035f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
         }
+        positionTarget[2]=0.34f;
+        if (mathVecMagnitude(myVel,3)<.01 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and not game.getDrillError() and (siteCoords[0]==mySquare[0] and siteCoords[1]==mySquare[1])){
+            usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
+            api.setAttitudeTarget(usefulVec);
+            if (!game.getDrillEnabled()){
+                game.startDrill();
+            }
+        }
+        else{
+            memcpy(usefulVec,myRot,12);
+            scale(usefulVec,-1);
+            usefulVec[2]=-.3*myAtt[2];
+            api.setAttRateTarget(usefulVec);
+        }
+       
     }
     else{
-        if (game.getNumSamplesHeld()>4){
+        memcpy(positionTarget,myPos,12);
+        scale(positionTarget,.23f/mathVecMagnitude(myPos,3));
+        zeroVec[2]-=1;
+        api.setAttitudeTarget(zeroVec);
+        zeroVec[2]+=1;
+        if (game.atBaseStation()){
             for (int i=0;i<5;i++){
                 game.dropSample(i);
             }
         }
-        memcpy(usefulVec,myRot,12);
-        scale(usefulVec,-1);
-        api.setAttRateTarget(usefulVec);
     }
     if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) or mathVecMagnitude(myVel,3)>0.006f) or game.getNumSamplesHeld()==5 or game.isGeyserHere(mySquare) or game.getDrills(mySquare)>MAXDRILLS-1){
         game.stopDrill();
@@ -105,7 +117,7 @@ void loop(){
     #define ACCEL .0175f
     mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
-    if (distance > 0.03f) {//If not close, decide on our velocity
+    if (distance > 0.04f) {//If not close, decide on our velocity
         flocal = vcoef;
         if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
             flocal = sqrtf(distance*ACCEL)-.02f;
