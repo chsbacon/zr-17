@@ -105,7 +105,7 @@ bool moveDrill(int drillSquare[2]) {
     drillLoc[2] = .34;
     memcpy(tempVec, myAtt, 12);
     tempVec[2] = 0;
-    if((game.getDrills(drillLoc) < MAX_DRILLS_ON_SQUARE and !game.checkSample())xor(game.checkSample())) {
+    if((game.getDrills(drillLoc) < MAX_DRILLS_ON_SQUARE or game.checkSample())) {
         memcpy(positionTarget, drillLoc, 12);
         api.setAttitudeTarget(tempVec); 
         if(dist(myPos, drillLoc) < POSITION_CLOSE) {
