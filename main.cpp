@@ -43,7 +43,7 @@ void loop(){
     float modPos[3];
     memcpy(modPos,myPos,12);
     for (int i=0;i<2;i++){
-        modPos[i]+=(myPos[i]-usefulVec[i])*7*game.isGeyserHere(usefulIntVec);
+        modPos[i]+=(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare);
     }    
         
     if (newLoc){
