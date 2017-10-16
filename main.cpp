@@ -41,6 +41,9 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT]; // stores whether
 float vcoef;
 float positionTarget[3]; // where we're going
 float zeroVec[3];
+#define SURFACE_Z 0.48f
+int sampNum;
+int drillSquare[2]; // Will eventually store the optimal drilling square
 
 void init() {
     infoFound = false;
@@ -74,9 +77,12 @@ void loop() {
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
-    
+    #define Byte unsigned char
     //if they are guarding drill other squares
-    if (game.getNumSamplesHeld() == 5 || api.getTime() > 150) {
+    if (game.getNumSamplesHeld() == 5 
+    or api.getTime() > 150 
+    or (game.getNumSamplesHeld() >= 2 
+    and angle((Byte*)myPos, (Byte*)&drillSquare, 2) > 2.8f)) {
         // @mleblang is working on improving this logic
         DEBUG(("Heading back to base"));
         float dropOffAtt[3] = {0.0f, 0.0f, -1.0f};
@@ -88,13 +94,13 @@ void loop() {
         scale(positionTarget, 0.14f - SPHERE_RADIUS);
         
         if(game.atBaseStation()) {
-            float samples[5] = {game.dropSample(0),
-                game.dropSample(1), game.dropSample(2),
-                game.dropSample(3), game.dropSample(4)};
+            sampNum = game.getNumSamplesHeld();
+            float samples[sampNum];
                 // store the concentrations from each sample
                 
-            for (int i = 0; i < 5; i++) { // for each sample
+            for (int i = 0; i < sampNum; i++) { // for each sample
                 // Format the data for updateTenSquares
+                samples[i] = game.dropSample(i);
                 int squares[1][2];
                 memcpy(squares[0], myDrillSquares[i], 8);
                 
@@ -112,7 +118,6 @@ void loop() {
         float drillAtt[3] = {1.0f, 0.0f, 0.0f};
         api.setAttitudeTarget(drillAtt); // direction requirement for drilling
         
-        int drillSquare[2]; // Will eventually store the optimal drilling square
         float minDist = 10; // Stores points for that square for comparisons
 
         for (int i=0; i<TEN_SPAWN_WIDTH; i++) { // iterate over possibleTenSquares
@@ -216,7 +221,7 @@ bool drillAtSqr(int* sqr){
     }
     DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
     game.square2pos(sqr, positionTarget);
-    positionTarget[2] = 0.37;
+    positionTarget[2] = 0.35;
 
     if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
     and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
@@ -402,9 +407,9 @@ float dist(float* vec1, float* vec2) {
 int distSquared(int* vec1, int* vec2) {
     return mathSquare(vec1[0]-vec2[0]) + mathSquare(vec1[1]-vec2[1]);
 }
-float angle(float* vec1, float* vec2){
-    return acosf(mathVecInner(vec1, vec2, 3)
-        / (mathVecMagnitude(vec1, 3) * mathVecMagnitude(vec2, 3)));
+float angle(unsigned char* vec1, unsigned char* vec2, int length){
+    return acosf(mathVecInner((float*)&vec1, (float*)&vec2, length)
+        / (mathVecMagnitude((float*)&vec1, length) * mathVecMagnitude((float*)&vec2, length)));
 }
 void scale(float* vec, float scale){
     for (int i=0; i<3; i++)
