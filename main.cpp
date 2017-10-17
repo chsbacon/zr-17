@@ -122,7 +122,7 @@ void loop(){
     if (game.getDrillError() 
     or ((mySquare[0]!=siteCoords[0] 
     or mySquare[1]!=siteCoords[1]) 
-    or mathVecMagnitude(myVel,3)>0.006f) 
+    or mathVecMagnitude(myVel,3)>0.009f) 
     or game.getNumSamplesHeld()==5 
     or game.isGeyserHere(mySquare) 
     or game.getDrills(mySquare)>MAXDRILLS-1){
@@ -130,7 +130,7 @@ void loop(){
         newLoc=true;
     }
     
-    
+
     
     
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
@@ -141,8 +141,8 @@ void loop(){
     distance = mathVecNormalize(fvector, 3);
     if (distance > 0.05f) {//If not close, decide on our velocity
         flocal = vcoef;
-        if (flocal*flocal/ACCEL>distance-.01f){//Cap on how fast we go
-            flocal = sqrtf(distance*ACCEL)-.01f;
+        if (flocal*flocal/ACCEL>distance-.015f){//Cap on how fast we go
+            flocal = sqrtf(distance*ACCEL)-.015f;
             //DEBUG(("Slower"));
         }
         scale(fvector, flocal);
