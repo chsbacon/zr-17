@@ -18,6 +18,7 @@ float enState[12];
 #define MAXDRILLS 3
 int siteCoords[3];
 bool newLoc;
+bool dropping;
 //are described in their names, and act as length-3 float arrays
 
 float vcoef;
@@ -30,6 +31,7 @@ void init(){
     #define DERIVCONST 2.8f
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.6f,0.1f,2.8f);
+    dropping=false;
 	
 }
 
@@ -39,6 +41,7 @@ void loop(){
         for (int i=0;i<5;i++){
             game.dropSample(i);
         }
+        dropping=false;
     }
     api.getMyZRState(myState);
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
@@ -77,8 +80,11 @@ void loop(){
         newLoc=false;
     }
     vcoef=.170f;
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()>150 and api.getTime()<153) or (game.getFuelRemaining() < .15f and game.getFuelRemaining() > .12f))){
+        dropping=true;
+    }
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if (game.getNumSamplesHeld()<5 and (game.getFuelRemaining() > .15f or (game.getNumSamplesHeld() <= 1 and dist(myPos, zeroVec) > .1f))){//Second to last condition is redundant
+    if (game.getNumSamplesHeld()<5 and not dropping){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
