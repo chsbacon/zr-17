@@ -35,6 +35,11 @@ void init(){
 
 void loop(){
     game.pickupSample();
+    if (game.atBaseStation()){
+        for (int i=0;i<5;i++){
+            game.dropSample(i);
+        }
+    }
     api.getMyZRState(myState);
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
@@ -119,13 +124,8 @@ void loop(){
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
         zeroVec[2]+=1;
-        if (game.atBaseStation()){
-            for (int i=0;i<5;i++){
-                game.dropSample(i);
-            }
-        }
     }
-    //if our drill breaks or we get a geyer or a bunch of other shit, stop the current drill
+    //if our drill breaks or we get a geyser, stop the current drill
     if (game.getDrillError() 
     or ((mySquare[0]!=siteCoords[0] 
     or mySquare[1]!=siteCoords[1]) 
