@@ -78,11 +78,9 @@ void loop() {
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
-    #define Byte unsigned char
     //if they are guarding drill other squares
     game.square2pos(drillSquare,drillSquarePos);
     if (game.getNumSamplesHeld() == 5 
-    or api.getTime() > 150 
     or (game.getNumSamplesHeld() >= 2 
     and angle(myPos, drillSquarePos, 2) > 2.8f)) {
         // @mleblang is working on improving this logic
@@ -97,7 +95,7 @@ void loop() {
         
         if(game.atBaseStation()) {
             sampNum = game.getNumSamplesHeld();
-            float samples[sampNum];
+            float samples[5];
                 // store the concentrations from each sample
                 
             for (int i = 0; i < sampNum; i++) { // for each sample
@@ -165,7 +163,7 @@ void loop() {
         drillAtSqr(drillSquare); // drill at the spot we picked
     }
     
-    if (enDeltaScore == 1.0f || enDeltaScore == 2.0f || enDeltaScore == 3.0f){
+    if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
         // Possible score gains from drilling
         DEBUG(("Enemy just drilled"));
         if (enDrillSquaresIdx>2) enDrillSquaresIdx = 0;
@@ -176,7 +174,7 @@ void loop() {
         enDrillSquaresIdx++;
     }
 	
-	if (enDeltaScore >= 2.5f && enDeltaScore != 3.0f) { // if they got points, but only drop-off points, not drilling points
+	if (enDeltaScore >= 2.5f and enDeltaScore != 3.0f) { // if they got points, but only drop-off points, not drilling points
 	    DEBUG(("enemy dropped samples off for a total increase of: %f", enDeltaScore));
 	    int numSamples = enDrillNumSinceDrop>5 ? 5 : enDrillNumSinceDrop;
 	    int enBatchPointVals[5];
@@ -295,7 +293,7 @@ void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
     for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // column
         for (int r=0; r<TEN_SPAWN_HEIGHT; r++) { // row
             if (possibleTenSquares[c][r] != 'x' // only check things we haven't ruled out yet
-                && !(c>3 and c<8 and r>5 and r<10) ) { // exclude center
+                and !(c>3 and c<8 and r>5 and r<10) ) { // exclude center
                 
                 possibleTenSquares[c][r] = 'x';
                 for (int scoreIdx = 0; scoreIdx < batchSize; scoreIdx++) {
@@ -306,11 +304,11 @@ void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
                         break;
                     }
                 }
-                int scoreOrder[5];
+                int scoreOrder[5]; // initialize order as 0, 1, 2, ... batchSize-1
                 for (int i = 0; i < batchSize; i++) {
                     scoreOrder[i] = i;
                 }
-                int perm[5];
+                int perm[5]; // current permutation of score and location
                 do {
                     // go through each permutation of score and location
                     for (int i = 0; i<batchSize; i++) {
@@ -328,15 +326,15 @@ void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
                         int dist2 = distSquared(testTen, mirrorSquare);
                         
                         // next we determine if i,j being the bullseye is consistent with this square/score pairing
-                        bool possible = ((dist1 == 0 || dist2 == 0) && perm[idx] == 3) // a 10
-                                || ((dist1==1 || dist1==2 || dist2==1 || dist2==2) && perm[idx] == 2) // a 6
-                                || ((dist1==4 || dist1==5 || dist2==4 || dist2==5) && perm[idx] == 1); // a 3
+                        bool possible = ((dist1 == 0 or dist2 == 0) and perm[idx] == 3) // a 10
+                                or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
+                                or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
                                 // normal square (1 point) corresponds to 1 and thus will always be false
                         if(possible){
                             infoFound = true;    
                         }
                                 
-                        if (dist1 <= 5 || dist2 <= 5) {  // only update cells within the radius of the target
+                        if (dist1 <= 5 or dist2 <= 5) {  // only update cells within the radius of the target
                             possibleTenSquares[c][r] = possible ? '*' : 'x';
                         }
                     }
@@ -379,7 +377,7 @@ int concentrationToPointValsIndex(float concentration) {
 bool nextPermutation(int* a, int n) {
     // Find the largest index k such that a[k] < a[k + 1]. If no such index exists, the permutation is the last permutation.
     for (int k = n-1; k >= 0; k--) {
-        if (a[k] < a[k +1]) {
+        if (a[k] < a[k + 1]) {
             // Find the largest index l greater than k such that a[k] < a[l].
             for (int l = n-1; l > k; l--) {
                 if (a[k] < a[l]) {
@@ -388,10 +386,10 @@ bool nextPermutation(int* a, int n) {
                     a[l] = a[k];
                     a[k] = temp1;
                     // Reverse the sequence from a[k + 1] up to and including the final element a[n].
-                    for (int s = k+1; s < n; s++) {
-                        int temp2 = a[s];
-                        a[s] = a[n-s];
-                        a[n-s] = a[s];
+                    for (int s = 0; s < (n - (k+1))/2; s++) {
+                        int temp2 = a[s+k+1];
+                        a[s+k+1] = a[n-1-s];
+                        a[n-1-s] = temp2;
                     }
                     return true;
                 }
