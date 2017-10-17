@@ -110,13 +110,6 @@ void loop(){
         }
        
     }
-    //if we have no samples and not a lot of fuel and are already at the base, go to the origin to break ties
-    else if (game.getNumSamplesHeld() == 0){
-        float endPos[3];
-        memcpy(endPos, myPos, 12);
-        scale(endPos, (180 - api.getTime()) * .02f);
-        memcpy(positionTarget, endPos, 12);
-    }
     //otherwise, drop off our samples
     else{
         memcpy(positionTarget,myPos,12);
