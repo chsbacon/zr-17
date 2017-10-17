@@ -79,13 +79,14 @@ void loop(){
         game.square2pos(siteCoords,positionTarget);
         //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
-            positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
+            //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
+            positionTarget[i]+=0.033f*(siteCoords[i]>0^siteCoords[i]%2>0^game.isGeyserHere(mySquare)?-1:1);//can use xor for codesize
         }
         //set this to go to the surface
         positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
-        if (mathVecMagnitude(myVel,3)<.01
-        and (mathVecMagnitude(myRot,3)<.04 
+        if (mathVecMagnitude(myVel,3)<.01f
+        and (mathVecMagnitude(myRot,3)<.04f 
         or game.getDrillEnabled()) 
         and not game.getDrillError() 
         and (siteCoords[0]==mySquare[0] 
