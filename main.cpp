@@ -80,7 +80,7 @@ void loop(){
         newLoc=false;
     }
     vcoef=.170f;
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()>150 and api.getTime()<153) or (game.getFuelRemaining() < .15f and game.getFuelRemaining() > .12f))){
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .15f and game.getFuelRemaining() > .12f))){
         dropping=true;
     }
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
@@ -91,7 +91,7 @@ void loop(){
         //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.033f*(siteCoords[i]>0^siteCoords[i]%2>0^game.isGeyserHere(mySquare)?-1:1);//can use xor for codesize
+            positionTarget[i]+=0.033f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(game.isGeyserHere(mySquare))?-1:1);
         }
         //set this to go to the surface
         positionTarget[2]=0.35f;
@@ -109,10 +109,9 @@ void loop(){
             }
         }
         else{
-            memcpy(usefulVec,myRot,12);
-            scale(usefulVec,-1);
-            usefulVec[2]=-.4f*myAtt[2];
-            api.setAttRateTarget(usefulVec);
+            memcpy(usefulVec,myAtt,12);
+            usefulVec[2]=0;
+            api.setAttitudeTarget(usefulVec);
         }
        
     }
