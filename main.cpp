@@ -58,7 +58,10 @@ void loop(){
                     game.square2pos(usefulIntVec,usefulVec);
                     usefulVec[2]=0.34f;
                     float score=dist(usefulVec,modPos);
-                    if (score<maxDist and game.getDrills(usefulIntVec)<MAXDRILLS and not game.isGeyserHere(usefulIntVec) and i*i+j*j>8){
+                    if (score<maxDist 
+                    and game.getDrills(usefulIntVec)<MAXDRILLS 
+                    and not game.isGeyserHere(usefulIntVec) 
+                    and i*i+j*j>8){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -69,15 +72,24 @@ void loop(){
         newLoc=false;
     }
     vcoef=.170f;
-    if (game.getNumSamplesHeld()<5){
+    //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
+    if (game.getNumSamplesHeld()<5 and (game.getFuelRemaining() > .15f or (game.getNumSamplesHeld() <= 1 and dist(myPos, zeroVec) > .1f))){
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
+        //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
             positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
         }
+        //set this to go to the surface
         positionTarget[2]=0.35f;
-        if (mathVecMagnitude(myVel,3)<.01 and (mathVecMagnitude(myRot,3)<.04 or game.getDrillEnabled()) and not game.getDrillError() and (siteCoords[0]==mySquare[0] and siteCoords[1]==mySquare[1])){
+        //if we are on the right square and all the conditions line up, start spinning and drilling
+        if (mathVecMagnitude(myVel,3)<.01
+        and (mathVecMagnitude(myRot,3)<.04 
+        or game.getDrillEnabled()) 
+        and not game.getDrillError() 
+        and (siteCoords[0]==mySquare[0] 
+        and siteCoords[1]==mySquare[1])){
             usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
             api.setAttitudeTarget(usefulVec);
             if (!game.getDrillEnabled()){
@@ -92,6 +104,14 @@ void loop(){
         }
        
     }
+    //if we have no samples and not a lot of fuel and are already at the base, go to the origin to break ties
+    else if (game.getNumSamplesHeld() == 0){
+        float endPos[3];
+        memcpy(endPos, myPos, 12);
+        scale(endPos, (180 - api.getTime()) * .02f);
+        memcpy(positionTarget, endPos, 12);
+    }
+    //otherwise, drop off our samples
     else{
         memcpy(positionTarget,myPos,12);
         scale(positionTarget,.23f/mathVecMagnitude(myPos,3));
@@ -104,7 +124,14 @@ void loop(){
             }
         }
     }
-    if (game.getDrillError() or ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) or mathVecMagnitude(myVel,3)>0.006f) or game.getNumSamplesHeld()==5 or game.isGeyserHere(mySquare) or game.getDrills(mySquare)>MAXDRILLS-1){
+    //if our drill breaks or we get a geyer or a bunch of other shit, stop the current drill
+    if (game.getDrillError() 
+    or ((mySquare[0]!=siteCoords[0] 
+    or mySquare[1]!=siteCoords[1]) 
+    or mathVecMagnitude(myVel,3)>0.006f) 
+    or game.getNumSamplesHeld()==5 
+    or game.isGeyserHere(mySquare) 
+    or game.getDrills(mySquare)>MAXDRILLS-1){
         game.stopDrill();
         newLoc=true;
     }
@@ -131,6 +158,7 @@ void loop(){
         api.setPositionTarget(destination);
     }
 }
+
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
     mathVecSubtract(ansVec, vec1, vec2, 3);
