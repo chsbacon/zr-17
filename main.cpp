@@ -73,7 +73,7 @@ void loop(){
     }
     vcoef=.170f;
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if (game.getNumSamplesHeld()<5 and (game.getFuelRemaining() > .15f or (game.getNumSamplesHeld() <= 1 and dist(myPos, zeroVec) > .1f))){
+    if (game.getNumSamplesHeld()<5 and (game.getFuelRemaining() > .15f or (game.getNumSamplesHeld() <= 1 and dist(myPos, zeroVec) > .1f))){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
@@ -100,7 +100,7 @@ void loop(){
         else{
             memcpy(usefulVec,myRot,12);
             scale(usefulVec,-1);
-            usefulVec[2]=-.3*myAtt[2];
+            usefulVec[2]=-.4f*myAtt[2];
             api.setAttRateTarget(usefulVec);
         }
        
