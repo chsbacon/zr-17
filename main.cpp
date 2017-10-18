@@ -46,11 +46,16 @@ int sampNum;
 int drillSquare[2]; // Will eventually store the optimal drilling square
 float drillSquarePos[2];
 
+int currentSqr[3];
+float currentSqrCenter[3];
+float vecFromCurrentSqrCenter[3];
+
+
 void init() {
     infoFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
-    vcoef = 0.154; // A coefficient for our movement speed
+    vcoef = 0.120; // A coefficient for our movement speed
     
     myScore = 0.0f; // initialized because
     enScore = 0.0f; // we use these to calculate change in score
@@ -78,6 +83,11 @@ void loop() {
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
+	
+	game.pos2square(myPos, currentSqr);
+    game.square2pos(currentSqr, currentSqrCenter);
+    mathVecSubtract(vecFromCurrentSqrCenter, myPos, currentSqrCenter, 3);
+    
     //if they are guarding drill other squares
     game.square2pos(drillSquare,drillSquarePos);
     if (game.getNumSamplesHeld() == 5 
@@ -163,12 +173,22 @@ void loop() {
         drillAtSqr(drillSquare); // drill at the spot we picked
     }
     
+    if(game.isGeyserHere(currentSqr)){ //if there's a geyser in our square
+        game.stopDrill();
+        DEBUG(("Avoiding Geyser"));
+        
+        currentSqrCenter[2] = myPos[2];
+        mathVecSubtract(vecFromCurrentSqrCenter, myPos, currentSqrCenter, 3);
+        scale(vecFromCurrentSqrCenter, 3);
+        memcpy(positionTarget, vecFromCurrentSqrCenter, 12); //run directly away from the center
+    }
+    
     if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
         // Possible score gains from drilling
         DEBUG(("Enemy just drilled"));
-        if (enDrillSquaresIdx>2) enDrillSquaresIdx = 0;
-            // wrap, so that if they drill more than three before drop-off,
-            // we only catch the last three
+        if (enDrillSquaresIdx>4) enDrillSquaresIdx = 0;
+            // wrap, so that if they drill more than five before drop-off,
+            // we only catch the last five
         game.pos2square(enPos, enDrillSquares[enDrillSquaresIdx]);
         enDrillNumSinceDrop++;
         enDrillSquaresIdx++;
@@ -219,11 +239,14 @@ bool drillAtSqr(int* sqr){
     if (game.getDrillError()){
         game.stopDrill();
     }
+    if(game.isGeyserHere(sqr)){
+        return false;
+    }
     DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
     game.square2pos(sqr, positionTarget);
-    positionTarget[2] = 0.35;
+    positionTarget[2] = SURFACE_Z - 0.12f;
 
-    if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
+    if (dist(myPos, positionTarget) < 0.03f and positionTarget[2]-myPos[2] < 0.02 and mathVecMagnitude(myVel, 3) < 0.01f
     and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
         DEBUG(("Starting Drill"));
         game.startDrill();
@@ -239,6 +262,9 @@ bool drillAtSqr(int* sqr){
             return true;
         }
     }
+    positionTarget[0] += 0.02; //shifts from center of square to improve geyser dodging
+    positionTarget[1] += 0.02;
+
     return false;
 }
 
