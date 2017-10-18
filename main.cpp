@@ -1,5 +1,5 @@
 
-//Standard defines {
+//Standard defines
 float myState[12];
 float enState[12];
 
@@ -16,10 +16,9 @@ float enState[12];
 #define SPHERE_RADIUS 0.11f
 #define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
-//}
+
 // DEBUG shorthand functions (F is for floats, I is for ints)
 #define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
-#define PRINT_VEC_I(str, vec) DEBUG(("%s %d %d %d",str, vec[0], vec[1], vec[2]))
 
 float myScore;
 float enScore;
@@ -38,36 +37,36 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT]; // stores whether
     // '*' : possible ten spot
     // 'x' : impossible ten spot
 
-float vcoef;
+float vcoef; // A coefficient for our movement speed
 float positionTarget[3]; // where we're going
-float zeroVec[3];
+float zeroVec[3]; // (0,0,0) -- just a convenience thing
 #define SURFACE_Z 0.48f
-int sampNum;
 int drillSquare[2]; // Will eventually store the optimal drilling square
-float drillSquarePos[2];
 
 void init() {
     infoFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
-    vcoef = 0.154; // A coefficient for our movement speed
+    vcoef = 0.154; 
     
     myScore = 0.0f; // initialized because
     enScore = 0.0f; // we use these to calculate change in score
     
     // Initialize pointVals to contain the points gained from each concentration
+    // Later, indices in pointVals will be used in lieu of the score
+    // or concentration value by reason of convenience
     pointVals[0] = 2.5f; // 1
     pointVals[1] = 3.5f; // 3
     pointVals[2] = 5.0f; // 6
     pointVals[3] = 7.0f; // 10
     
     // Reset enemy-awareness variables
-    memset(enDrillSquares, 0, 24);
     enDrillNumSinceDrop = 0;
     enDrillSquaresIdx = 0;
 
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
+        // including the center lmao, but we ignore it
     memset(zeroVec, 0, 12);
 }
 
@@ -78,23 +77,24 @@ void loop() {
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
-    //if they are guarding drill other squares
+	int sampNum = game.getNumSamplesHeld();
+	
+    float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if (game.getNumSamplesHeld() == 5 
-    or (game.getNumSamplesHeld() >= 2 
-    and angle(myPos, drillSquarePos, 2) > 2.8f)) {
-        // @mleblang is working on improving this logic
+    if (sampNum == 5 
+    or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3] = {0.0f, 0.0f, -1.0f};
         api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
             // direction in order to drop off
         
+        // Go the closest point that is a specifed dist from the origin
         memcpy(positionTarget, myPos, 12);
         mathVecNormalize(positionTarget, 3);
-        scale(positionTarget, 0.14f - SPHERE_RADIUS);
+        #define DROP_OFF_RADIUS_TARGET 0.23f
+        scale(positionTarget, DROP_OFF_RADIUS_TARGET);
         
         if(game.atBaseStation()) {
-            sampNum = game.getNumSamplesHeld();
             float samples[5];
                 // store the concentrations from each sample
                 
@@ -104,13 +104,11 @@ void loop() {
                 int squares[1][2];
                 memcpy(squares[0], myDrillSquares[i], 8);
                 
-                DEBUG(("Samp #%d %f %d @ (%d, %d)", i+1, samples[i], 
-                    concentrationToPointValsIndex(samples[i]),
+                DEBUG(("Samp #%d %f score: %f @ (%d, %d)", i+1, samples[i],
+                    (5 * samples[i] + 2),
                     squares[0][0], squares[0][1] ));
-                    
-                int scores[1];
-                scores[0] = concentrationToPointValsIndex(samples[i]);
-                updateTenSquares(squares, scores, 1);
+                    // 5 * samples[i] + 2
+                updateTenSquares(squares, 5 * samples[i] + 2, 1);
             }
         }
     }
@@ -118,55 +116,105 @@ void loop() {
         float drillAtt[3] = {1.0f, 0.0f, 0.0f};
         api.setAttitudeTarget(drillAtt); // direction requirement for drilling
         
-        float minDist = 10; // Stores points for that square for comparisons
-
-        for (int i=0; i<TEN_SPAWN_WIDTH; i++) { // iterate over possibleTenSquares
-            for (int j=0; j<TEN_SPAWN_HEIGHT; j++) {
-                if (!(i>3 and i<8 and j>5 and j<10)) { // exclude center
+        #define LARGE_NUMBER 10.0f
+            // while we're hunting, any possible square will do
+        #define PROXIMITY_REQUIREMENT 0.453f
+            // if infoFound, it must be within 1 ten radius
+            // square width * dist from one end of concentration to the other
+            // 0.08 * sqrt(4^2,4^2)
+        // If no possible squares are closer than minDist, then we will
+        // default to last loop's drill spot
+        // (this will only be the case when we found the ten)
+        float minDist = infoFound ? PROXIMITY_REQUIREMENT : LARGE_NUMBER;
+        DEBUG(("myDrillSquares"));
+        DEBUG(("(%d %d) (%d %d) (%d %d)",myDrillSquares[0][0],myDrillSquares[0][1],
+        myDrillSquares[1][0],myDrillSquares[1][1],myDrillSquares[2][0],myDrillSquares[2][1]));
+        DEBUG(("sampNum: %d", sampNum));
+        for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
+            for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
+                if (possibleTenSquares[c][r]) { // exclude center
                     int zeroSquare[2] = {0,0};
                     
-                    // Store (i,j) as a square
+                    // Store (col,row) as a square
                     int square[2];
-                    tableLocToSquare(square, i, j);
-
-                    if(!infoFound){ // if we have not found a 3,6, or 10,
-                        // we don't want our samples to give overlapping info
-                        for (int samp=0; samp<game.getNumSamplesHeld(); samp++) {
-                            int mirrorSquare[2] = {-myDrillSquares[samp][0],
-                                -myDrillSquares[samp][1]};
-                                // reflect across the origin
-                            if (distSquared(square, myDrillSquares[samp]) <= 22
-                            or distSquared(square, mirrorSquare) <= 22
-                            or distSquared(square, zeroSquare) <= 10) {
-                                goto skip; // skip if it's close to samples
-                                // we already have or close to the center
-                            }
+                    tableLocToSquare(square, c, r);
+                    
+                    float testPos[3];
+                    game.square2pos(square, testPos);
+                    testPos[2] = SURFACE_Z;
+                    float distance = dist(myPos, testPos);
+                    
+                    // Go over samples we already have to make sure
+                    // this spot isn't too close to them
+                    for (int samp=0; samp<sampNum; samp++) {
+                        int mirrorSquare[2] = {-myDrillSquares[samp][0],
+                            -myDrillSquares[samp][1]};
+                            // reflect across the origin
+                        #define HUNTING_DRILL_SPACING 22
+                            // when we're hunting, we want widely spaced
+                            // drill spots, so info doesn't overlap
+                        #define EXCLUDE_RADIUS 0
+                            // once we find info, don't drill in the same spot
+                            // unless no other spots are possible
+                        #define CENTER_INFO_RADIUS 10
+                            // tens can't spawn in the center, so we want our
+                            // info to not include any of that area
+                        #define CENTER_KEEPAWAY_RADIUS 4
+                            // even if the ten is close to the center,
+                            // we still don't want to drill the center itself
+        
+                        if (distSquared(square, myDrillSquares[samp])
+                        <= (infoFound ? EXCLUDE_RADIUS : HUNTING_DRILL_SPACING)
+                            // if close to a previous drill spot 
+                        or distSquared(square, mirrorSquare) <= HUNTING_DRILL_SPACING
+                            // or that drill spot reflected across the origin
+                        or distSquared(square, zeroSquare)
+                        <= (infoFound ? CENTER_KEEPAWAY_RADIUS : CENTER_INFO_RADIUS)) {
+                            // or too close to the center
+                            goto skip;
+                                // ignore `square` as a potential drill spot
                         }
                     }
                     // go to the closest point that is a possible ten
-                    if (possibleTenSquares[i][j] == '*') { // if possible 10
-                        float testPos[3];
-                        game.square2pos(square, testPos);
-                        testPos[2] = 0.48f; // set z position to surface
-                        float distance = dist(myPos, testPos);
-                        if (distance < minDist) { // if this one is closer
-                            // than the closest so far
-                            // Make it the new closest
-                            memcpy(drillSquare, square, 8);
-                            minDist = distance;
-                        }
+                    if (distance < minDist) { // if this one is closer
+                        // than the closest so far
+                        // Make it the new closest
+                        memcpy(drillSquare, square, 8);
+                        minDist = distance;
                     }
                     skip: continue;
                 }
             }
         }
-        drillAtSqr(drillSquare); // drill at the spot we picked
+        // drill at the spot we picked
+        if (game.getDrillError()){
+            game.stopDrill();
+        }
+        DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
+        game.square2pos(drillSquare, positionTarget);
+        positionTarget[2] = 0.35;
+    
+        if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
+        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
+            DEBUG(("Starting Drill"));
+            game.startDrill();
+        }
+        else if (game.getDrillEnabled()) {
+            DEBUG(("Drilling"));
+            float drillVec[3] = { myAtt[1], -myAtt[0], 0};
+            api.setAttitudeTarget(drillVec);
+            if (game.checkSample()){
+                game.pickupSample();
+                game.stopDrill();
+                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
+            }
+        }
     }
     
     if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
         // Possible score gains from drilling
         DEBUG(("Enemy just drilled"));
-        if (enDrillSquaresIdx>2) enDrillSquaresIdx = 0;
+        if (enDrillSquaresIdx>4) enDrillSquaresIdx = 0;
             // wrap, so that if they drill more than three before drop-off,
             // we only catch the last three
         game.pos2square(enPos, enDrillSquares[enDrillSquaresIdx]);
@@ -175,16 +223,11 @@ void loop() {
     }
 	
 	if (enDeltaScore >= 2.5f and enDeltaScore != 3.0f) { // if they got points, but only drop-off points, not drilling points
-	    DEBUG(("enemy dropped samples off for a total increase of: %f", enDeltaScore));
 	    int numSamples = enDrillNumSinceDrop>5 ? 5 : enDrillNumSinceDrop;
-	    int enBatchPointVals[5];
 	        // stores which indices in the pointVals array
 	        // that correspond to sample concentration values
-	    pointValues(enBatchPointVals, enDeltaScore, numSamples);
-	        // figures out what concentrations they got
-	        // based on their score increase
-	    PRINT_VEC_I("composed of: ", enBatchPointVals);
-	    updateTenSquares(enDrillSquares, enBatchPointVals, numSamples);
+	    DEBUG(("enemy dropped %d samples off for a total increase of: %f", numSamples, enDeltaScore));
+	    updateTenSquares(enDrillSquares, enDeltaScore, numSamples);
 	    
 	    // reset stale enemy-awareness variables
 	    enDrillNumSinceDrop = 0;
@@ -209,74 +252,19 @@ void loop() {
     else {// if we are very close
         api.setPositionTarget(positionTarget);
     }
-    
     if (!game.getDrillEnabled() and myRot[2] > 0.037f){
         api.setAttRateTarget(zeroVec);
     }
-}
-
-bool drillAtSqr(int* sqr){
-    if (game.getDrillError()){
-        game.stopDrill();
-    }
-    DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
-    game.square2pos(sqr, positionTarget);
-    positionTarget[2] = 0.35;
-
-    if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
-    and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
-        DEBUG(("Starting Drill"));
-        game.startDrill();
-    }
-    else if (game.getDrillEnabled()) {
-        DEBUG(("Drilling"));
-        float drillVec[3] = { myAtt[1], -myAtt[0], 0};
-        api.setAttitudeTarget(drillVec);
-        if (game.checkSample()){
-            game.pickupSample();
-            game.stopDrill();
-            memcpy(myDrillSquares[game.getNumSamplesHeld()-1], sqr, 8);
-            return true;
-        }
-    }
-    return false;
-}
-
-// based on enemy's increase in points, goes through all possible sample
-// concentration values, to determine which combination they got
-void pointValues(int* result, float deltaScore, int numSamples){
-    for (int i=0; i<4; i++) {
-        for (int j=0; j<4; j++) {
-            for (int k=0; k<4; k++) {
-                for (int l=0; l<4; l++) {
-                    for (int m=0; m<4; m++) {
-                        // 4 possibilities: 1, 3, 6, or 10
-                        float sum = 0.0f;
-                        switch (numSamples) {
-                            // Notice the lack of break statements here.
-                            // case 3 will also include cases 2 and 1
-                            case 5:
-                                result[4] = m;
-                                sum += pointVals[m];
-                            case 4:
-                                result[3] = l;
-                                sum += pointVals[l];
-                            case 3:
-                                result[2] = k;
-                                sum += pointVals[k];
-                            case 2:
-                                result[1] = j;
-                                sum += pointVals[j];
-                            case 1:
-                                result[0] = i;
-                                sum += pointVals[i];
-                        }
-                        if (sum == deltaScore) {    
-                            return; // we found it; we're done
-                        }
-                    }
-                }
-            }
+    if (api.getTime()%15 == 0) {
+        DEBUG(("possibleTenSquares: "));
+        for (int i=0; i<TEN_SPAWN_HEIGHT; i++) { // print out all of possibleTenSquares
+            DEBUG(("%c %c %c %c | %c %c %c %c | %c %c %c %c", possibleTenSquares[0][i],
+            possibleTenSquares[1][i], possibleTenSquares[2][i],
+            possibleTenSquares[3][i], i>5 and i<10 ? '-' : possibleTenSquares[4][i],
+            i>5 and i<10 ? '-' : possibleTenSquares[5][i], i>5 and i<10 ? '-' : possibleTenSquares[6][i],
+            i>5 and i<10 ? '-' : possibleTenSquares[7][i], possibleTenSquares[8][i],
+            possibleTenSquares[9][i], possibleTenSquares[10][i],
+            possibleTenSquares[11][i] ));
         }
     }
 }
@@ -288,88 +276,105 @@ void pointValues(int* result, float deltaScore, int numSamples){
  * Goes over every position in possibleTenSquares and updates whether that
  * spot could still be a ten based on new information
  */
-void updateTenSquares(int (*squares)[2], int *scores, int batchSize) {
-    // iterate through every cell in the possibleTenSquares array
-    for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // column
-        for (int r=0; r<TEN_SPAWN_HEIGHT; r++) { // row
-            if (possibleTenSquares[c][r] != 'x' // only check things we haven't ruled out yet
-                and !(c>3 and c<8 and r>5 and r<10) ) { // exclude center
-                
-                possibleTenSquares[c][r] = 'x';
-                for (int scoreIdx = 0; scoreIdx < batchSize; scoreIdx++) {
-                    if (scores[scoreIdx] == 0) {
-                        possibleTenSquares[c][r] = '*'; // as long as any of the scores hit the target,
-                        //we can assume that any locations not in their immedidate
-                        // vicinity should default to "impossible for the 10"
-                        break;
+void updateTenSquares(int (*squares)[2], float deltaScore, int batchSize) {
+    float sum;
+    float scores[5];
+    for (int i=0; i<4; i++) {
+        for (int j=0; j<4; j++) {
+            for (int k=0; k<4; k++) {
+                for (int l=0; l<4; l++) {
+                    for (int m=0; m<4; m++) {
+                        // 4 possibilities: 1, 3, 6, or 10
+                        sum = 0.0f;
+                        switch (batchSize) {
+                            // Notice the lack of break statements here.
+                            // case 3 will also include cases 2 and 1
+                            case 5:
+                                scores[4] = m;
+                                sum += pointVals[m];
+                            case 4:
+                                scores[3] = l;
+                                sum += pointVals[l];
+                            case 3:
+                                scores[2] = k;
+                                sum += pointVals[k];
+                            case 2:
+                                scores[1] = j;
+                                sum += pointVals[j];
+                            case 1:
+                                scores[0] = i;
+                                sum += pointVals[i];
+                        }
+                        if (sum == deltaScore) {
+                            // iterate through every cell in the possibleTenSquares array
+                            for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // column
+                                for (int r=0; r<TEN_SPAWN_HEIGHT; r++) { // row
+                                    if (possibleTenSquares[c][r] != 'x' // only check things we haven't ruled out yet
+                                        and !(c>3 and c<8 and r>5 and r<10) ) { // exclude center
+                                        
+                                        possibleTenSquares[c][r] = 'x';
+                                        for (int scoreIdx = 0; scoreIdx < batchSize; scoreIdx++) {
+                                            if (scores[scoreIdx] == 0) {
+                                                possibleTenSquares[c][r] = '*'; // as long as any of the scores hit the target,
+                                                //we can assume that any locations not in their immedidate
+                                                // vicinity should default to "impossible for the 10"
+                                                break;
+                                            }
+                                        }
+                                        int scoreOrder[5]; // initialize order as 0, 1, 2, ... batchSize-1
+                                        for (int i = 0; i < batchSize; i++) {
+                                            scoreOrder[i] = i;
+                                        }
+                                        int perm[5]; // current permutation of score and location
+                                        do {
+                                            // go through each permutation of score and location
+                                            for (int i = 0; i<batchSize; i++) {
+                                                perm[i] = scores[scoreOrder[i]];
+                                            }
+                                            for (int idx=0; idx<batchSize; idx++) { // go through each sample in this permutation of the batch
+                                                // Normalize to the range of the table
+                                                int squareNorm[2] = {squares[idx][0] + (squares[idx][0]>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
+                                                    squares[idx][1] + (squares[idx][1]>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
+                                                int mirrorSquare[2] = {-squares[idx][0] + (-squares[idx][0]>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
+                                                    -squares[idx][1] + (-squares[idx][1]>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
+                                                // the ternary is to account for there being no zero column or row
+                                                int testTen[2] = {c, r};
+                                                int dist1 = distSquared(testTen, squareNorm); // find the distance between the assumed bullseye
+                                                int dist2 = distSquared(testTen, mirrorSquare);
+                                                
+                                                // next we determine if i,j being the bullseye is consistent with this square/score pairing
+                                                bool possible = ((dist1 == 0 or dist2 == 0) and perm[idx] == 3) // a 10
+                                                    or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
+                                                    or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
+                                                    // normal square (1 point) corresponds to 1 and thus will always be false
+                                                if (possible){
+                                                    infoFound = true;
+                                                }
+                                                        
+                                                if (dist1 <= 5 or dist2 <= 5) {  // only update cells within the radius of the target
+                                                    possibleTenSquares[c][r] = possible ? '*' : 'x';
+                                                }
+                                            }
+                                        } while (nextPermutation(scoreOrder, batchSize));
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                int scoreOrder[5]; // initialize order as 0, 1, 2, ... batchSize-1
-                for (int i = 0; i < batchSize; i++) {
-                    scoreOrder[i] = i;
-                }
-                int perm[5]; // current permutation of score and location
-                do {
-                    // go through each permutation of score and location
-                    for (int i = 0; i<batchSize; i++) {
-                        perm[i] = scores[scoreOrder[i]];
-                    }
-                    for (int idx=0; idx<batchSize; idx++) { // go through each sample in this permutation of the batch
-                        // Normalize to the range of the table
-                        int squareNorm[2] = {squares[idx][0] + (squares[idx][0]>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
-                            squares[idx][1] + (squares[idx][1]>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
-                        int mirrorSquare[2] = {-squares[idx][0] + (-squares[idx][0]>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
-                            -squares[idx][1] + (-squares[idx][1]>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
-                        // the ternary is to account for there being no zero column or row
-                        int testTen[2] = {c, r};
-                        int dist1 = distSquared(testTen, squareNorm); // find the distance between the assumed bullseye
-                        int dist2 = distSquared(testTen, mirrorSquare);
-                        
-                        // next we determine if i,j being the bullseye is consistent with this square/score pairing
-                        bool possible = ((dist1 == 0 or dist2 == 0) and perm[idx] == 3) // a 10
-                                or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
-                                or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
-                                // normal square (1 point) corresponds to 1 and thus will always be false
-                        if(possible){
-                            infoFound = true;    
-                        }
-                                
-                        if (dist1 <= 5 or dist2 <= 5) {  // only update cells within the radius of the target
-                            possibleTenSquares[c][r] = possible ? '*' : 'x';
-                        }
-                    }
-                } while (nextPermutation(scoreOrder, batchSize));
             }
         }
     }
-    DEBUG(("possibleTenSquares: "));
-        for (int i=0; i<TEN_SPAWN_HEIGHT; i++) { // print out all of possibleTenSquares
-            DEBUG(("%c %c %c %c | %c %c %c %c | %c %c %c %c", possibleTenSquares[0][i],
-            possibleTenSquares[1][i], possibleTenSquares[2][i],
-            possibleTenSquares[3][i], i>5 and i<10 ? '-' : possibleTenSquares[4][i],
-            i>5 and i<10 ? '-' : possibleTenSquares[5][i], i>5 and i<10 ? '-' : possibleTenSquares[6][i],
-            i>5 and i<10 ? '-' : possibleTenSquares[7][i], possibleTenSquares[8][i],
-            possibleTenSquares[9][i], possibleTenSquares[10][i],
-            possibleTenSquares[11][i] ));
-        }
 }
 
 void tableLocToSquare(int* result, int i, int j) {
-    result[0] = i + (i>TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
-    result[1] = j + (j>TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
+    result[0] = i + (i>=TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
+    result[1] = j + (j>=TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
     // We are reversing this operation from updateTenSquares:
     // {i + (i>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
     // j + (j>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
 }
 
-int concentrationToPointValsIndex(float concentration) {
-    for (int i = 0; i < 4; i++) {
-        if (pointVals[i] == 5 * concentration + 2) {
-            return i;
-        }
-    }
-    return -1;
-}
 
 /**
  * @return {bool} are there any more permutations? 
@@ -398,7 +403,7 @@ bool nextPermutation(int* a, int n) {
     }
     return false;
 }
-//Vector math functions {
+//Vector math functions
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
     mathVecSubtract(ansVec, vec1, vec2, 3);
@@ -415,4 +420,3 @@ void scale(float* vec, float scale){
     for (int i=0; i<3; i++)
         vec[i] *= scale;
 }
-//}
