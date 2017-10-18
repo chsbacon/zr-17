@@ -19,6 +19,7 @@ float enState[12];
 int siteCoords[3];
 bool newLoc;
 bool dropping;
+bool drilling;
 //are described in their names, and act as length-3 float arrays
 
 float vcoef;
@@ -29,10 +30,11 @@ void init(){
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
 	#define SPEEDCONST 0.45f
     #define DERIVCONST 2.8f
-    api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
-    api.setAttGains(0.6f,0.1f,2.8f);
+    api.setPosGains(SPEEDCONST,0,DERIVCONST);
+    //api.setAttGains(0.7f,0.1f,3.f);
+    //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
-	
+	drilling=false;
 }
 
 void loop(){
@@ -56,6 +58,7 @@ void loop(){
     }    
         
     if (newLoc and !game.checkSample()){
+        DEBUG(("%d",newLoc));
         DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
@@ -80,9 +83,11 @@ void loop(){
         newLoc=false;
     }
     vcoef=.170f;
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .15f and game.getFuelRemaining() > .12f))){
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f))){
         dropping=true;
+        drilling=false;
     }
+    
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if (game.getNumSamplesHeld()<5 and not dropping){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
@@ -96,22 +101,24 @@ void loop(){
         //set this to go to the surface
         positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
-        if (mathVecMagnitude(myVel,3)<.01f
+        if (((mathVecMagnitude(myVel,3)<.01f
         and (mathVecMagnitude(myRot,3)<.04f 
         or game.getDrillEnabled()) 
-        and not game.getDrillError() 
         and (siteCoords[0]==mySquare[0] 
-        and siteCoords[1]==mySquare[1])){
-            usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=0;
+        and siteCoords[1]==mySquare[1]))
+        or drilling) and not game.getDrillError()){
+            usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=-myAtt[2];
             api.setAttitudeTarget(usefulVec);
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
+            drilling=true;
         }
         else{
             memcpy(usefulVec,myAtt,12);
             usefulVec[2]=0;
             api.setAttitudeTarget(usefulVec);
+            DEBUG(("Slowing"));
         }
        
     }
@@ -125,14 +132,14 @@ void loop(){
     }
     //if our drill breaks or we get a geyser, stop the current drill
     if (game.getDrillError() 
-    or ((mySquare[0]!=siteCoords[0] 
-    or mySquare[1]!=siteCoords[1]) 
-    or mathVecMagnitude(myVel,3)>0.009f) 
+    or (mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) 
+    //or mathVecMagnitude(myVel,3)>0.009f
     or game.getNumSamplesHeld()==5 
     or game.isGeyserHere(mySquare) 
     or game.getDrills(mySquare)>MAXDRILLS-1){
         game.stopDrill();
         newLoc=true;
+        drilling=false;
     }
     
 
