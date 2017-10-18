@@ -42,9 +42,7 @@ float vcoef;
 float positionTarget[3]; // where we're going
 float zeroVec[3];
 #define SURFACE_Z 0.48f
-int sampNum;
 int drillSquare[2]; // Will eventually store the optimal drilling square
-float drillSquarePos[2];
 
 void init() {
     infoFound = false;
@@ -62,7 +60,6 @@ void init() {
     pointVals[3] = 7.0f; // 10
     
     // Reset enemy-awareness variables
-    memset(enDrillSquares, 0, 24);
     enDrillNumSinceDrop = 0;
     enDrillSquaresIdx = 0;
 
@@ -78,10 +75,12 @@ void loop() {
 	float enDeltaScore = game.getOtherScore() - enScore;
 	myScore = game.getScore();
 	enScore = game.getOtherScore();
+	int sampNum = game.getNumSamplesHeld();
     //if they are guarding drill other squares
+    float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if (game.getNumSamplesHeld() == 5 
-    or (game.getNumSamplesHeld() >= 2 
+    if (sampNum == 5 
+    or (sampNum >= 2 
     and angle(myPos, drillSquarePos, 2) > 2.8f)) {
         // @mleblang is working on improving this logic
         DEBUG(("Heading back to base"));
@@ -94,7 +93,6 @@ void loop() {
         scale(positionTarget, 0.14f - SPHERE_RADIUS);
         
         if(game.atBaseStation()) {
-            sampNum = game.getNumSamplesHeld();
             float samples[5];
                 // store the concentrations from each sample
                 
@@ -131,7 +129,7 @@ void loop() {
 
                     if(!infoFound){ // if we have not found a 3,6, or 10,
                         // we don't want our samples to give overlapping info
-                        for (int samp=0; samp<game.getNumSamplesHeld(); samp++) {
+                        for (int samp=0; samp<sampNum; samp++) {
                             int mirrorSquare[2] = {-myDrillSquares[samp][0],
                                 -myDrillSquares[samp][1]};
                                 // reflect across the origin
@@ -160,7 +158,29 @@ void loop() {
                 }
             }
         }
-        drillAtSqr(drillSquare); // drill at the spot we picked
+        // drill at the spot we picked
+        if (game.getDrillError()){
+            game.stopDrill();
+        }
+        DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
+        game.square2pos(drillSquare, positionTarget);
+        positionTarget[2] = 0.35;
+    
+        if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
+        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
+            DEBUG(("Starting Drill"));
+            game.startDrill();
+        }
+        else if (game.getDrillEnabled()) {
+            DEBUG(("Drilling"));
+            float drillVec[3] = { myAtt[1], -myAtt[0], 0};
+            api.setAttitudeTarget(drillVec);
+            if (game.checkSample()){
+                game.pickupSample();
+                game.stopDrill();
+                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
+            }
+        }
     }
     
     if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
@@ -209,37 +229,9 @@ void loop() {
     else {// if we are very close
         api.setPositionTarget(positionTarget);
     }
-    
     if (!game.getDrillEnabled() and myRot[2] > 0.037f){
         api.setAttRateTarget(zeroVec);
     }
-}
-
-bool drillAtSqr(int* sqr){
-    if (game.getDrillError()){
-        game.stopDrill();
-    }
-    DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
-    game.square2pos(sqr, positionTarget);
-    positionTarget[2] = 0.35;
-
-    if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
-    and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
-        DEBUG(("Starting Drill"));
-        game.startDrill();
-    }
-    else if (game.getDrillEnabled()) {
-        DEBUG(("Drilling"));
-        float drillVec[3] = { myAtt[1], -myAtt[0], 0};
-        api.setAttitudeTarget(drillVec);
-        if (game.checkSample()){
-            game.pickupSample();
-            game.stopDrill();
-            memcpy(myDrillSquares[game.getNumSamplesHeld()-1], sqr, 8);
-            return true;
-        }
-    }
-    return false;
 }
 
 // based on enemy's increase in points, goes through all possible sample
