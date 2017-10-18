@@ -172,7 +172,7 @@ void loop() {
                         <= (infoFound ? CENTER_KEEPAWAY_RADIUS : CENTER_INFO_RADIUS)) {
                             // or too close to the center
                             goto skip;
-                                // ignore `square` as a potential drill spot
+                                // ignore square as a potential drill spot
                         }
                     }
                     // go to the closest point that is a possible ten
