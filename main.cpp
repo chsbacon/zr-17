@@ -5,7 +5,6 @@ float origin[3];
 float myState[12];
 float oldPos[3];
 float speed[3];
-int atBase;
 float testPosition[3];
 
 void init(){
@@ -15,8 +14,6 @@ void init(){
     origin[0] = 0;
     origin[1] = 0;
     origin[2] = 0;
-    
-    timetosquare = 2.5f; //how fast the sphere moves between squares (base speed)
     
     testPosition[0] = .2;
     testPosition[1] = .4;
@@ -41,8 +38,6 @@ void loop(){
 	    DEBUG(("Going back to Base station"));
 	    api.setPositionTarget(origin);
 	    DEBUG(("Speed: %f, %f, %f", speed[0], speed[1], speed[2]));
-	    atBase = if(game.atBaseStation()) 1 ? 0;
-	    DEBUG(("%d", atBase));
 	}
 	
 	timeLeft++; //adding one to timer each second
