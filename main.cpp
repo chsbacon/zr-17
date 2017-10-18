@@ -244,10 +244,9 @@ bool drillAtSqr(int* sqr){
     }
     DEBUG(("Drilling at %d, %d", sqr[0], sqr[1]));
     game.square2pos(sqr, positionTarget);
-    positionTarget[2] = SURFACE_Z - 0.14f;
-    positionTarget[0] += 0.02; //shifts from center of square to improve geyser dodging
-    positionTarget[1] += 0.02;
-    if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
+    positionTarget[2] = SURFACE_Z - 0.12f;
+
+    if (dist(myPos, positionTarget) < 0.03f and positionTarget[2]-myPos[2] < 0.02 and mathVecMagnitude(myVel, 3) < 0.01f
     and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
         DEBUG(("Starting Drill"));
         game.startDrill();
@@ -263,6 +262,8 @@ bool drillAtSqr(int* sqr){
             return true;
         }
     }
+    positionTarget[0] += 0.02; //shifts from center of square to improve geyser dodging
+    positionTarget[1] += 0.02;
 
     return false;
 }
