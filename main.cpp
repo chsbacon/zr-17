@@ -47,7 +47,7 @@ float endDrillVec[3];
 void init(){
     spinVec[0] = 0.0f;
     spinVec[1] = 0.0f;
-    spinVec[2] = 0.4f;
+    spinVec[2] = 0.5f;
     
     vcoef=.154;//A coefficient for our movement speed
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
@@ -64,7 +64,7 @@ void init(){
 void loop(){
     api.getMyZRState(myState);
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
-    if(moveDrill(difDrill) && game.getNumSamplesHeld() == 3) {
+    if(moveDrill(difDrill) && game.getNumSamplesHeld() == 2) {
         difDrill[0]--;
         difDrill[1]--;
     }
@@ -100,20 +100,32 @@ bool moveDrill(int drillSquare[2]) {
     #define POSITION_CLOSE 0.01f
     #define ROTATION_STOPPED 0.01f
     #define MAX_DRILLS_ON_SQUARE 4
+    #define FLOOR_DRILL_HEIGHT .34f
+    #define SIZE_FLOAT 4
+    #define MAX_SAMPS 5f
     
     game.square2pos(drillSquare, drillLoc);
-    drillLoc[2] = .34;
+    drillLoc[2] = FLOOR_DRILL_HEIGHT;
     memcpy(tempVec, myAtt, 12);
     tempVec[2] = 0;
-    if((game.getDrills(drillLoc) < MAX_DRILLS_ON_SQUARE or game.checkSample())) {
-        memcpy(positionTarget, drillLoc, 12);
+    
+    if(game.checkSample()) {
+        // see a sample, pick it up
+        game.pickupSample();
+        DEBUG(("Picking up..."));
+        return true;
+    }
+    if(game.getDrills(drillLoc) < MAX_DRILLS_ON_SQUARE && game.getNumSamplesHeld() <= MAX_SAMPS) {
+        memcpy(positionTarget, drillLoc, 3*SIZE_FLOAT);
         api.setAttitudeTarget(tempVec); 
+        //sets moving algorithm
         if(dist(myPos, drillLoc) < POSITION_CLOSE) {
             api.setVelocityTarget(zeroVec);
             api.setAttRateTarget(zeroVec); 
+            //stop all satellite movement
             if(mathVecMagnitude(myVel, 3) < VELOCITY_STOPPED and angle(tempVec, myAtt) < SATELLITE_DRILL_LOOK_ANGLE) {
                 //checks to make sure the sphere is stopped and looking within the right constraints 
-                if(game.getDrillEnabled() == false and dist(myRot, zeroVec) < ROTATION_STOPPED) {
+                if(!game.getDrillEnabled() and dist(myRot, zeroVec) < ROTATION_STOPPED) {
                     //if the drill is off and our sphere is not moving, start drilling
                     game.startDrill();
                     DEBUG(("Drilling..."));
@@ -127,12 +139,6 @@ bool moveDrill(int drillSquare[2]) {
                     //as soon as you find a geyser, turn off the drill
                     game.stopDrill();
                     return false;
-                }
-                if(game.checkSample() == true) {
-                    // see a sample, pick it up
-                    game.pickupSample();
-                    DEBUG(("Picking up..."));
-                    return true;
                 }
             }
         }
