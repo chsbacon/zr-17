@@ -82,7 +82,8 @@ void loop() {
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
     if (sampNum == 5 
-    or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)) {
+    or (180 > ((acosf(mathVecInner(myPos,drillSquarePos,3))*180/PI) >160 
+    or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)))) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3] = {0.0f, 0.0f, -1.0f};
         api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
@@ -402,7 +403,9 @@ bool nextPermutation(int* a, int n) {
         }
     }
     return false;
+
 }
+
 //Vector math functions
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
