@@ -21,7 +21,7 @@ bool newLoc;
 bool dropping;
 bool drilling;
 //are described in their names, and act as length-3 float arrays
-
+int samples;
 float vcoef;
 void init(){
     newLoc=true;
@@ -34,16 +34,22 @@ void init(){
     //api.setAttGains(0.7f,0.1f,3.f);
     //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
+    samples=0;
 	drilling=false;
 }
 
 void loop(){
-    game.pickupSample();
+    if (game.checkSample()){
+        game.dropSample(4);
+        game.pickupSample();
+        samples+=1;
+    }
     if (game.atBaseStation()){
         for (int i=0;i<5;i++){
             game.dropSample(i);
         }
         dropping=false;
+        samples=-100;
     }
     api.getMyZRState(myState);
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
@@ -57,7 +63,7 @@ void loop(){
         DEBUG(("%f",(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare)));
     }    
         
-    if (newLoc and !game.checkSample()){
+    if (newLoc and !game.checkSample() and not drilling){
         DEBUG(("%d",newLoc));
         DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
@@ -83,13 +89,13 @@ void loop(){
         newLoc=false;
     }
     vcoef=.170f;
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f))){
+    if ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
         dropping=true;
         drilling=false;
     }
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if (game.getNumSamplesHeld()<5 and not dropping){//Second to last condition is redundant
+    if ((samples%3>0 or samples<0 or game.getNumSamplesHeld()<5) and not dropping){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
@@ -132,11 +138,14 @@ void loop(){
     }
     //if our drill breaks or we get a geyser, stop the current drill
     if (game.getDrillError() 
-    or (mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) 
+    //or (mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) 
     //or mathVecMagnitude(myVel,3)>0.009f
-    or game.getNumSamplesHeld()==5 
+    or (samples==6
     or game.isGeyserHere(mySquare) 
-    or game.getDrills(mySquare)>MAXDRILLS-1){
+    or game.getDrills(mySquare)>MAXDRILLS-1)){
+        if (game.isGeyserHere(mySquare) and drilling){
+            samples-=samples%3;
+        }
         game.stopDrill();
         newLoc=true;
         drilling=false;
