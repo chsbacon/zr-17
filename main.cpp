@@ -1,8 +1,6 @@
 
+// #define dev
 //Standard defines
-float myState[12];
-float enState[12];
-
 #define myPos (&myState[0])
 #define myVel (&myState[3])
 #define myAtt (&myState[6])
@@ -20,11 +18,9 @@ float enState[12];
 // DEBUG shorthand functions (F is for floats, I is for ints)
 #define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
 
-float myScore;
 float enScore;
-float pointVals[5]; // stores each point value for dropping off concentrations
 int enDrillSquares[5][2]; // where the enemy has drilled since dropping off
-int enDrillNumSinceDrop; // how many times the enemy has drilled since drop-off
+int enNumSamples; // how many times the enemy has drilled since drop-off
 int enDrillSquaresIdx; // where in enDrilSquares we will record the enemy's
     // next drill spot
 int myDrillSquares[5][2]; // where we have drilled
@@ -38,30 +34,22 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT]; // stores whether
     // 'x' : impossible ten spot
 
 float vcoef; // A coefficient for our movement speed
-float positionTarget[3]; // where we're going
 float zeroVec[3]; // (0,0,0) -- just a convenience thing
 #define SURFACE_Z 0.48f
 int drillSquare[2]; // Will eventually store the optimal drilling square
-
+    // It's important that this is global because sometimes it doesn't
+    // get updated
 void init() {
     infoFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
-    vcoef = 0.154; 
+    vcoef = 0.154f; 
     
-    myScore = 0.0f; // initialized because
-    enScore = 0.0f; // we use these to calculate change in score
-    
-    // Initialize pointVals to contain the points gained from each concentration
-    // Later, indices in pointVals will be used in lieu of the score
-    // or concentration value by reason of convenience
-    pointVals[0] = 2.5f; // 1
-    pointVals[1] = 3.5f; // 3
-    pointVals[2] = 5.0f; // 6
-    pointVals[3] = 7.0f; // 10
+    enScore = 0.0f; // initialized because
+        // we use it to calculate change in score
     
     // Reset enemy-awareness variables
-    enDrillNumSinceDrop = 0;
+    enNumSamples = 0;
     enDrillSquaresIdx = 0;
 
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
@@ -71,11 +59,13 @@ void init() {
 }
 
 void loop() {
+    float positionTarget[3]; // where we're going
     // Update state
+    float myState[12];
+    float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
 	float enDeltaScore = game.getOtherScore() - enScore;
-	myScore = game.getScore();
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
 	
@@ -84,7 +74,10 @@ void loop() {
     if (sampNum == 5 
     or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)) {
         DEBUG(("Heading back to base"));
-        float dropOffAtt[3] = {0.0f, 0.0f, -1.0f};
+        float dropOffAtt[3];
+        dropOffAtt[0] = 0.0f;
+        dropOffAtt[1] = 0.0f;
+        dropOffAtt[2] = -1.0f;
         api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
             // direction in order to drop off
         
@@ -97,23 +90,24 @@ void loop() {
         if(game.atBaseStation()) {
             float samples[5];
                 // store the concentrations from each sample
-                
             for (int i = 0; i < sampNum; i++) { // for each sample
-                // Format the data for updateTenSquares
+                #ifdef dev
                 samples[i] = game.dropSample(i);
-                int squares[1][2];
-                memcpy(squares[0], myDrillSquares[i], 8);
-                
                 DEBUG(("Samp #%d %f score: %f @ (%d, %d)", i+1, samples[i],
                     (5 * samples[i] + 2),
-                    squares[0][0], squares[0][1] ));
-                    // 5 * samples[i] + 2
-                updateTenSquares(squares, 5 * samples[i] + 2, 1);
+                    myDrillSquares[i][0], myDrillSquares[i][1] ));
+                updateTenSquares(&(myDrillSquares[i]), 5 * samples[i] + 2, 1);
+                #else
+                updateTenSquares(&(myDrillSquares[i]), 5 * game.dropSample(i) + 2, 1);
+                #endif
             }
         }
     }
     else { // Find a spot to drill
-        float drillAtt[3] = {1.0f, 0.0f, 0.0f};
+        float drillAtt[3];
+        drillAtt[0] = 1.0f;
+        drillAtt[1] = 0.0f;
+        drillAtt[2] = 0.0f;
         api.setAttitudeTarget(drillAtt); // direction requirement for drilling
         
         #define LARGE_NUMBER 10.0f
@@ -133,11 +127,14 @@ void loop() {
         for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
             for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
                 if (possibleTenSquares[c][r]) { // exclude center
-                    int zeroSquare[2] = {0,0};
-                    
+                    #define zeroSquare (int*)zeroVec
                     // Store (col,row) as a square
                     int square[2];
-                    tableLocToSquare(square, c, r);
+                    square[0] = c + (c>=TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
+                    square[1] = r + (r>=TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
+                    // We are reversing this operation from updateTenSquares:
+                    // {i + (i>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
+                    // j + (j>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
                     
                     float testPos[3];
                     game.square2pos(square, testPos);
@@ -201,7 +198,10 @@ void loop() {
         }
         else if (game.getDrillEnabled()) {
             DEBUG(("Drilling"));
-            float drillVec[3] = { myAtt[1], -myAtt[0], 0};
+            float drillVec[3];
+            drillVec[0] = myAtt[1];
+            drillVec[1] = -myAtt[0];
+            drillVec[2] = 0.0f;
             api.setAttitudeTarget(drillVec);
             if (game.checkSample()){
                 game.pickupSample();
@@ -215,22 +215,21 @@ void loop() {
         // Possible score gains from drilling
         DEBUG(("Enemy just drilled"));
         if (enDrillSquaresIdx>4) enDrillSquaresIdx = 0;
-            // wrap, so that if they drill more than three before drop-off,
-            // we only catch the last three
+            // wrap, so that if they drill more than five before drop-off,
+            // we only catch the last five
         game.pos2square(enPos, enDrillSquares[enDrillSquaresIdx]);
-        enDrillNumSinceDrop++;
+        if (enNumSamples < 5) enNumSamples++;
         enDrillSquaresIdx++;
     }
 	
 	if (enDeltaScore >= 2.5f and enDeltaScore != 3.0f) { // if they got points, but only drop-off points, not drilling points
-	    int numSamples = enDrillNumSinceDrop>5 ? 5 : enDrillNumSinceDrop;
 	        // stores which indices in the pointVals array
 	        // that correspond to sample concentration values
-	    DEBUG(("enemy dropped %d samples off for a total increase of: %f", numSamples, enDeltaScore));
-	    updateTenSquares(enDrillSquares, enDeltaScore, numSamples);
+	    DEBUG(("enemy dropped %d samples off for a total increase of: %f", enNumSamples, enDeltaScore));
+	    updateTenSquares(enDrillSquares, enDeltaScore, enNumSamples);
 	    
 	    // reset stale enemy-awareness variables
-	    enDrillNumSinceDrop = 0;
+	    enNumSamples = 0;
 	    enDrillSquaresIdx = 0;
 	}
 	
@@ -255,6 +254,7 @@ void loop() {
     if (!game.getDrillEnabled() and myRot[2] > 0.037f){
         api.setAttRateTarget(zeroVec);
     }
+    #ifdef dev
     if (api.getTime()%15 == 0) {
         DEBUG(("possibleTenSquares: "));
         for (int i=0; i<TEN_SPAWN_HEIGHT; i++) { // print out all of possibleTenSquares
@@ -267,6 +267,7 @@ void loop() {
             possibleTenSquares[11][i] ));
         }
     }
+    #endif
 }
 
 /**
@@ -279,6 +280,16 @@ void loop() {
 void updateTenSquares(int (*squares)[2], float deltaScore, int batchSize) {
     float sum;
     float scores[5];
+    float pointVals[5]; // stores each point value for dropping off concentrations
+    pointVals[0] = 2.5f; // 1
+    pointVals[1] = 3.5f; // 3
+    pointVals[2] = 5.0f; // 6
+    pointVals[3] = 7.0f; // 10
+    
+    // Initialize pointVals to contain the points gained from each concentration
+    // Later, indices in pointVals will be used in lieu of the score
+    // or concentration value by reason of convenience
+    
     for (int i=0; i<4; i++) {
         for (int j=0; j<4; j++) {
             for (int k=0; k<4; k++) {
@@ -366,15 +377,6 @@ void updateTenSquares(int (*squares)[2], float deltaScore, int batchSize) {
         }
     }
 }
-
-void tableLocToSquare(int* result, int i, int j) {
-    result[0] = i + (i>=TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
-    result[1] = j + (j>=TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
-    // We are reversing this operation from updateTenSquares:
-    // {i + (i>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
-    // j + (j>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
-}
-
 
 /**
  * @return {bool} are there any more permutations? 
