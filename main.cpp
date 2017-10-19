@@ -262,21 +262,21 @@ bool drillAtSqr(int* sqr){
         if (game.checkSample()){
             game.pickupSample();
             game.stopDrill();
-            memcpy(myDrillSquares[game.getNumSamplesHeld()-1], sqr, 8);
+            
+            //memcpy(myDrillSquares[sampNum - 1], sqr, 8); //THIS IS A PROBLEM
             
             //Format the data for updateTenSquares
             float sampVals[5];
             game.getConcentrations(sampVals);
-            //samples[i] = game.dropSample(i);
             int squares[1][2];
-            memcpy(squares[0], myDrillSquares[sampNum], 8);
-            DEBUG(("Samp #%d %f %d @ (%d, %d)", sampVals[sampNum], 
-            concentrationToPointValsIndex(sampVals[sampNum]),
-            squares[0][0], squares[0][1] ));
+            memcpy(squares[0], sqr, 8);
+            //DEBUG(("Samp #%d %f %d @ (%d, %d)", sampVals[sampNum - 1], 
+            //concentrationToPointValsIndex(sampVals[sampNum - 1]),
+            //squares[0][0], squares[0][1] )); //PROBLEM LINE
             int scores[1];
-            scores[0] = concentrationToPointValsIndex(sampVals[sampNum]);
-            updateTenSquares(squares, scores, 1);
-            infoFound = (sampVals[sampNum] > 0.1f);
+            scores[0] = concentrationToPointValsIndex(sampVals[sampNum - 1]);
+            //updateTenSquares(squares, scores, 4); //PROBLEM
+            //infoFound = (sampVals[sampNum - 1] > 0.1f);
             return true;
         }
     }
