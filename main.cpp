@@ -187,27 +187,28 @@ void loop() {
         if (game.getDrillError()){
             game.stopDrill();
         }
+        float xyLookAxis[3] = {myAtt[0], myAtt[1], 0};
         DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
         game.square2pos(drillSquare, positionTarget);
-        positionTarget[2] = 0.35;
+        positionTarget[2] = 0.34;
+        api.setAttitudeTarget(xyLookAxis);
     
-        if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
-        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
+        if (dist(myPos, positionTarget) < 0.01f and mathVecMagnitude(myVel, 3) < 0.01f
+        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= 0.1963f){
             DEBUG(("Starting Drill"));
             game.startDrill();
         }
         else if (game.getDrillEnabled()) {
             DEBUG(("Drilling"));
-            float drillVec[3];
-            drillVec[0] = myAtt[1];
-            drillVec[1] = -myAtt[0];
-            drillVec[2] = 0.0f;
-            api.setAttitudeTarget(drillVec);
+            /*float drillVec[3] = { myAtt[1], -myAtt[0], 0};
+            api.setAttitudeTarget(drillVec);*/
+            float drillVec[3] = {0,0,.5f};
+            
+            api.setAttRateTarget(drillVec);
             if (game.checkSample()){
                 game.pickupSample();
-                game.stopDrill();
                 memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
-            }
+            }   
         }
     }
     
@@ -233,7 +234,11 @@ void loop() {
 	    enDrillSquaresIdx = 0;
 	}
 	
+	if(dist(myPos, positionTarget) > 0.02f or game.getNumSamplesHeld() == 5) {
+	    game.stopDrill();
+	}
 	PRINT_VEC_F("positionTarget", positionTarget);
+	
 	// Movement code
 	float distance,flocal,fvector[3];
     #define ACCEL 0.0175f
