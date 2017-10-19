@@ -190,7 +190,7 @@ void loop() {
         float xyLookAxis[3] = {myAtt[0], myAtt[1], 0};
         DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
         game.square2pos(drillSquare, positionTarget);
-        positionTarget[2] = 0.34;
+        positionTarget[2] = 0.35;
         api.setAttitudeTarget(xyLookAxis);
     
         if (dist(myPos, positionTarget) < 0.01f and mathVecMagnitude(myVel, 3) < 0.01f
