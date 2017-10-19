@@ -25,7 +25,7 @@ int samples;
 float vcoef;
 void init(){
     newLoc=true;
-    vcoef=.154f;//A coefficient for our movement speed
+    vcoef=.154;//A coefficient for our movement speed
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
 	#define SPEEDCONST 0.45f
@@ -60,12 +60,12 @@ void loop(){
     memcpy(modPos,myPos,12);
     for (int i=0;i<2;i++){
         modPos[i]+=(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare);
-        DEBUG(("%f",(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare)));
+        //DEBUG(("%f",(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare)));
     }    
         
     if (newLoc and !game.checkSample() and not drilling){
-        DEBUG(("%d",newLoc));
-        DEBUG(("reselecting"));
+        //DEBUG(("%d",newLoc));
+        //DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
             for (int j=-10;j<11;j++){
@@ -92,31 +92,32 @@ void loop(){
     if (game.isGeyserHere(mySquare)){
         vcoef+=.04f;
     }
-    if ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
-        dropping=true;
-        drilling=false;
-    }
+    // if ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
+    //     dropping=true;
+    //     drilling=false;
+    // }
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if ((samples%3>0 or samples<0 or game.getNumSamplesHeld()<5) and not dropping){//Second to last condition is redundant
-        DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
-        DEBUG(("%i %i", mySquare[0],mySquare[1]));
+    if (game.getNumSamplesHeld()<5 and not dropping){//Second to last condition is redundant
+        //DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+        //DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
         //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.033f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(game.isGeyserHere(mySquare))?-1:1);
+            //positionTarget[i]+=0.033f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(game.isGeyserHere(mySquare))?-1:1);
         }
         //set this to go to the surface
+        +
         positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if (((mathVecMagnitude(myVel,3)<.01f
-        and (mathVecMagnitude(myRot,3)<.035f 
-        or drilling) 
+        and (mathVecMagnitude(myRot,3)<.04f 
+        or game.getDrillEnabled()) 
         and (siteCoords[0]==mySquare[0] 
         and siteCoords[1]==mySquare[1]))
         or drilling) and not game.getDrillError()){
-            usefulVec[0]=myAtt[1]-myAtt[0];usefulVec[1]=-myAtt[0]-myAtt[1];usefulVec[2]=-myAtt[2];
+            usefulVec[0]=myAtt[1];usefulVec[1]=-myAtt[0];usefulVec[2]=-myAtt[2];
             api.setAttitudeTarget(usefulVec);
             if (!game.getDrillEnabled()){
                 game.startDrill();
@@ -127,7 +128,7 @@ void loop(){
             memcpy(usefulVec,myAtt,12);
             usefulVec[2]=0;
             api.setAttitudeTarget(usefulVec);
-            DEBUG(("Slowing"));
+            //DEBUG(("Slowing"));
         }
        
     }
@@ -143,7 +144,7 @@ void loop(){
     if (game.getDrillError() 
     //or (mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) 
     //or mathVecMagnitude(myVel,3)>0.009f
-    or (samples==6
+    or (game.getNumSamplesHeld()>4
     or game.isGeyserHere(mySquare) 
     or game.getDrills(mySquare)>MAXDRILLS-1)){
         if (game.isGeyserHere(mySquare) and drilling){
