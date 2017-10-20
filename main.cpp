@@ -15,6 +15,8 @@
 #define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
 
+#define XY_DRILL_PLANE_ANGLE 0.1963f
+
 // DEBUG shorthand functions (F is for floats, I is for ints)
 #define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
 
@@ -104,12 +106,7 @@ void loop() {
         }
     }
     else { // Find a spot to drill
-        float drillAtt[3];
-        drillAtt[0] = 1.0f;
-        drillAtt[1] = 0.0f;
-        drillAtt[2] = 0.0f;
-        api.setAttitudeTarget(drillAtt); // direction requirement for drilling
-        
+       
         #define LARGE_NUMBER 10.0f
             // while we're hunting, any possible square will do
         #define PROXIMITY_REQUIREMENT 0.453f
@@ -187,23 +184,27 @@ void loop() {
         if (game.getDrillError()){
             game.stopDrill();
         }
-        float xyLookAxis[3] = {myAtt[0], myAtt[1], 0};
+        //float xyLookAxis[3] = {myAtt[0], myAtt[1], 0};
+        float xyLookAxis[3];
+        xyLookAxis[0] = myAtt[0];
+        xyLookAxis[1] = myAtt[1];
+        xyLookAxis[2] = 0;
         DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
         game.square2pos(drillSquare, positionTarget);
         positionTarget[2] = 0.35;
         api.setAttitudeTarget(xyLookAxis);
     
         if (dist(myPos, positionTarget) < 0.01f and mathVecMagnitude(myVel, 3) < 0.01f
-        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= 0.1963f){
+        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
             DEBUG(("Starting Drill"));
             game.startDrill();
         }
         else if (game.getDrillEnabled()) {
             DEBUG(("Drilling"));
-            /*float drillVec[3] = { myAtt[1], -myAtt[0], 0};
-            api.setAttitudeTarget(drillVec);*/
-            float drillVec[3] = {0,0,.5f};
-            
+            //float drillVec[3] = {0,0,.5f};
+            drillVec[0] = 0;
+            drillVec[1] = 0;
+            drillVec[2] = 0.5f;
             api.setAttRateTarget(drillVec);
             if (game.checkSample()){
                 game.pickupSample();
@@ -236,6 +237,8 @@ void loop() {
 	
 	if(dist(myPos, positionTarget) > 0.02f or game.getNumSamplesHeld() == 5) {
 	    game.stopDrill();
+	    //this stops the drill only if the sphere is moved or we have a full inventory, 
+	    //this also prevents geysers from breaking drilling because our position would be far from position target 
 	}
 	PRINT_VEC_F("positionTarget", positionTarget);
 	
