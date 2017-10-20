@@ -89,9 +89,9 @@ void loop(){
         newLoc=false;
     }
     vcoef=.170f;
-    if (game.isGeyserHere(mySquare)){
-        vcoef+=.04f;
-    }
+    // if (game.isGeyserHere(mySquare)){
+    //     vcoef+=.04f;
+    // }
     if ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
         dropping=true;
         drilling=false;
