@@ -20,6 +20,7 @@ int siteCoords[3];
 bool newLoc;
 bool dropping;
 bool drilling;
+bool twoDrops;
 //are described in their names, and act as length-3 float arrays
 int samples;
 float vcoef;
@@ -36,6 +37,7 @@ void init(){
     dropping=false;
     samples=0;
 	drilling=false;
+	twoDrops=false;
 }
 
 void loop(){
@@ -55,6 +57,10 @@ void loop(){
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
     game.square2pos(mySquare,usefulVec);
+    if (game.getScore()<7 and game.isGeyserHere(mySquare)){
+        twoDrops=true;
+    }
+    twoDrops=true;
     float maxDist=100;//Sets this large
     float modPos[3];
     memcpy(modPos,myPos,12);
@@ -78,7 +84,7 @@ void loop(){
                     if (score<maxDist 
                     and game.getDrills(usefulIntVec)<MAXDRILLS 
                     and not game.isGeyserHere(usefulIntVec) 
-                    and i*i+j*j>8){
+                    and i*i+j*j>8 and (api.getTime()<122 or i%2+j%2<2)){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -92,13 +98,14 @@ void loop(){
     // if (game.isGeyserHere(mySquare)){
     //     vcoef+=.04f;
     // }
-    if ((api.getTime()>156 and api.getTime()<159) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
+    if (game.getNumSamplesHeld()>2 and (api.getTime()>158 and api.getTime()<160) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
         dropping=true;
         drilling=false;
+        game.stopDrill();
     }
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if ((samples%3>0 or samples<0 or game.getNumSamplesHeld()<5) and not dropping){//Second to last condition is redundant
+    if ((((samples%3>0 or samples<0)and twoDrops) or game.getNumSamplesHeld()<5) and not dropping){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
@@ -116,16 +123,19 @@ void loop(){
         and (siteCoords[0]==mySquare[0] 
         and siteCoords[1]==mySquare[1]))
         or drilling) and not game.getDrillError()){
-            usefulVec[0]=myAtt[1]-myAtt[0];usefulVec[1]=-myAtt[0]-myAtt[1];usefulVec[2]=-myAtt[2];
+            usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=-myAtt[2];
             api.setAttitudeTarget(usefulVec);
+            usefulVec[0]=0;
+            usefulVec[1]=0;
+            usefulVec[2]=0;
+            api.setAttRateTarget(usefulVec);
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
             drilling=true;
         }
         else{
-            memcpy(usefulVec,myAtt,12);
-            usefulVec[2]=0;
+            usefulVec[0]=myAtt[0]+(myAtt[1]*mathVecMagnitude(myRot,3));usefulVec[1]=myAtt[1]-(myAtt[0]*mathVecMagnitude(myRot,3));usefulVec[2]=0;
             api.setAttitudeTarget(usefulVec);
             DEBUG(("Slowing"));
         }
