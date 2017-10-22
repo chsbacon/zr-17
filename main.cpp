@@ -25,6 +25,7 @@ int enDrillSquaresIdx; // where in enDrilSquares we will record the enemy's
     // next drill spot
 int myDrillSquares[5][2]; // where we have drilled
 bool infoFound; // have we gotten a 3, 6, or a 10?
+int myFuel; //how much fuel we have
 
 #define TEN_SPAWN_WIDTH 12
 #define TEN_SPAWN_HEIGHT 16
@@ -65,14 +66,14 @@ void loop() {
     float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
+	myFuel = game.getFuelRemaining();
 	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if (sampNum == 5 
-    or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)) {
+    if (sampNum == 5 or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f) or (myFuel<=fuelToGoBTB(myState))) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
