@@ -26,6 +26,7 @@ int enDrillSquaresIdx; // where in enDrilSquares we will record the enemy's
 int myDrillSquares[5][2]; // where we have drilled
 bool infoFound; // have we gotten a 3, 6, or a 10?
 int myFuel; //how much fuel we have
+int timeLeft;
 
 #define TEN_SPAWN_WIDTH 12
 #define TEN_SPAWN_HEIGHT 16
@@ -45,6 +46,7 @@ void init() {
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
     vcoef = 0.154f; 
+    timeLeft = 0;
     
     enScore = 0.0f; // initialized because
         // we use it to calculate change in score
@@ -404,6 +406,7 @@ bool nextPermutation(int* a, int n) {
             }
         }
     }
+    timeLeft++;
     return false;
 }
 //Vector math functions
@@ -430,8 +433,9 @@ float fuelToGoBTB(float myPosition[12]){
     DEBUG(("Magnitude is %f", magnitude));
     //fuel2square = 18*exp(0.57*magnitude)+7.3;
     //Magnitude times 121(.75x - .9)^2
-    float fuel2base= magnitude*(18*exp(0.57*magnitude)+7.3/*121*mathSquare(.75*magnitude - .9)*/); //finding the time it'll take to get back to the Base Station 
-    DEBUG(("The fuel to get back to the base is %f",fuel2base));
+    float fuel2base= magnitude*mathSquare(121*(.75*magnitude - .9));//*121*mathSquare(.75*magnitude - .9)*/); finding the time it'll take to get back to the Base Station 
+    DEBUG(("The time to get back to the base is %f",fuel2base));
+    
     
     return fuel2base;
 }
