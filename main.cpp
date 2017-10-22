@@ -66,7 +66,6 @@ void loop(){
     memcpy(modPos,myPos,12);
     for (int i=0;i<2;i++){
         modPos[i]+=(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare);
-        DEBUG(("%f",(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare)));
     }    
         
     if (newLoc and !game.checkSample() and not drilling){
@@ -94,11 +93,11 @@ void loop(){
         }
         newLoc=false;
     }
-    vcoef=.170f;
+    vcoef=.120f;
     // if (game.isGeyserHere(mySquare)){
     //     vcoef+=.04f;
     // }
-    if (game.getNumSamplesHeld()>2 and (api.getTime()>158 and api.getTime()<160) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
+    if (game.getNumSamplesHeld()>2 and (api.getTime()>161 and api.getTime()<163) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
         dropping=true;
         drilling=false;
         game.stopDrill();
@@ -117,18 +116,17 @@ void loop(){
         //set this to go to the surface
         positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
-        if (((mathVecMagnitude(myVel,3)<.01f
-        and (mathVecMagnitude(myRot,3)<.035f 
-        or drilling) 
+        if ((mathVecMagnitude(myVel,3)<.01f
+        and (mathVecMagnitude(myRot,3)<.035f or drilling)
         and (siteCoords[0]==mySquare[0] 
-        and siteCoords[1]==mySquare[1]))
-        or drilling) and not game.getDrillError()){
+        and siteCoords[1]==mySquare[1])) 
+        and not game.getDrillError()){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=-myAtt[2];
             api.setAttitudeTarget(usefulVec);
-            usefulVec[0]=0;
-            usefulVec[1]=0;
-            usefulVec[2]=0;
-            api.setAttRateTarget(usefulVec);
+            // usefulVec[0]=0;
+            // usefulVec[1]=0;
+            // usefulVec[2]=0;
+            // api.setAttRateTarget(usefulVec);
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
@@ -173,13 +171,13 @@ void loop(){
     #define ACCEL .0175f
     mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
-    if (distance > 0.05f) {//If not close, decide on our velocity
+    if (distance > 0.03f) {//If not close, decide on our velocity
         flocal = vcoef;
         if (flocal*flocal/ACCEL>distance-.015f){//Cap on how fast we go
             flocal = sqrtf(distance*ACCEL)-.015f;
             //DEBUG(("Slower"));
         }
-        scale(fvector, flocal);
+        scale(fvector, flocal*(game.isGeyserHere(mySquare)+1));
         api.setVelocityTarget(fvector);
     }
     else{//If close:
