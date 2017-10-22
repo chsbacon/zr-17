@@ -232,7 +232,7 @@ void loop() {
 	    enDrillSquaresIdx = 0;
 	}
 	
-	if(dist(myPos, positionTarget) > 0.02f) {
+	if(dist(myPos, positionTarget) > 0.02f or game.getDrillError()) {
 	    game.stopDrill();
 	    //this stops the drill only if the sphere is moved or we have a full inventory, 
 	    //this also prevents geysers from breaking drilling because our position would be far from position target 
