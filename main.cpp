@@ -66,7 +66,7 @@ void loop() {
     float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
-	myFuel = game.getFuelRemaining();
+	myFuel = game.getFuelRemaining()*100;
 	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
