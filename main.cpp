@@ -66,14 +66,14 @@ void loop() {
     float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
-	myFuel = game.getFuelRemaining()*100;
+	myFuel = game.getFuelRemaining();
 	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f) or (myFuel <= fuelToGoBTB(myState))) {
+    if (sampNum == 5 or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f) or (myFuel <= fuelToGoBTB(myState))) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
