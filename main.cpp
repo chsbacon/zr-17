@@ -108,7 +108,6 @@ void loop(){
             //positionTarget[i]+=0.033f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(game.isGeyserHere(mySquare))?-1:1);
         }
         //set this to go to the surface
-        +
         positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if (((mathVecMagnitude(myVel,3)<.01f
