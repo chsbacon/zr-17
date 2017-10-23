@@ -84,7 +84,7 @@ void loop(){
                     if (score<maxDist 
                     and game.getDrills(usefulIntVec)<MAXDRILLS 
                     and not game.isGeyserHere(usefulIntVec) 
-                    and i*i+j*j>8 and (api.getTime()<122 or i%2+j%2<2)){
+                    and i*i+j*j>8 and (i%2+j%2<2)){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -125,10 +125,10 @@ void loop(){
         or drilling) and not game.getDrillError()){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=-myAtt[2];
             api.setAttitudeTarget(usefulVec);
-            usefulVec[0]=0;
-            usefulVec[1]=0;
-            usefulVec[2]=0;
-            api.setAttRateTarget(usefulVec);
+            // usefulVec[0]=0;
+            // usefulVec[1]=0;
+            // usefulVec[2]=0;
+            // api.setAttRateTarget(usefulVec);
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
