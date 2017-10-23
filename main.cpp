@@ -75,7 +75,7 @@ void loop() {
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if (sampNum == 5 or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f) or (myFuel<=fuelToGoBTB(myState))) {
+    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f) or (myFuel<=fuelToGoBTB(myState))) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
@@ -429,12 +429,12 @@ void scale(float* vec, float scale){
 
 float fuelToGoBTB(float myPosition[12]){
     //getting magnitude between SPHERE and Base Station
-    float magnitude = sqrtf(mathSquare(myPosition[1]) + mathSquare(myPosition[2]) + mathSquare(myPosition[3])); //finding magnitude
+    float magnitude = sqrtf(mathSquare(myPosition[1]) + mathSquare(myPosition[2]) + mathSquare(-0.1f-myPosition[3])); //finding magnitude
     DEBUG(("Magnitude is %f", magnitude));
-    //fuel2square = 18*exp(0.57*magnitude)+7.3;
-    //Magnitude times 121(.75x - .9)^2
-    float fuel2base= magnitude*mathSquare(121*(.75*magnitude - .9));//*121*mathSquare(.75*magnitude - .9)*/); finding the time it'll take to get back to the Base Station 
-    DEBUG(("The time to get back to the base is %f",fuel2base));
+    //float fuel2base = 18*exp(-4.6084*magnitude)+7.3;
+    //Magnitude times 22(.6x - .9)^2
+    float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));
+    DEBUG(("The fuel to get back to the base is %f",fuel2base));
     
     
     return fuel2base;
