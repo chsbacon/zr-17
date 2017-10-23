@@ -57,7 +57,9 @@ void loop(){
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
     game.square2pos(mySquare,usefulVec);
-    if (game.getScore()<7 and game.isGeyserHere(mySquare)){
+    bool geyserOnMe;
+    geyserOnMe=game.isGeyserHere(mySquare);
+    if (game.getScore()<7 and geyserOnMe){
         twoDrops=true;
     }
     twoDrops=true;
@@ -65,7 +67,7 @@ void loop(){
     float modPos[3];
     memcpy(modPos,myPos,12);
     for (int i=0;i<2;i++){
-        modPos[i]+=(myPos[i]-usefulVec[i])*6*game.isGeyserHere(mySquare);
+        modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
     }    
         
     if (newLoc and !game.checkSample() and not drilling){
@@ -83,7 +85,8 @@ void loop(){
                     if (score<maxDist 
                     and game.getDrills(usefulIntVec)<MAXDRILLS 
                     and not game.isGeyserHere(usefulIntVec) 
-                    and i*i+j*j>8 and (api.getTime()<122 or i%2+j%2<2)){
+                    and i*i+j*j>8 
+                    and ((api.getTime()<122 and (game.getScore()>7 or game.getScore()<5)) or i%2+j%2<2)){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -94,7 +97,7 @@ void loop(){
         newLoc=false;
     }
     vcoef=.120f;
-    // if (game.isGeyserHere(mySquare)){
+    // if (geyserOnMe){
     //     vcoef+=.04f;
     // }
     if (game.getNumSamplesHeld()>2 and (api.getTime()>161 and api.getTime()<163) or (game.getFuelRemaining() < .12f and game.getFuelRemaining() > .09f)){
@@ -110,8 +113,8 @@ void loop(){
         game.square2pos(siteCoords,positionTarget);
         //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
-            //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(game.isGeyserHere(mySquare)?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.033f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(game.isGeyserHere(mySquare))?-1:1);
+            //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
+            positionTarget[i]+=0.033f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(geyserOnMe)?-1:1);
         }
         //set this to go to the surface
         positionTarget[2]=0.35f;
@@ -121,8 +124,11 @@ void loop(){
         and (siteCoords[0]==mySquare[0] 
         and siteCoords[1]==mySquare[1])) 
         and not game.getDrillError()){
-            usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=-myAtt[2];
+            usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=-myAtt[2]*myAtt[2]*20;
             api.setAttitudeTarget(usefulVec);
+            memcpy(usefulVec,myRot,12);
+            scale(usefulVec,.2f/mathVecMagnitude(usefulVec,3));
+            api.setAttRateTarget(usefulVec);
             // usefulVec[0]=0;
             // usefulVec[1]=0;
             // usefulVec[2]=0;
@@ -133,8 +139,11 @@ void loop(){
             drilling=true;
         }
         else{
-            usefulVec[0]=myAtt[0]+(myAtt[1]*mathVecMagnitude(myRot,3));usefulVec[1]=myAtt[1]-(myAtt[0]*mathVecMagnitude(myRot,3));usefulVec[2]=0;
+            usefulVec[0]=myAtt[0];usefulVec[1]=myAtt[1];usefulVec[2]=0;
             api.setAttitudeTarget(usefulVec);
+            memcpy(usefulVec,myRot,12);
+            scale(usefulVec,-0.4f);
+            api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
         }
        
@@ -152,9 +161,9 @@ void loop(){
     //or (mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) 
     //or mathVecMagnitude(myVel,3)>0.009f
     or (samples==6
-    or game.isGeyserHere(mySquare) 
+    or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1)){
-        if (game.isGeyserHere(mySquare) and drilling){
+        if (geyserOnMe and drilling){
             samples-=samples%3;
         }
         game.stopDrill();
@@ -177,7 +186,10 @@ void loop(){
             flocal = sqrtf(distance*ACCEL)-.015f;
             //DEBUG(("Slower"));
         }
-        scale(fvector, flocal*(game.isGeyserHere(mySquare)+1));
+        else if (flocal>ACCEL+mathVecMagnitude(myVel,3)){
+            flocal=ACCEL+mathVecMagnitude(myVel,3);
+        }
+        scale(fvector, flocal*(geyserOnMe+1));
         api.setVelocityTarget(fvector);
     }
     else{//If close:
