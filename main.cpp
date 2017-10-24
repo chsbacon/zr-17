@@ -73,7 +73,8 @@ void loop() {
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f) or (myFuel<=fuelToGoBTB(myPos))) {
+    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
+    or (myFuel<=fuelToGoBTB(myPos))) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
