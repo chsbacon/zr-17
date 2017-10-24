@@ -4,6 +4,7 @@ int targetCoordinates[3];
 float zeroVec[3];
 float myState[13];
 float usefulVec[3];
+float guardPos[3];
 int usefulIntVec[3];
 int mySquare[3];
 float enState[12];
@@ -18,12 +19,16 @@ float enState[12];
 #define MAXDRILLS 3
 int siteCoords[3];
 bool newLoc;
+
+//could improve these flags to save codesize
 bool dropping;
 bool drilling;
+bool guarding;
 bool twoDrops;
 //are described in their names, and act as length-3 float arrays
 int samples;
 float vcoef;
+
 void init(){
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
@@ -35,12 +40,12 @@ void init(){
     //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
     samples=0;
-	drilling=false;
+	drilling=false; 
 	twoDrops=false;
+	guarding=false;
 }
 
 void loop(){
-    
     
     if (game.checkSample()){
         game.dropSample(4);
@@ -54,6 +59,11 @@ void loop(){
         dropping=false;
         samples=-100;
     }
+    
+    //calculate guardSpot
+    memcpy(guardPos, enPos, 12);
+    scale(guardPos, 0.16f/mathVecMagnitude(enPos, 3));
+    
     api.getMySphState(myState);
     float myAtt[3];
     zeroVec[0]-=1;
@@ -67,7 +77,11 @@ void loop(){
     if (game.getScore()<7 and geyserOnMe){
         twoDrops=true;
     }
+    //What?
     twoDrops=true;
+    if(geyserOnMe and game.getNumSamplesHeld() > 4){
+        dropping=true;
+    }
     float maxDist=100;//Sets this large
     float modPos[3];
     memcpy(modPos,myPos,12);
@@ -75,7 +89,7 @@ void loop(){
         modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
     }    
         
-    if (newLoc and !game.checkSample() and not drilling){
+    if (newLoc and !game.checkSample() and not drilling and not guarding){
         DEBUG(("%d",newLoc));
         DEBUG(("reselecting"));
         for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
@@ -114,8 +128,8 @@ void loop(){
     float rotConst;
     rotConst=0;
     
-    //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if ((((samples%3>0 or samples<0)and twoDrops) or game.getNumSamplesHeld()<5) and not dropping){//Second to last condition is redundant
+    //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already
+    if ((((samples%3>0 or samples<0)and twoDrops) or game.getNumSamplesHeld()<5) and not dropping and not guarding){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
@@ -175,8 +189,13 @@ void loop(){
     }
     //otherwise, drop off our samples
     else{
+        if(guarding){
+            memcpy(positionTarget, guardPos, 12);
+        }
+        else{
         memcpy(positionTarget,myPos,12);
-        scale(positionTarget,.23f/mathVecMagnitude(myPos,3));
+        scale(positionTarget,0.23f/mathVecMagnitude(myPos,3));
+        }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
         zeroVec[2]+=1;
@@ -197,6 +216,16 @@ void loop(){
         drilling=false;
     }
     
+    //if we're closer than them to the guarding position and we're ahead
+    if((dist(enPos, guardPos) - dist(myPos, guardPos) > .15) and (game.getScore() - game.getOtherScore() > 2)){
+        guarding=true;
+    }
+    //if we were guarding and they're too close to the surface
+    if(guarding and enPos[2] > .28){
+        guarding=false;
+    }
+    
+    DEBUG(("Guarding: %d", guarding));
 
     
     
