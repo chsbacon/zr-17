@@ -28,7 +28,7 @@ void init(){
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
-	#define SPEEDCONST .5f
+	#define SPEEDCONST .3f
     #define DERIVCONST 2.5f
     api.setPosGains(SPEEDCONST,0,DERIVCONST);
     //api.setAttGains(0.7f,0.1f,3.f);
@@ -90,7 +90,7 @@ void loop(){
                     if (score<maxDist 
                     and game.getDrills(usefulIntVec)<MAXDRILLS 
                     and not game.isGeyserHere(usefulIntVec) 
-                    and i*i+j*j>8 
+                    and i*i+j*j>8 and i*i+j*j<20 
                     and i%2+j%2<=1){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
@@ -160,7 +160,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            rotConst=mathVecMagnitude(myRot,3)*-.2f;
+            rotConst=mathVecMagnitude(myRot,3)*-.3f;
         }
         PRINTVEC("myQuatAtt",myQuatAtt);
         myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
@@ -206,20 +206,32 @@ void loop(){
     #define ACCEL .0135f
     mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
-    if (distance > 0.05f) {//If not close, decide on our velocity
-        flocal = vcoef;
-        if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
-            flocal = sqrtf(distance*ACCEL)-.02f;
-            //DEBUG(("Slower"));
-        }
-        else if (!geyserOnMe and flocal>ACCEL+mathVecMagnitude(myVel,3)){
-            flocal=ACCEL+mathVecMagnitude(myVel,3);
-        }
-        scale(fvector, flocal);
+    if (geyserOnMe){
+        game.square2pos(mySquare,usefulVec);
+        mathVecSubtract(fvector,myPos,usefulVec,3);
+        mathVecNormalize(fvector,3);
+        scale(fvector,.1f);
+        fvector[2]=-.04f;
         api.setVelocityTarget(fvector);
     }
-    else{//If close:
-        api.setPositionTarget(destination);
+    else{
+        if (distance > 0.04f) {//If not close, decide on our velocity
+        
+            flocal = vcoef;
+            if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
+                flocal = sqrtf(distance*ACCEL)-.02f;
+                //DEBUG(("Slower"));
+            }
+            else if (!geyserOnMe and flocal>ACCEL+mathVecMagnitude(myVel,3)){
+                flocal=ACCEL+mathVecMagnitude(myVel,3);
+            }
+            scale(fvector, flocal);
+        
+            api.setVelocityTarget(fvector);
+        }
+        else{//If close:
+            api.setPositionTarget(destination);
+        }
     }
 }
 
