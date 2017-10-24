@@ -136,9 +136,6 @@ void loop(){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
             api.setAttitudeTarget(usefulVec);
             
-            
-            // scale(usefulVec,.2f/mathVecMagnitude(usefulVec,3));
-            // api.setAttRateTarget(usefulVec);
             // usefulVec[0]=0;
             // usefulVec[1]=0;
             // usefulVec[2]=0;
