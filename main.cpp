@@ -28,8 +28,8 @@ void init(){
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
-	#define SPEEDCONST .3f
-    #define DERIVCONST 2.5f
+	#define SPEEDCONST .35f
+    #define DERIVCONST 2.35f
     api.setPosGains(SPEEDCONST,0,DERIVCONST);
     //api.setAttGains(0.7f,0.1f,3.f);
     //api.setAttGains(0.f,0.f,0.f);
@@ -88,10 +88,10 @@ void loop(){
                     usefulVec[2]=0.35f;
                     float score=dist(usefulVec,modPos);
                     if (score<maxDist 
-                    and game.getDrills(usefulIntVec)<MAXDRILLS 
+                    and game.getDrills(usefulIntVec)<1 
                     and not game.isGeyserHere(usefulIntVec) 
                     and i*i+j*j>8 and i*i+j*j<20 
-                    and i%2+j%2<=1){
+                    and i%2+j%2>=1){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -105,7 +105,7 @@ void loop(){
     // if (geyserOnMe){
     //     vcoef+=.04f;
     // }
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()==160) or (game.getFuelRemaining() < .13f and game.getFuelRemaining() > .10f))){
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()==161) or (game.getFuelRemaining() < .13f and game.getFuelRemaining() > .10f))){
         dropping=true;
         drilling=false;
         game.stopDrill();
@@ -122,7 +122,7 @@ void loop(){
         //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.034f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(geyserOnMe)?-.5f:1);
+            positionTarget[i]+=0.034f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1);
         }
         //set this to go to the surface
         positionTarget[2]=0.35f;
@@ -144,7 +144,7 @@ void loop(){
                 game.startDrill();
             }
             else{
-                rotConst=.3f;
+                rotConst=.4f;
             }
             drilling=true;
             
@@ -157,16 +157,9 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            rotConst=mathVecMagnitude(myRot,3)*-.3f;
+            rotConst=-.1f;
         }
-        PRINTVEC("myQuatAtt",myQuatAtt);
-        myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
-        zeroVec[2]=rotConst;
-        api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
-        zeroVec[2]=0;
-        if (drilling){
-            api.setAttRateTarget(usefulVec);
-        }
+        
         
        
     }
@@ -177,7 +170,15 @@ void loop(){
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
         zeroVec[2]+=1;
-        api.setAttRateTarget(zeroVec);
+        rotConst=.1f;
+    }
+    PRINTVEC("myQuatAtt",myQuatAtt);
+    myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
+    zeroVec[2]=rotConst;
+    api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
+    zeroVec[2]=0;
+    if (drilling){
+        api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
     if (game.getDrillError() 
@@ -200,7 +201,7 @@ void loop(){
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
     float distance,flocal,fvector[3];
-    #define ACCEL .0135f
+    #define ACCEL .014f
     mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
     if (geyserOnMe){
