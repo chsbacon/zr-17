@@ -88,7 +88,7 @@ void loop(){
                     usefulVec[2]=0.35f;
                     float score=dist(usefulVec,modPos);
                     if (score<maxDist 
-                    and game.getDrills(usefulIntVec)<MAXDRILLS 
+                    and game.getDrills(usefulIntVec)<1 
                     and not game.isGeyserHere(usefulIntVec) 
                     and i*i+j*j>8 and i*i+j*j<20 
                     and i%2+j%2>=1){
@@ -105,7 +105,7 @@ void loop(){
     // if (geyserOnMe){
     //     vcoef+=.04f;
     // }
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()==163) or (game.getFuelRemaining() < .13f and game.getFuelRemaining() > .10f))){
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()==161) or (game.getFuelRemaining() < .13f and game.getFuelRemaining() > .10f))){
         dropping=true;
         drilling=false;
         game.stopDrill();
@@ -122,7 +122,7 @@ void loop(){
         //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.034f*((siteCoords[i]>0)^(siteCoords[i]%2==0)^(geyserOnMe)?-1:1);
+            positionTarget[i]+=0.034f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1);
         }
         //set this to go to the surface
         positionTarget[2]=0.35f;
@@ -157,16 +157,9 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            rotConst=mathVecMagnitude(myRot,3)*-.3f;
+            rotConst=-.03f;
         }
-        PRINTVEC("myQuatAtt",myQuatAtt);
-        myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
-        zeroVec[2]=rotConst;
-        api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
-        zeroVec[2]=0;
-        if (drilling){
-            api.setAttRateTarget(usefulVec);
-        }
+        
         
        
     }
@@ -177,7 +170,15 @@ void loop(){
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
         zeroVec[2]+=1;
-        api.setAttRateTarget(zeroVec);
+        rotConst=.1f;
+    }
+    PRINTVEC("myQuatAtt",myQuatAtt);
+    myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
+    zeroVec[2]=rotConst;
+    api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
+    zeroVec[2]=0;
+    if (drilling){
+        api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
     if (game.getDrillError() 
