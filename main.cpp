@@ -144,7 +144,7 @@ void loop(){
                 game.startDrill();
             }
             else{
-                rotConst=.3f;
+                rotConst=.4f;
             }
             drilling=true;
             
@@ -157,7 +157,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            rotConst=-.03f;
+            rotConst=-.1f;
         }
         
         
@@ -201,7 +201,7 @@ void loop(){
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
     float distance,flocal,fvector[3];
-    #define ACCEL .0135f
+    #define ACCEL .014f
     mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
     if (geyserOnMe){
