@@ -29,7 +29,7 @@ void init(){
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
 	#define SPEEDCONST .3f
-    #define DERIVCONST 2.5f
+    #define DERIVCONST 2.35f
     api.setPosGains(SPEEDCONST,0,DERIVCONST);
     //api.setAttGains(0.7f,0.1f,3.f);
     //api.setAttGains(0.f,0.f,0.f);
@@ -91,7 +91,7 @@ void loop(){
                     and game.getDrills(usefulIntVec)<MAXDRILLS 
                     and not game.isGeyserHere(usefulIntVec) 
                     and i*i+j*j>8 and i*i+j*j<20 
-                    and i%2+j%2<=1){
+                    and i%2+j%2>=1){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -105,7 +105,7 @@ void loop(){
     // if (geyserOnMe){
     //     vcoef+=.04f;
     // }
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()==160) or (game.getFuelRemaining() < .13f and game.getFuelRemaining() > .10f))){
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()==163) or (game.getFuelRemaining() < .13f and game.getFuelRemaining() > .10f))){
         dropping=true;
         drilling=false;
         game.stopDrill();
@@ -122,7 +122,7 @@ void loop(){
         //adjust positiontarget to the corner of a square
         for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.034f*((siteCoords[i]>0)^(siteCoords[i]%2>0)^(geyserOnMe)?-.5f:1);
+            positionTarget[i]+=0.034f*((siteCoords[i]>0)^(siteCoords[i]%2==0)^(geyserOnMe)?-1:1);
         }
         //set this to go to the surface
         positionTarget[2]=0.35f;
