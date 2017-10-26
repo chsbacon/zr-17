@@ -34,7 +34,6 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT]; // stores whether
     // 'x' : impossible ten spot
 
 float vcoef; // A coefficient for our movement speed
-float zeroVec[3]; // (0,0,0) -- just a convenience thing
 #define SURFACE_Z 0.48f
 int drillSquare[2]; // Will eventually store the optimal drilling square
     // It's important that this is global because sometimes it doesn't
@@ -55,10 +54,10 @@ void init() {
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
         // including the center lmao, but we ignore it
-    memset(zeroVec, 0, 12);
 }
 
 void loop() {
+    float zeroVec[3] = {0.0, 0.0, 0.0}; // just a convenience thing
     float positionTarget[3]; // where we're going
     // Update state
     float myState[12];
