@@ -188,7 +188,7 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()==157) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .13f))){
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
         game.stopDrill();
