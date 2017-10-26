@@ -15,7 +15,7 @@ float enState[12];
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
 #define enRot (&enState[9])//These are pointers. They will have the values that
-#define TWODROPS true
+#define TWODROPS false
 #define MAXDRILLS 3
 int siteCoords[3];
 bool newLoc;
