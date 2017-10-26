@@ -105,7 +105,7 @@ void loop(){
     // if (geyserOnMe){
     //     vcoef+=.04f;
     // }
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()==161) or (game.getFuelRemaining() < .13f and game.getFuelRemaining() > .10f))){
+    if (game.getNumSamplesHeld()>2 and ((api.getTime()==157) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .13f))){
         dropping=true;
         drilling=false;
         game.stopDrill();
