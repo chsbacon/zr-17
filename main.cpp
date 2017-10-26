@@ -88,7 +88,8 @@ void loop(){
                     and game.getDrills(usefulIntVec)<1 
                     and not game.isGeyserHere(usefulIntVec) 
                     and i*i+j*j>8 and i*i<16 and j*j<16 
-                    and i%2+j%2>=1){
+                    
+                    and dist(enPos,usefulVec)>.22f){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
