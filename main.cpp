@@ -111,8 +111,8 @@ void loop(){
     float rotConst;
     rotConst=0;
     
-    //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if (not dropping){//Second to last condition is redundant
+    //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already or they are guarding
+    if (not dropping or (dist(enPos, zeroVec) < .2 and mathVecMagnitude(enVel, 3) < .15 and angle(myPos, enPos) < .5)){
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
@@ -192,6 +192,7 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
+    
     if (game.getNumSamplesHeld()>2 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
@@ -201,11 +202,11 @@ void loop(){
     memcpy(guardPos, enPos, 12);
     scale(guardPos, .1/mathVecMagnitude(enPos, 3));
     
-    if((game.getScore() > 36 and game.getScore() - game.getOtherScore() >= 15 and dist(myPos, zeroVec) < .24) or guarding){
-        memcpy(positionTarget, guardPos, 12);
-        guarding = true;
-        DEBUG(("Guarding"));
-    }
+    // if((game.getScore() > 36 and game.getScore() - game.getOtherScore() >= 15 and dist(myPos, zeroVec) < .24) or guarding){
+    //     memcpy(positionTarget, guardPos, 12);
+    //     guarding = true;
+    //     DEBUG(("Guarding"));
+    // }
     
     
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
@@ -226,6 +227,11 @@ void loop(){
         fvector[2]=0.01f;
     }
     api.setVelocityTarget(fvector);
+}
+
+float angle(float* vec1, float* vec2){
+    return acosf(mathVecInner(vec1, vec2, 3)
+        / (mathVecMagnitude(vec1, 3) * mathVecMagnitude(vec2, 3)));
 }
 
 float dist(float* vec1, float* vec2) {
