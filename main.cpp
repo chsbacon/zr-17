@@ -42,7 +42,6 @@ void init(){
 
 void loop(){
     
-    
     if (game.checkSample()){
         game.dropSample(4);
         game.pickupSample();
@@ -107,7 +106,9 @@ void loop(){
     
     float rotConst;
     rotConst=0;
-    
+    // if (mathVecInner(myPos,enPos,3)/mathVecMagnitude(myPos,3)/mathVecMagnitude(enPos,3)>.82f){//35 deg separation
+    //     dropping=false;
+    // }
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if (not dropping){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
@@ -160,6 +161,11 @@ void loop(){
     //otherwise, drop off our samples
     else{
         memcpy(positionTarget,myPos,12);
+        float dropDist;
+        dropDist=mathVecMagnitude(myPos,3)-.01f;
+        if (dropDist>.23f){
+            dropDist=.23f;
+        }
         scale(positionTarget,.23f/mathVecMagnitude(myPos,3));
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
