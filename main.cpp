@@ -106,9 +106,10 @@ void loop(){
     
     float rotConst;
     rotConst=0;
-    // if (mathVecInner(myPos,enPos,3)/mathVecMagnitude(myPos,3)/mathVecMagnitude(enPos,3)>.82f){//35 deg separation
-    //     dropping=false;
-    // }
+    if (mathVecInner(myPos,enPos,3)/mathVecMagnitude(myPos,3)/mathVecMagnitude(enPos,3)>.9063f and mathVecMagnitude(enPos,3)<.24f){//25 deg separation
+        dropping=false;
+        DEBUG(("STOP"));
+    }
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if (not dropping){//Second to last condition is redundant
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
