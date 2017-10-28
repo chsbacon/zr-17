@@ -202,11 +202,11 @@ void loop(){
     memcpy(guardPos, enPos, 12);
     scale(guardPos, .1/mathVecMagnitude(enPos, 3));
     
-    // if((game.getScore() > 36 and game.getScore() - game.getOtherScore() >= 15 and dist(myPos, zeroVec) < .24) or guarding){
-    //     memcpy(positionTarget, guardPos, 12);
-    //     guarding = true;
-    //     DEBUG(("Guarding"));
-    // }
+    if(true){
+        memcpy(positionTarget, guardPos, 12);
+        guarding = true;
+        DEBUG(("Guarding"));
+    }
     
     
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
