@@ -74,13 +74,13 @@ void loop() {
     game.square2pos(drillSquare,drillSquarePos);
     
     //checking fuel to see if we need to go back to base
-    float magnitude = sqrtf(mathSquare(myPosition[0]) + mathSquare(myPosition[1]) + mathSquare(-0.1f-myPosition[2])); //finding magnitude
+    float magnitude = sqrtf(mathSquare(myPos[0]) + mathSquare(myPos[1]) + mathSquare(-0.1f-myPos[2])); //finding magnitude
     DEBUG(("Magnitude is %f", magnitude));
     float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
     DEBUG(("The fuel to get back to the base is %f",fuel2base));
 
     if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
-    or (myFuel<=fuelToGoBTB(myPos))) {
+    or (myFuel<=fuel2base)) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
@@ -429,10 +429,4 @@ float angle(float* vec1, float* vec2, int len){
 void scale(float* vec, float scale){
     for (int i=0; i<3; i++)
         vec[i] *= scale;
-}
-
-float fuelToGoBTB(float myPosition[12]){
-    
-    
-    return fuel2base;
 }
