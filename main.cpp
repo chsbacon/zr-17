@@ -25,7 +25,6 @@ int enDrillSquaresIdx; // where in enDrilSquares we will record the enemy's
     // next drill spot
 int myDrillSquares[5][2]; // where we have drilled
 bool infoFound; // have we gotten a 3, 6, or a 10?
-int myFuel; //how much fuel we have
 
 #define TEN_SPAWN_WIDTH 12
 #define TEN_SPAWN_HEIGHT 16
@@ -66,13 +65,20 @@ void loop() {
     float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
-	myFuel = game.getFuelRemaining()*100;
+	int myFuel = game.getFuelRemaining()*100;
 	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
+    
+    //checking fuel to see if we need to go back to base
+    float magnitude = sqrtf(mathSquare(myPosition[0]) + mathSquare(myPosition[1]) + mathSquare(-0.1f-myPosition[2])); //finding magnitude
+    DEBUG(("Magnitude is %f", magnitude));
+    float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
+    DEBUG(("The fuel to get back to the base is %f",fuel2base));
+
     if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
     or (myFuel<=fuelToGoBTB(myPos))) {
         DEBUG(("Heading back to base"));
@@ -426,11 +432,6 @@ void scale(float* vec, float scale){
 }
 
 float fuelToGoBTB(float myPosition[12]){
-    //getting magnitude between SPHERE and Base Station
-    float magnitude = sqrtf(mathSquare(myPosition[0]) + mathSquare(myPosition[1]) + mathSquare(-0.1f-myPosition[2])); //finding magnitude
-    DEBUG(("Magnitude is %f", magnitude));
-    float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
-    DEBUG(("The fuel to get back to the base is %f",fuel2base));
     
     
     return fuel2base;
