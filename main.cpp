@@ -64,14 +64,22 @@ void loop() {
     float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
+	int myFuel = game.getFuelRemaining()*100;
 	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if (sampNum == 5 
-    or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)) {
+    
+    //checking fuel to see if we need to go back to base
+    float magnitude = sqrtf(mathSquare(myPos[0]) + mathSquare(myPos[1]) + mathSquare(-0.1f-myPos[2])); //finding magnitude
+    DEBUG(("Magnitude is %f", magnitude));
+    float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
+    DEBUG(("The fuel to get back to the base is %f",fuel2base));
+
+    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
+    or (myFuel<=fuel2base)) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
