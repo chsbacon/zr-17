@@ -23,6 +23,7 @@ bool dropping;
 bool drilling;
 bool twoDrops;
 //are described in their names, and act as length-3 float arrays
+// TEST 
 int samples;
 float vcoef;
 void init(){
