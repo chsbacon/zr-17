@@ -17,6 +17,7 @@ float velocity;
 int spot;
 float concentration;
 int square[3];
+
 void scale (float* vec, float scale) {//This function scales a length-3 vector by a coeff.
     for (int i=0; i<3; i++) {
         vec[i] *= scale;
@@ -42,7 +43,6 @@ void update () {
 }
 void init(){
     spot = 0;
-	//This function is called once when your code is first loaded.
 	update();
 	step = 1;
 	blAnaPos[0] = -0.3;
@@ -137,7 +137,6 @@ void loop(){
     }*/
     //DEBUG(("SPOT %i, %f, %f, %f, *** %f, %f, %f", spot, dest[0], dest[1], dest[2], spots[spot][0], spots[spot][1], spots[spot][2]));
     update();
-	//This function is called once per second.  Use it to control the satellite.
 	if (step == 1) { //get analyzer
 	    if (game.hasAnalyzer()>0) {
             step++;
