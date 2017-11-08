@@ -112,7 +112,12 @@ void init(){
     square[1] = 8;
     //square[2] = 0;
     game.square2pos(square, spots[9]);
-    
+    if (amRed) {
+        for (int i = 0; i < 10; i++) {
+            spots[i][0]*=-1;
+            spots[i][1]*=-1;
+        }
+    }
     //DEBUG
     /*for (int i = 0; i < 10; i++) {
         game.pos2square(spots[i], square);
@@ -142,10 +147,7 @@ void loop(){
 	    for (int i = 0; i < 3; i++) {
 	        dest[i] = spots[spot][i];
 	    }
-	    if (amRed) {
-	        dest[0]*=-1;
-	        dest[1]*=-1;
-	    }
+	    
 	    game.pos2square(myPosition, square);
 	    int tempSqr[3];
 	    game.pos2square(spots[spot], tempSqr);
