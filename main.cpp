@@ -16,7 +16,7 @@ float enState[12];
 #define enAtt (&enState[6])
 #define enRot (&enState[9])//These are pointers. They will have the values that
 #define TWODROPS false
-#define MAXDRILLS 3
+#define MAXDRILLS 2
 int siteCoords[3];
 bool newLoc;
 bool dropping;
@@ -117,16 +117,25 @@ void loop(){
         for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
             positionTarget[i]+=0.032f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1)*(1-(siteCoords[i]*siteCoords[i]==1)*.2f);
+            //positionTarget[i] += 0.005f;
         }
         //set this to go to the surface
-        positionTarget[2]=0.35f;
+        float temp [2];
+        for (int i = 0; i < 2; i++) {
+            temp[i] = positionTarget[i];
+        }
+        float h = game.getTerrainHeight(temp);
+        DEBUG(("HEIGHT : %f", h));
+        
+        positionTarget[2] = (h-0.13f);
+        //positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if ((mathVecMagnitude(myVel,3)<.01f
         and (mathVecMagnitude(myRot,3)<.035f or drilling)
          and (siteCoords[0]==mySquare[0] 
-         and siteCoords[1]==mySquare[1]) 
+         and siteCoords[1]==mySquare[1])
         ) and not game.getDrillError()
-        and (myPos[2]>.33f and myPos[2]<.37f)){
+        and (myPos[2]>(h-0.15f) and myPos[2]<(h-0.11f))){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
             api.setAttitudeTarget(usefulVec);
             
@@ -204,7 +213,6 @@ void loop(){
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
     mathVecSubtract(fvector, destination, myPos, 3);
-    
     scale(myVel,.26f);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.24f);
@@ -213,6 +221,14 @@ void loop(){
         fvector[0]/=flocal;
         fvector[1]/=flocal;
         fvector[2]=0.01f;
+    }
+    float temp [2]; 
+    for (int i = 0; i < 2; i++) {
+        temp[i] = myPos[i];
+    }
+    if ((fabsf(destination[2] - myPos[2])-0.2) > 0.4) {
+        fvector[0] = 0;
+        fvector[1] = 0;
     }
     api.setVelocityTarget(fvector);
 }
