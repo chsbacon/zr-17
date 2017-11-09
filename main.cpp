@@ -25,6 +25,7 @@ bool twoDrops;
 //are described in their names, and act as length-3 float arrays
 int samples;
 float vcoef;
+bool moving;
 void init(){
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
@@ -84,12 +85,14 @@ void loop(){
                     game.square2pos(usefulIntVec,usefulVec);
                     usefulVec[2]=0.35f;
                     float score=dist(usefulVec,modPos);
-                    if (score<maxDist 
+                    int temp [2];
+                    temp[0]=i;
+                    temp[1]=j;
+                    if ((score<maxDist 
                     and game.getDrills(usefulIntVec)<1 
                     and not game.isGeyserHere(usefulIntVec) 
                     and i*i+j*j>8 and i*i<16 and j*j<16 
-                    
-                    and dist(enPos,usefulVec)>.22f){
+                    and dist(enPos,usefulVec)>.22f) and game.getTerrainHeight(temp) < 0.50f){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -114,11 +117,11 @@ void loop(){
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
         //adjust positiontarget to the corner of a square
-        /*for (int i=0;i<2;i++){
+        for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
             positionTarget[i]+=0.032f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1)*(1-(siteCoords[i]*siteCoords[i]==1)*.2f);
             //positionTarget[i] += 0.005f;
-        }*/
+        }
         //set this to go to the surface
         float h = game.getTerrainHeight(positionTarget);
         DEBUG(("HEIGHT : %f", h));
@@ -218,17 +221,28 @@ void loop(){
         fvector[1]/=flocal;
         fvector[2]=0.01f;
     }
-    //Currently this is not the correct code and needs to be improved
-    //Will be necessary to save points
-    float temp [2]; 
-    for (int i = 0; i < 2; i++) {
-        temp[i] = myPos[i];
-    }
-    //In order to avoid bumping into terrain, will block any movement in XY plane
+    //In order to avoid bumping into terrain, will block any movement in XY plane initiallu
     //Once at a reasonable height has been reached, will not set velocity target in XY plane to 0
-    if ((fabsf(destination[2] - myPos[2])-0.2) > 0.4) {
+    //Instead sets velocity in Z direction to 0 until target square has been entered
+    
+    if (myPos[2] > 0.34 && newLoc) {
         fvector[0] = 0;
         fvector[1] = 0;
+        fvector[2] = ((0.34-myPos[2])-myVel[2]);
+    }/*
+    int mySqr[3];
+    int destSqr[3];
+    game.pos2square(myPos, mySqr);
+    game.pos2square(destination, destSqr);
+    if (newLoc and myPos[2] <= 0.34) {
+        if (!(mySqr[0] == destSqr[0] && mySqr[1] == destSqr[1])) {
+            fvector[2]=0;
+        }
+    }*/
+    if (game.getFuelRemaining()<0.025f || mathVecMagnitude(myVel, 3) > 0.005) {
+        for (int i = 0; i < 3; i++) {
+            fvector[i] = 0;
+        }   
     }
     api.setVelocityTarget(fvector);
 }
