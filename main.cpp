@@ -114,20 +114,16 @@ void loop(){
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
         //adjust positiontarget to the corner of a square
-        for (int i=0;i<2;i++){
+        /*for (int i=0;i<2;i++){
             //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
             positionTarget[i]+=0.032f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1)*(1-(siteCoords[i]*siteCoords[i]==1)*.2f);
             //positionTarget[i] += 0.005f;
-        }
+        }*/
         //set this to go to the surface
-        float temp [2];
-        for (int i = 0; i < 2; i++) {
-            temp[i] = positionTarget[i];
-        }
-        float h = game.getTerrainHeight(temp);
+        float h = game.getTerrainHeight(positionTarget);
         DEBUG(("HEIGHT : %f", h));
-        
-        positionTarget[2] = (h-0.13f);
+        #define DRILL_DIST 0.13f
+        positionTarget[2] = (h-DRILL_DIST);
         //positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if ((mathVecMagnitude(myVel,3)<.01f
@@ -186,7 +182,7 @@ void loop(){
     //if our drill breaks or we get a geyser, stop the current drill
     if (game.getDrillError() 
     or geyserOnMe 
-    or game.getDrills(mySquare)>MAXDRILLS-1){
+    or game.getDrills(mySquare)>MAXDRILLS-1 or game.getFuelRemaining()<0.01f){
         if (TWODROPS and samples>4){
             dropping=true;
             samples=-100;
@@ -222,10 +218,14 @@ void loop(){
         fvector[1]/=flocal;
         fvector[2]=0.01f;
     }
+    //Currently this is not the correct code and needs to be improved
+    //Will be necessary to save points
     float temp [2]; 
     for (int i = 0; i < 2; i++) {
         temp[i] = myPos[i];
     }
+    //In order to avoid bumping into terrain, will block any movement in XY plane
+    //Once at a reasonable height has been reached, will not set velocity target in XY plane to 0
     if ((fabsf(destination[2] - myPos[2])-0.2) > 0.4) {
         fvector[0] = 0;
         fvector[1] = 0;
