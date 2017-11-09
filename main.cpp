@@ -65,6 +65,9 @@ void loop(){
     game.square2pos(mySquare,usefulVec);
     bool geyserOnMe;
     geyserOnMe=game.isGeyserHere(mySquare);
+    if (geyserOnMe) {
+        samples = 0;
+    }
     twoDrops=true;
     float maxDist=100;//Sets this large
     float modPos[3];
@@ -220,29 +223,31 @@ void loop(){
         fvector[0]/=flocal;
         fvector[1]/=flocal;
         fvector[2]=0.01f;
-    }
-    //In order to avoid bumping into terrain, will block any movement in XY plane initiallu
+    } else {
+    //COLLISION AVOIDANCE:
+    //In order to avoid bumping into terrain, will block any movement in XY plane initially
     //Once at a reasonable height has been reached, will not set velocity target in XY plane to 0
     //Instead sets velocity in Z direction to 0 until target square has been entered
     
-    if (myPos[2] > 0.34 && newLoc) {
-        fvector[0] = 0;
-        fvector[1] = 0;
-        fvector[2] = ((0.34-myPos[2])-myVel[2]);
-    }/*
-    int mySqr[3];
-    int destSqr[3];
-    game.pos2square(myPos, mySqr);
-    game.pos2square(destination, destSqr);
-    if (newLoc and myPos[2] <= 0.34) {
-        if (!(mySqr[0] == destSqr[0] && mySqr[1] == destSqr[1])) {
-            fvector[2]=0;
+        if (myPos[2] > 0.3 && newLoc && !dropping) {
+            fvector[0] = 0;
+            fvector[1] = 0;
+            fvector[2] = ((0.25-myPos[2])-myVel[2]);
         }
-    }*/
-    if (game.getFuelRemaining()<0.025f || mathVecMagnitude(myVel, 3) > 0.005) {
-        for (int i = 0; i < 3; i++) {
-            fvector[i] = 0;
-        }   
+        int mySqr[3];
+        int destSqr[3];
+        game.pos2square(myPos, mySqr);
+        game.pos2square(destination, destSqr);
+        if (newLoc and myPos[2] <= 0.30) {
+            if (!(mySqr[0] == destSqr[0] && mySqr[1] == destSqr[1])) {
+                fvector[2]=0;
+            }
+        }
+        if (game.getFuelRemaining()<0.025f || mathVecMagnitude(myVel, 3) > 0.005) {
+            for (int i = 0; i < 3; i++) {
+                fvector[i] = 0;
+            }   
+        }
     }
     api.setVelocityTarget(fvector);
 }
