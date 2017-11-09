@@ -23,7 +23,9 @@ bool drilling;
 //are described in their names, and act as length-3 float arrays
 int samples;
 float vcoef;
+int corner;
 void init(){
+    
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
@@ -72,30 +74,54 @@ void loop(){
     if (newLoc and !game.checkSample() and not drilling){
         DEBUG(("%d",newLoc));
         DEBUG(("reselecting"));
-        for (int i=-8;i<9;i++){//This checks all of the grid spaces, and sees which is both
+        for (int i=-6;i<6;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
-            for (int j=-10;j<11;j++){
-                if ((i!=0) and (j!=0)){
+            for (int j=-8;j<8;j++){
+                if (i*j!=0 and (i<-3 or i>2 or j<-3 or j>2)){
                     //DEBUG(("%i %i",i,j));
-                    usefulIntVec[0]=i;usefulIntVec[1]=j;usefulIntVec[2]=0;
-                    game.square2pos(usefulIntVec,usefulVec);
-                    usefulVec[2]=game.getTerrainHeight(usefulIntVec);
-                    float score=dist(usefulVec,modPos);
-                    if (score<maxDist 
-                    and game.getDrills(usefulIntVec)<1 
-                    and not game.isGeyserHere(usefulIntVec) 
-                    and i*i+j*j>8 and i*i<16 and j*j<16 
-                    and dist(enPos,usefulVec)>.22f){
-                        siteCoords[0]=i;siteCoords[1]=j;
-                        game.square2pos(siteCoords,positionTarget);
-                        PRINTVEC("ptar0",positionTarget);
-                        //adjust positiontarget to the corner of a square
-                        for (int i=0;i<2;i++){
-                            positionTarget[i]+=0.032f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1)*(1-(siteCoords[i]*siteCoords[i]==1)*.2f);
-                        }
-                        //DEBUG(("Changed %f", score));
-                        maxDist = score;
+                    int heights[4];
+                    memset(heights,0,16);
+                    for (int a=0;a<4;a++){//Allows to cycle through four points of square
+                        usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
+                        fixEdge(usefulIntVec);
+                        int index=(game.getTerrainHeight(usefulIntVec)-.4f)*12.5f;
+                        DEBUG(("%i",index));
+                        heights[index]+=1;
                     }
+                    float goodHeight=.4f;
+                    for (int other=1;other<4;other++){
+                        if (heights[0]<heights[other]){
+                            heights[0]=heights[other];
+                            goodHeight=.4f+.08f*other;
+                        }
+                    }
+                    DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
+                    if (heights[0]==3){
+                        DEBUG(("GROUP"));
+                        for (int a=0;a<4;a++){
+                            usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
+                            fixEdge(usefulIntVec);
+                            
+                            game.square2pos(usefulIntVec,usefulVec);
+                            usefulVec[2]=game.getTerrainHeight(usefulIntVec);
+                            float score=dist(usefulVec,modPos);
+                            if ( usefulVec[2]==goodHeight
+                            and score<maxDist 
+                            and game.getDrills(usefulIntVec)<1 
+                            and not game.isGeyserHere(usefulIntVec) 
+                            //and i*i+j*j>8 and i*i<16 and j*j<16 
+                            and dist(enPos,usefulVec)>.22f){
+                                siteCoords[0]=i+a%2;siteCoords[1]=j+a/2;
+                                fixEdge(siteCoords);
+                                
+                                corner=a;
+                                
+                                //DEBUG(("Changed %f", score));
+                                maxDist = score;
+                            }
+                        }
+                    }
+                    
                     
                 }
             }
@@ -103,24 +129,24 @@ void loop(){
         newLoc=false;
     }
     vcoef=.120f;
-    // if (geyserOnMe){
-    //     vcoef+=.04f;
-    // }
+    if (geyserOnMe){
+        vcoef+=.04f;
+    }
     
     
     float rotConst;
     rotConst=0;
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if (not dropping){//Second to last condition is redundant
-        DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
-        DEBUG(("%i %i", mySquare[0],mySquare[1]));
-        //vertical movement to avoid terrain
-        positionTarget[2]=myPos[2];
+    if (not dropping){
+        //adjust positiontarget to the corner of a square
+        game.square2pos(siteCoords,positionTarget);
+        positionTarget[0]+=((corner%2)*-2+1)*0.032f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.032f;
+        positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
             positionTarget[2]=.28f;
             DEBUG(("O"));
-            PRINTVEC("ptar",positionTarget);
             if (myPos[2]>.29f){
                 DEBUG(("U"));
                 memcpy(positionTarget,myPos,8);
@@ -130,6 +156,10 @@ void loop(){
             DEBUG(("D"));
             positionTarget[2]=game.getTerrainHeight(siteCoords)-.14f;
         }
+        DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+        DEBUG(("%i %i", mySquare[0],mySquare[1]));
+        
+        
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if ((mathVecMagnitude(myVel,3)<.01f
         and (mathVecMagnitude(myRot,3)<.035f or drilling)
@@ -180,7 +210,7 @@ void loop(){
         rotConst=.1f;
         
     }
-    //PRINTVEC("myQuatAtt",myQuatAtt);
+    PRINTVEC("myQuatAtt",myQuatAtt);
     myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
     zeroVec[2]=rotConst;
     api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
@@ -200,7 +230,7 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>2 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
         game.stopDrill();
@@ -230,11 +260,18 @@ void loop(){
     }
     api.setVelocityTarget(fvector);
 }
-
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
     mathVecSubtract(ansVec, vec1, vec2, 3);
     return mathVecMagnitude(ansVec, 3);
+}
+void fixEdge(int coorVec[2]){
+    if (coorVec[1]==0){
+        coorVec[1]=1;
+    }
+    if (coorVec[0]==0){
+        coorVec[0]=1;
+    }
 }
 void scale (float* vec, float scale) {//This function scales a length-3 vector by a coeff.
     for (int i=0; i<3; i++) {
