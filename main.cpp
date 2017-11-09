@@ -119,12 +119,6 @@ void loop(){
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
-        //adjust positiontarget to the corner of a square
-        for (int i=0;i<2;i++){
-            //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.032f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1)*(1-(siteCoords[i]*siteCoords[i]==1)*.2f);
-            //positionTarget[i] += 0.005f;
-        }
         //set this to go to the surface
         float h = game.getTerrainHeight(positionTarget);
         DEBUG(("HEIGHT : %f", h));
