@@ -16,7 +16,7 @@ float enState[12];
 #define enAtt (&enState[6])
 #define enRot (&enState[9])//These are pointers. They will have the values that
 #define TWODROPS false
-#define MAXDRILLS 3
+#define MAXDRILLS 2
 int siteCoords[3];
 bool newLoc;
 bool dropping;
@@ -25,6 +25,7 @@ bool twoDrops;
 //are described in their names, and act as length-3 float arrays
 int samples;
 float vcoef;
+bool moving;
 void init(){
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
@@ -64,6 +65,9 @@ void loop(){
     game.square2pos(mySquare,usefulVec);
     bool geyserOnMe;
     geyserOnMe=game.isGeyserHere(mySquare);
+    if (geyserOnMe) {
+        samples = 0;
+    }
     twoDrops=true;
     float maxDist=100;//Sets this large
     float modPos[3];
@@ -84,12 +88,14 @@ void loop(){
                     game.square2pos(usefulIntVec,usefulVec);
                     usefulVec[2]=0.35f;
                     float score=dist(usefulVec,modPos);
-                    if (score<maxDist 
+                    int temp [2];
+                    temp[0]=i;
+                    temp[1]=j;
+                    if ((score<maxDist 
                     and game.getDrills(usefulIntVec)<1 
                     and not game.isGeyserHere(usefulIntVec) 
                     and i*i+j*j>8 and i*i<16 and j*j<16 
-                    
-                    and dist(enPos,usefulVec)>.22f){
+                    and dist(enPos,usefulVec)>.22f) and game.getTerrainHeight(temp) < 0.50f){
                         siteCoords[0]=i;siteCoords[1]=j;
                         //DEBUG(("Changed %f", score));
                         maxDist = score;
@@ -113,20 +119,19 @@ void loop(){
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         game.square2pos(siteCoords,positionTarget);
-        //adjust positiontarget to the corner of a square
-        for (int i=0;i<2;i++){
-            //positionTarget[i]+=0.033f*(siteCoords[i]>0?1:-1)*(siteCoords[i]%2>0?1:-1)*(geyserOnMe?1:-1);//can use xor for codesize
-            positionTarget[i]+=0.032f*((siteCoords[i]>0)^(siteCoords[i]!=2)^(geyserOnMe)?1:-1)*(1-(siteCoords[i]*siteCoords[i]==1)*.2f);
-        }
         //set this to go to the surface
-        positionTarget[2]=0.35f;
+        float h = game.getTerrainHeight(positionTarget);
+        DEBUG(("HEIGHT : %f", h));
+        #define DRILL_DIST 0.13f
+        positionTarget[2] = (h-DRILL_DIST);
+        //positionTarget[2]=0.35f;
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if ((mathVecMagnitude(myVel,3)<.01f
         and (mathVecMagnitude(myRot,3)<.035f or drilling)
          and (siteCoords[0]==mySquare[0] 
-         and siteCoords[1]==mySquare[1]) 
+         and siteCoords[1]==mySquare[1])
         ) and not game.getDrillError()
-        and (myPos[2]>.33f and myPos[2]<.37f)){
+        and (myPos[2]>(h-0.15f) and myPos[2]<(h-0.11f))){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
             api.setAttitudeTarget(usefulVec);
             
@@ -177,7 +182,7 @@ void loop(){
     //if our drill breaks or we get a geyser, stop the current drill
     if (game.getDrillError() 
     or geyserOnMe 
-    or game.getDrills(mySquare)>MAXDRILLS-1){
+    or game.getDrills(mySquare)>MAXDRILLS-1 or game.getFuelRemaining()<0.01f){
         if (TWODROPS and samples>4){
             dropping=true;
             samples=-100;
@@ -204,7 +209,6 @@ void loop(){
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     distance = mathVecNormalize(fvector, 3);
     mathVecSubtract(fvector, destination, myPos, 3);
-    
     scale(myVel,.26f);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.24f);
@@ -213,6 +217,31 @@ void loop(){
         fvector[0]/=flocal;
         fvector[1]/=flocal;
         fvector[2]=0.01f;
+    } else {
+    //COLLISION AVOIDANCE:
+    //In order to avoid bumping into terrain, will block any movement in XY plane initially
+    //Once at a reasonable height has been reached, will not set velocity target in XY plane to 0
+    //Instead sets velocity in Z direction to 0 until target square has been entered
+    
+        if (myPos[2] > 0.3 && newLoc && !dropping) {
+            fvector[0] = 0;
+            fvector[1] = 0;
+            fvector[2] = ((0.25-myPos[2])-myVel[2]);
+        }
+        int mySqr[3];
+        int destSqr[3];
+        game.pos2square(myPos, mySqr);
+        game.pos2square(destination, destSqr);
+        if (newLoc and myPos[2] <= 0.30) {
+            if (!(mySqr[0] == destSqr[0] && mySqr[1] == destSqr[1])) {
+                fvector[2]=0;
+            }
+        }
+        if (game.getFuelRemaining()<0.025f || mathVecMagnitude(myVel, 3) > 0.005) {
+            for (int i = 0; i < 3; i++) {
+                fvector[i] = 0;
+            }   
+        }
     }
     api.setVelocityTarget(fvector);
 }
