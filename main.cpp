@@ -70,6 +70,7 @@ void loop(){
     for (int i=0;i<2;i++){
         modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
     }    
+    modPos[2]=.5f;\\this favors high points
         
     if (newLoc and !game.checkSample() and not drilling){
         DEBUG(("%d",newLoc));
