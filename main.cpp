@@ -70,7 +70,7 @@ void loop(){
     for (int i=0;i<2;i++){
         modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
     }    
-    modPos[2]=.5f;\\this favors high points
+    modPos[2]=-1;//this favors high points
         
     if (newLoc and !game.checkSample() and not drilling){
         DEBUG(("%d",newLoc));
@@ -91,9 +91,9 @@ void loop(){
                     }
                     float goodHeight=.4f;
                     for (int other=1;other<4;other++){
-                        if (heights[0]<heights[other]){
-                            heights[0]=heights[other];
-                            goodHeight=.4f+.08f*other;
+                        if (heights[other]==3){
+                            heights[0]=3;
+                            goodHeight=other*.08f+.4f;//silent fail specific to goodheight
                         }
                     }
                     DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
@@ -146,7 +146,7 @@ void loop(){
         positionTarget[1]+=((corner/2)*-2+1)*0.032f;
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
-            positionTarget[2]=.28f;
+            positionTarget[2]=.26f;
             DEBUG(("O"));
             if (myPos[2]>.29f){
                 DEBUG(("U"));
@@ -155,7 +155,7 @@ void loop(){
         }
         else{
             DEBUG(("D"));
-            positionTarget[2]=game.getTerrainHeight(siteCoords)-.14f;
+            positionTarget[2]=game.getTerrainHeight(siteCoords)-.15f;
         }
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
@@ -167,7 +167,7 @@ void loop(){
          and (siteCoords[0]==mySquare[0] 
          and siteCoords[1]==mySquare[1]) 
         ) and not game.getDrillError()
-        and (myPos[2]-positionTarget[2]<.03f and myPos[2]-positionTarget[2]>-.01f)){
+        and (myPos[2]-positionTarget[2]<.04f and myPos[2]-positionTarget[2]>-0.f)){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
             api.setAttitudeTarget(usefulVec);
             
