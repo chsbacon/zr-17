@@ -17,7 +17,13 @@ float velocity;
 int spot;
 float concentration;
 int square[3];
-
+int targSqr[3];
+int currSqr[3];
+int centerConcSqr[3];
+float targetPos[3];
+int locs [4][2];
+float concs[4];
+int locPos;
 void scale (float* vec, float scale) {//This function scales a length-3 vector by a coeff.
     for (int i=0; i<3; i++) {
         vec[i] *= scale;
@@ -42,6 +48,8 @@ void update () {
     velocity = mathVecMagnitude(myVelocity, 3);
 }
 void init(){
+    centerConcSqr[2] = -1;
+    locPos = 0;
     spot = 0;
 	update();
 	step = 1;
@@ -118,6 +126,22 @@ void init(){
             spots[i][1]*=-1;
         }
     }
+    //Bottom Right
+    locs[0][0] = 1;
+    locs[0][1] = 1;
+    
+    //Top Right
+    locs[1][0] = 1;
+    locs[1][1] = -1;
+    
+    //Top Left
+    locs[2][0] = -1;
+    locs[2][1] = -1;
+    
+    //Bottom Left
+    locs[3][0] = -1;
+    locs[3][1] = 1;
+    
     //DEBUG
     /*for (int i = 0; i < 10; i++) {
         game.pos2square(spots[i], square);
@@ -167,10 +191,138 @@ void loop(){
 	        }
 	    }
 	}
-	if (step == 3) {
-	    game.pos2square(spots[spot], square);
-	    DEBUG(("FOUND IT AT SQR: %i, %i, %i", square[0], square[1], square[2]));
-	    
+	if (step == 3) { //hover around to find center
+	    game.pos2square(spots[spot], currSqr);
+	    DEBUG(("FOUND IT AT SQR: %i, %i, %i", currSqr[0], currSqr[1], currSqr[2]));
+	    if (concentration > 0.4) {
+	        locPos=0;
+	        step++;
+	    } else {
+	        for (int i = 0; i < 2; i++) {
+	            targSqr[i] = currSqr[i]+locs[locPos][i];
+	        }
+	        targSqr[2] = -1;
+	        game.square2pos(targSqr, targetPos);
+	        for (int i = 0; i < 3; i++) {
+	            dest[i] = targetPos[i];
+	        }
+	        
+	        game.pos2square(myPosition, square);
+    	    bool temp = true;
+    	    for (int i = 0; i < 2; i++) {
+    	        if (square[i] != targSqr[i]) {
+    	            temp = false;
+    	            break;
+    	        }
+    	    }
+    	    if (velocity < 0.04 && temp) {
+    	        concentration = game.analyzeTerrain();
+    	        DEBUG(("CONCENTRATION %f", concentration));
+    	        if (concentration > 0.4) {
+    	            for (int i = 0; i < 3; i++) {
+    	                currSqr[i] = targSqr[i];
+    	            }
+    	            locPos=0;
+    	            step++;
+    	        } else if (concentration > 0) {
+    	            locPos++;
+    	        }
+    	    }
+	    }
+	}
+	if (step == 4) {
+	    DEBUG(("60 concentration found"));
+	    if (concentration > 0.7) {
+	        step++;
+	    } else {
+	        if (locPos<4) {
+    	        for (int i = 0; i < 2; i++) {
+    	            targSqr[i] = currSqr[i]+locs[locPos][i];
+    	        }
+    	        targSqr[2] = -1;
+    	        game.square2pos(targSqr, targetPos);
+    	        for (int i = 0; i < 3; i++) {
+    	            dest[i] = targetPos[i];
+    	        }
+    	        
+    	        game.pos2square(myPosition, square);
+        	    bool temp = true;
+        	    for (int i = 0; i < 2; i++) {
+        	        if (square[i] != targSqr[i]) {
+        	            temp = false;
+        	            break;
+        	        }
+        	    }
+        	    if (velocity < 0.04 && temp) {
+        	        concentration = game.analyzeTerrain();
+        	        DEBUG(("CONCENTRATION %f", concentration));
+        	        if (concentration > 0.8) {
+        	            for (int i = 0; i < 3; i++) {
+        	                centerConcSqr[i] = targSqr[i];
+        	            }
+        	            step++;
+        	        } else if (concentration > 0) {
+        	            concs[locPos] = concentration;
+        	            locPos++;
+        	        }
+        	    }
+	        } else {
+	            int sqr1[3];
+	            int sqr2[3];
+	            sqr1[2] = -1;
+	            sqr2[2] = -1;
+	            bool firFound = false;
+	            for (int i = 0; i < 4; i++) {
+	                if (concs[i] > 0.4) {
+	                    if (!firFound) {
+    	                    for (int j = 0; j < 2; j++) {
+    	                        sqr1[j] = currSqr[j]+locs[i][j];
+    	                    }
+    	                    firFound = true;
+	                    } else {
+	                        for (int j = 0; j < 2; j++) {
+    	                        sqr2[j] = currSqr[j]+locs[i][j];
+    	                    }
+	                    }
+	                }
+	            }
+	            if (sqr1[0] == sqr2[0]) {
+	                centerConcSqr[0] = sqr1[0];
+	                if (fabsf(sqr1[1]) > fabsf(sqr2[1])) {
+	                    if (sqr2[1] < 0) {
+	                        centerConcSqr[1] = sqr2[1]-1;
+	                    } else {
+	                        centerConcSqr[1] = sqr2[1]+1;
+	                    }
+	                } else {
+	                    if (sqr1[1] < 0) {
+	                        centerConcSqr[1] = sqr1[1]-1;
+	                    } else {
+	                        centerConcSqr[1] = sqr1[1]+1;
+	                    }
+	                }
+	            } else {
+	                centerConcSqr[1] = sqr1[1];
+	                if (fabsf(sqr1[0]) > fabsf(sqr2[0])) {
+	                    if (sqr2[0] < 0) {
+	                        centerConcSqr[0] = sqr2[0]-1;
+	                    } else {
+	                        centerConcSqr[0] = sqr2[0]+1;
+	                    }
+	                } else {
+	                    if (sqr1[0] < 0) {
+	                        centerConcSqr[0] = sqr1[0]-1;
+	                    } else {
+	                        centerConcSqr[0] = sqr1[0]+1;
+	                    }
+	                }
+	            }
+	            step++;
+	        }
+	    }
+	}
+	if (step == 5) {//Begin Drilling and collecting points
+	    DEBUG(("FOUND IT 100 Concentration AT SQR: %i, %i, %i", centerConcSqr[0], centerConcSqr[1], centerConcSqr[2]));
 	}
 	mathVecSubtract(vecBet, dest, myPosition, 3);
     scale(myVelocity,.26f);
