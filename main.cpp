@@ -70,8 +70,9 @@ void loop(){
     for (int i=0;i<2;i++){
         modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
     }    
-    modPos[2]=-1;//this favors high points
-        
+    if (samples%4!=2){
+        modPos[2]=.2f;//this favors high points
+    }
     if (newLoc and !game.checkSample() and not drilling){
         DEBUG(("%d",newLoc));
         DEBUG(("reselecting"));
@@ -97,12 +98,11 @@ void loop(){
                         }
                     }
                     DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
-                    if (heights[0]==3){
+                    if (heights[0]>1){
                         DEBUG(("GROUP"));
                         for (int a=0;a<4;a++){
                             usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
                             fixEdge(usefulIntVec);
-                            
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
                             float score=dist(usefulVec,modPos);
@@ -142,8 +142,8 @@ void loop(){
     if (not dropping){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.032f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.032f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.028f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.028f;
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
             positionTarget[2]=.26f;
@@ -223,9 +223,8 @@ void loop(){
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1){
-        if (samples>4){
+        if (game.getNumSamplesHeld()>3){
             dropping=true;
-            samples=-100;
         }
         game.stopDrill();
         newLoc=true;
@@ -250,7 +249,7 @@ void loop(){
     distance = mathVecNormalize(fvector, 3);
     mathVecSubtract(fvector, destination, myPos, 3);
     
-    scale(myVel,.26f);
+    scale(myVel,.28f);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.24f);
     if (geyserOnMe){
