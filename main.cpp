@@ -169,27 +169,48 @@ void loop() {
     int tenLoc[2];
     tenLoc[0] = 1; //just for testing
     tenLoc[1] = 1;
-    int squarek[2];
+    
     float squarePos[3];
-    float shortestDist = 0;
+    float shortestDist = 10000;
+    float secondShortestDist = 100000;
     float tenPos[3];
     game.square2pos(tenLoc, tenPos);
-    int bestSix[2];
+    int bestSix[2][2];
+    bestSix[0][0] = 0;
+    bestSix[0][1] = 0;
+    bestSix[1][0] = 0;
+    bestSix[1][1] = 0;
     tenPos[2] = game.getTerrainHeight(tenLoc);
     for(int i = -1; i<2; i++) {
         for(int j = -1; j<2;j++) {
-            squarek[0] = i+tenLoc[0];
-            squarek[1] = j+tenLoc[1];
+            int square[2];
+            square[0] = i+tenLoc[0];
+            square[1] = j+tenLoc[1];
+            if(square[0] == 0){
+                square[0] += i;
+            }
+            if(square[1] == 0){
+                square[1] += i;
+            }
             //goes through each square around the 10 and finds the tallest ont (not complete)
-            game.square2pos(squarek, squarePos);
-            squarePos[2] = game.getTerrainHeight(squarek);
+            game.square2pos(square, squarePos);
+            squarePos[2] = game.getTerrainHeight(square);
             if(shortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
-                bestSix[0] = squarek[0];
-                bestSix[1] = squarek[1];
-                //DEBUG((â%f %fâ, bestSix[0], bestSix[1]));
+                bestSix[0][0] = square[0];
+                bestSix[0][1] = square[1];
+                shortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
+                
+            }
+            else if(secondShortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
+                bestSix[1][0] = square[0];
+                bestSix[1][1] = square[1];
+                secondShortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
+                
             }
         }
     }
+    DEBUG(("best square %d %d", bestSix[0][0], bestSix[0][1]));
+    DEBUG(("second best square %d %d", bestSix[1][0], bestSix[1][1]));
     
     
     if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
