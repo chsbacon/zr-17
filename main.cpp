@@ -115,13 +115,12 @@ void loop() {
     xyLookAxis[1] = myAtt[1];
     xyLookAxis[2] = 0;
     DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
-    
     api.setAttitudeTarget(xyLookAxis);
     
     #define XY_DRILL_PLANE_ANGLE 0.1963f
         
     game.square2pos(drillSquare, positionTarget);
-    
+    //sets positionTarget to the square to be drilled
     PRINT_VEC_F("position target", positionTarget);
     float xyPos[3];
     float xyPositionTarget[3];
@@ -129,38 +128,62 @@ void loop() {
     memcpy(xyPos, myPos, 12);
     xyPos[2] = 0;
     xyPositionTarget[2] = 0;
+    //creates two vectors based off the positionTarget and myPos that are in the same xy plane 
     
     if(dist(xyPos, xyPositionTarget) < .06) {
-    positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
-    DEBUG(("%f terrain heairhaen", game.getTerrainHeight(drillSquare)));
-    if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.02f
-    and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
-        DEBUG(("Starting Drill"));
-        game.startDrill();
-    }
-    else if (game.getDrillEnabled()) {
-        DEBUG(("Drilling"));
-        float drillVec[3];
-        drillVec[0] = 0;
-        drillVec[1] = 0;
-        drillVec[2] = 0.5f;
-        api.setAttRateTarget(drillVec);
-        if (game.checkSample()){
-            game.pickupSample();
-            drillSquare[0] ++;
-            drillSquare[1] ++;
-            memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
-            }   
+        //checks to see if the sphere is above the square
+        positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
+        //sets the drill height
+        DEBUG(("%f terrain heairhaen", game.getTerrainHeight(drillSquare)));
+        if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.02f
+        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
+            DEBUG(("Starting Drill"));
+            game.startDrill();
         }
-    }
+        else if (game.getDrillEnabled()) {
+            DEBUG(("Drilling"));
+            float drillVec[3];
+            drillVec[0] = 0;
+            drillVec[1] = 0;
+            drillVec[2] = 0.5f;
+            api.setAttRateTarget(drillVec);
+            if (game.checkSample()){
+                game.pickupSample();
+                //picks up sample and changes the square (temporary)
+                drillSquare[0] ++;
+                drillSquare[1] ++;
+                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
+                }   
+            }
+        }
     else{
-        positionTarget[2] = 0.29f;
+        positionTarget[2] = 0.27f;
+        //if the sphere is under a certain height, move to that height before traveling in the x or y direction
         if(myPos[2] >= .29f) {
             positionTarget[0] = myPos[0];
             positionTarget[1] = myPos[1];
         }
     }
 
+    
+    float tenLoc[2];
+    tenLoc[0] = 1;
+    tenLoc[1] = 1;
+    int squarek[2];
+    float shorestDist = 0;
+    for(int i = -1; i<2; i++) {
+        for(int j = -1; j<2;j++) {
+            squarek[0] = i+tenLoc[0];
+            squarek[1] = j+tenLoc[1];
+            //goes through each square around the 10 and finds the tallest ont (not complete)
+            if(shortestDist < game.getTerrainHeight()) {
+                shortestDist = game.getTerrainHeight();
+            }
+            
+            DEBUG(("%d %d", squarek[0], squarek[1]));
+        }
+    }
+    
     
     if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
         // Possible score gains from drilling
