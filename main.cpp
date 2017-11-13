@@ -40,7 +40,7 @@ int drillSquare[2]; // Will eventually store the optimal drilling square
     // get updated
 void init() {
     drillSquare[0] = 1;
-     drillSquare[1] = 1;
+    drillSquare[1] = 1;
     infoFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
@@ -166,21 +166,28 @@ void loop() {
     }
 
     
-    float tenLoc[2];
-    tenLoc[0] = 1;
+    int tenLoc[2];
+    tenLoc[0] = 1; //just for testing
     tenLoc[1] = 1;
     int squarek[2];
-    float shorestDist = 0;
+    float squarePos[3];
+    float shortestDist = 0;
+    float tenPos[3];
+    game.square2pos(tenLoc, tenPos);
+    int bestSix[2];
+    tenPos[2] = game.getTerrainHeight(tenLoc);
     for(int i = -1; i<2; i++) {
         for(int j = -1; j<2;j++) {
             squarek[0] = i+tenLoc[0];
             squarek[1] = j+tenLoc[1];
             //goes through each square around the 10 and finds the tallest ont (not complete)
-            if(shortestDist < game.getTerrainHeight()) {
-                shortestDist = game.getTerrainHeight();
+            game.square2pos(squarek, squarePos);
+            squarePos[2] = game.getTerrainHeight(squarek);
+            if(shortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
+                bestSix[0] = squarek[0];
+                bestSix[1] = squarek[1];
+                //DEBUG((â%f %fâ, bestSix[0], bestSix[1]));
             }
-            
-            DEBUG(("%d %d", squarek[0], squarek[1]));
         }
     }
     
@@ -224,13 +231,7 @@ void loop() {
     }
 }
 
-/**
- * @param squares - array containing sets of squares positions
- * @param scores - array with point val ints corresponding to squares
- * @param batchSize - how many score increases we are considering
- * Goes over every position in possibleTenSquares and updates whether that
- * spot could still be a ten based on new information
- */
+
 //Vector math functions
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
