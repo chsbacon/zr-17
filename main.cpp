@@ -81,94 +81,11 @@ void loop() {
     float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
     DEBUG(("The fuel to get back to the base is %f",fuel2base));
 
-    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
-    or (myFuel<=fuel2base)) {
-        DEBUG(("Heading back to base"));
-        float dropOffAtt[3];
-        dropOffAtt[0] = 0.0f;
-        dropOffAtt[1] = 0.0f;
-        dropOffAtt[2] = -1.0f;
-        api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
-            // direction in order to drop off
-        
-        // Go the closest point that is a specifed dist from the origin
-        memcpy(positionTarget, myPos, 12);
-        mathVecNormalize(positionTarget, 3);
-        #define DROP_OFF_RADIUS_TARGET 0.23f
-        scale(positionTarget, DROP_OFF_RADIUS_TARGET);
-        
-        if(game.atBaseStation()) {
-            float samples[5];
-                // store the concentrations from each sample
-            for (int i = 0; i < sampNum; i++) { // for each sample
-                #ifdef dev
-                samples[i] = game.dropSample(i);
-                #endif
-            }
-        }
-    }
-    // Find a spot to drill
-     // drill at the spot we picked
-     
-    float xyLookAxis[3];
-    xyLookAxis[0] = myAtt[0];
-    xyLookAxis[1] = myAtt[1];
-    xyLookAxis[2] = 0;
-    DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
-    api.setAttitudeTarget(xyLookAxis);
-    
-    #define XY_DRILL_PLANE_ANGLE 0.1963f
-        
-    game.square2pos(drillSquare, positionTarget);
-    //sets positionTarget to the square to be drilled
-    PRINT_VEC_F("position target", positionTarget);
-    float xyPos[3];
-    float xyPositionTarget[3];
-    memcpy(xyPositionTarget, positionTarget, 12);
-    memcpy(xyPos, myPos, 12);
-    xyPos[2] = 0;
-    xyPositionTarget[2] = 0;
-    //creates two vectors based off the positionTarget and myPos that are in the same xy plane 
-    
-    if(dist(xyPos, xyPositionTarget) < .06) {
-        //checks to see if the sphere is above the square
-        positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
-        //sets the drill height
-        DEBUG(("%f terrain heairhaen", game.getTerrainHeight(drillSquare)));
-        if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.02f
-        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
-            DEBUG(("Starting Drill"));
-            game.startDrill();
-        }
-        else if (game.getDrillEnabled()) {
-            DEBUG(("Drilling"));
-            float drillVec[3];
-            drillVec[0] = 0;
-            drillVec[1] = 0;
-            drillVec[2] = 0.5f;
-            api.setAttRateTarget(drillVec);
-            if (game.checkSample()){
-                game.pickupSample();
-                //picks up sample and changes the square (temporary)
-                drillSquare[0] ++;
-                drillSquare[1] ++;
-                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
-                }   
-            }
-        }
-    else{
-        positionTarget[2] = 0.27f;
-        //if the sphere is under a certain height, move to that height before traveling in the x or y direction
-        if(myPos[2] >= .29f) {
-            positionTarget[0] = myPos[0];
-            positionTarget[1] = myPos[1];
-        }
-    }
 
     
     int tenLoc[2];
-    tenLoc[0] = 1; //just for testing
-    tenLoc[1] = 1;
+    tenLoc[0] = 7; //just for testing
+    tenLoc[1] = 7;
     
     float squarePos[3];
     float shortestDist = 10000;
@@ -195,13 +112,13 @@ void loop() {
             //goes through each square around the 10 and finds the tallest ont (not complete)
             game.square2pos(square, squarePos);
             squarePos[2] = game.getTerrainHeight(square);
-            if(shortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
+            if(game.getDrills(square) < 2 and shortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
                 bestSix[0][0] = square[0];
                 bestSix[0][1] = square[1];
                 shortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
                 
             }
-            else if(secondShortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
+            else if(game.getDrills(square) < 2 and secondShortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
                 bestSix[1][0] = square[0];
                 bestSix[1][1] = square[1];
                 secondShortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
@@ -211,6 +128,79 @@ void loop() {
     }
     DEBUG(("best square %d %d", bestSix[0][0], bestSix[0][1]));
     DEBUG(("second best square %d %d", bestSix[1][0], bestSix[1][1]));
+    
+    // Find a spot to drill
+     // drill at the spot we picked
+     
+    float xyLookAxis[3];
+    xyLookAxis[0] = myAtt[0];
+    xyLookAxis[1] = myAtt[1];
+    xyLookAxis[2] = 0;
+    DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
+    api.setAttitudeTarget(xyLookAxis);
+    
+    #define XY_DRILL_PLANE_ANGLE 0.1963f
+        
+    game.square2pos(drillSquare, positionTarget);
+    //sets positionTarget to the square to be drilled
+    PRINT_VEC_F("position target", positionTarget);
+    float xyPos[3];
+    float xyPositionTarget[3];
+    memcpy(xyPositionTarget, positionTarget, 12);
+    memcpy(xyPos, myPos, 12);
+    xyPos[2] = 0;
+    xyPositionTarget[2] = 0;
+    
+    //creates two vectors based off the positionTarget and myPos that are in the same xy plane 
+    switch (game.getNumSamplesHeld()) {
+        case 0:
+        case 1:
+            drillSquare[0] = bestSix[1][0];
+            drillSquare[1] = bestSix[1][1];
+            break;
+        case 2:
+            drillSquare[0] = bestSix[0][0];
+            drillSquare[1] = bestSix[0][1];
+            break;
+        case 3:
+        case 4:
+            drillSquare[0] = tenLoc[0];
+            drillSquare[1] = tenLoc[1];
+            break;
+    }
+    if(dist(xyPos, xyPositionTarget) < .06) {
+        //checks to see if the sphere is above the square
+        positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
+        //sets the drill height
+        DEBUG(("%f terrain heairhaen", game.getTerrainHeight(drillSquare)));
+        if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.02f
+        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
+            DEBUG(("Starting Drill"));
+            game.startDrill();
+        }
+        else if (game.getDrillEnabled()) {
+            DEBUG(("Drilling"));
+            float drillVec[3];
+            drillVec[0] = 0;
+            drillVec[1] = 0;
+            drillVec[2] = 0.5f;
+            api.setAttRateTarget(drillVec);
+            if (game.checkSample()){
+                game.pickupSample();
+                //picks up sample and changes the square (temporary)
+                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
+            }
+        }
+    }
+    else{
+        positionTarget[2] = 0.26f;
+        //if the sphere is under a certain height, move to that height before traveling in the x or y direction
+        if(myPos[2] >= .30f) {
+            positionTarget[0] = myPos[0];
+            positionTarget[1] = myPos[1];
+        }
+    }
+
     
     
     if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
@@ -222,6 +212,33 @@ void loop() {
         game.pos2square(enPos, enDrillSquares[enDrillSquaresIdx]);
         if (enNumSamples < 5) enNumSamples++;
         enDrillSquaresIdx++;
+    }
+	
+    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
+    or (myFuel<=fuel2base)) {
+        DEBUG(("Heading back to base"));
+        float dropOffAtt[3];
+        dropOffAtt[0] = 0.0f;
+        dropOffAtt[1] = 0.0f;
+        dropOffAtt[2] = -1.0f;
+        api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
+            // direction in order to drop off
+        
+        // Go the closest point that is a specifed dist from the origin
+        memcpy(positionTarget, myPos, 12);
+        mathVecNormalize(positionTarget, 3);
+        #define DROP_OFF_RADIUS_TARGET 0.23f
+        scale(positionTarget, DROP_OFF_RADIUS_TARGET);
+        
+        if(game.atBaseStation()) {
+            float samples[5];
+                // store the concentrations from each sample
+            for (int i = 0; i < sampNum; i++) { // for each sample
+        
+                samples[i] = game.dropSample(i);
+                
+            }
+        }
     }
 	
 	if(dist(myPos, positionTarget) > 0.02f or angle(myAtt, xyLookAxis, 3) >= XY_DRILL_PLANE_ANGLE) {
