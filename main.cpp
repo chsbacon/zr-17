@@ -12,7 +12,7 @@
 #define enRot (&enState[9])
 
 #define SPHERE_RADIUS 0.11f
-#define SPEEDCONST 0.4f//0.45f
+#define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
 
 // DEBUG shorthand functions (F is for floats, I is for ints)
@@ -34,16 +34,18 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT]; // stores whether
     // 'x' : impossible ten spot
 
 float vcoef; // A coefficient for our movement speed
-float zeroVec[3]; // (0,0,0) -- just a convenience thing
 #define SURFACE_Z 0.48f
 int drillSquare[2]; // Will eventually store the optimal drilling square
     // It's important that this is global because sometimes it doesn't
     // get updated
+int checkNum;
+#define sampNum (checkNum)
 bool pickUp[2];
 bool isBlue;
 float analyzer[3];
-float sampVals[5];
+
 float myState[12];
+float enState[12];
 
 void init() {
     infoFound = false;
@@ -61,31 +63,39 @@ void init() {
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
         // including the center lmao, but we ignore it
-    memset(zeroVec, 0, 12);
+    checkNum = 0;
+    
+    api.getMyZRState(myState);
+    isBlue = (myState[1] > 0);
     
     analyzer[0] = (isBlue) ? -0.30f : 0.30f;
     analyzer[1] = (isBlue) ? 0.48f : -0.48f;
     analyzer[2] = (isBlue) ? -0.16f : -0.16f;
-    
-    api.getMyZRState(myState);
-    isBlue = (myState[1] > 0);
 }
 
 void loop() {
+    float zeroVec[3] = {0.0, 0.0, 0.0}; // just a convenience thing
     float positionTarget[3]; // where we're going
     // Update state
-    float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
+	int myFuel = game.getFuelRemaining()*100;
 	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
-	int sampNum = game.getNumSamplesHeld();
+	//int sampNum = game.getNumSamplesHeld();
 	game.getAnalyzer(pickUp);
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
-    if (sampNum == 5 
-    or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)) {
+    
+    //checking fuel to see if we need to go back to base
+    float magnitude = sqrtf(mathSquare(myPos[0]) + mathSquare(myPos[1]) + mathSquare(-0.1f-myPos[2])); //finding magnitude
+    DEBUG(("Magnitude is %f", magnitude));
+    float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
+    DEBUG(("The fuel to get back to the base is %f",fuel2base));
+
+    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
+    or (myFuel<=fuel2base)) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
@@ -202,41 +212,29 @@ void loop() {
                 }
             }
         }
-        // drill at the spot we picked
-        if (game.getDrillError()){
-            game.stopDrill();
-        }
-        DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
+        //Check at the spot we picked
+        DEBUG(("Checking at %d, %d", drillSquare[0], drillSquare[1]));
         game.square2pos(drillSquare, positionTarget);
-        positionTarget[2] = 0.35;
+        positionTarget[2] = -0.16f;
         
         if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
         and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
-            DEBUG(("Starting Drill"));
-            game.startDrill();
-        }
-        else if (game.getDrillEnabled()) {
-            DEBUG(("Drilling"));
-            float drillVec[3];
-            drillVec[0] = myAtt[1];
-            drillVec[1] = -myAtt[0];
-            drillVec[2] = 0.0f;
-            api.setAttitudeTarget(drillVec);
-            if (game.checkSample()){
-                game.pickupSample();
-                game.stopDrill();
-                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
-                DEBUG(("Samp #%d %f score: %f @ (%d, %d)", 
-                    sampNum + 2, 
-                    sampVals[sampNum - 1],
-                    (5 * sampVals[sampNum - 1] + 2),
-                    myDrillSquares[sampNum - 1][0],
-                    myDrillSquares[sampNum - 1][1] ));
-                game.getConcentrations(sampVals);
-                infoFound = (sampVals[sampNum - 1] > 0.6f);
-                // store the concentrations from each sample
-                updateTenSquares(&(myDrillSquares[sampNum - 1]), 5 * sampVals[sampNum - 1] + 2, 1);
-            }
+            DEBUG(("CHECKING"));
+            
+            memcpy(myDrillSquares[sampNum - 1], drillSquare, 8);
+            
+            float analysis = game.analyzeTerrain();
+            #ifdef dev
+            DEBUG(("Samp #%d %f score: %f @ (%d, %d)", 
+                sampNum, 
+                analysis,
+                (5 * analysis + 2),
+                drillSquare[0], drillSquare[1] ));
+            updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
+            #else
+            updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
+            #endif
+            sampNum++;
         }
     }
     
