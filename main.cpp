@@ -11,6 +11,10 @@
 #define enAtt (&enState[6])
 #define enRot (&enState[9])
 
+#define mathSquare(num) num*num
+
+int mySquare[3];
+
 #define SPHERE_RADIUS 0.11f
 #define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
@@ -29,7 +33,6 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT]; // stores whether
     // 'x' : impossible ten spot
 
 float vcoef; // A coefficient for our movement speed
-#define SURFACE_Z 0.48f
 int drillSquare[2]; // Will eventually store the optimal drilling square
     // It's important that this is global because sometimes it doesn't
     // get updated
@@ -60,10 +63,11 @@ void loop() {
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
 	int myFuel = game.getFuelRemaining()*100;
-	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
-	
+	game.pos2square(myPos,mySquare);
+	bool geyserOnMe;
+    geyserOnMe=game.isGeyserHere(mySquare);
     
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
@@ -161,6 +165,11 @@ void loop() {
             drillSquare[1] = tenLoc[1];
             break;
     }
+    
+    if (geyserOnMe){
+        vcoef+=.04f;
+    }
+    
     if(dist(xyPos, xyPositionTarget) < .06) {
         //checks to see if the sphere is above the square
         positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
@@ -196,8 +205,7 @@ void loop() {
     
     
     
-    if (sampNum == 5)
-    or (myFuel<=fuel2base)) {
+    if ((sampNum == 5) or (myFuel<=fuel2base)) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
         dropOffAtt[0] = 0.0f;
@@ -229,6 +237,8 @@ void loop() {
 	    //this also prevents geysers from breaking drilling because our position would be far from position target 
 	}
 	PRINT_VEC_F("positionTarget", positionTarget);
+	
+	
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
     float distance,flocal,fvector[3];
