@@ -19,11 +19,6 @@
 #define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
 
 float enScore;
-int enDrillSquares[5][2]; // where the enemy has drilled since dropping off
-int enNumSamples; // how many times the enemy has drilled since drop-off
-int enDrillSquaresIdx; // where in enDrilSquares we will record the enemy's
-    // next drill spot
-int myDrillSquares[5][2]; // where we have drilled
 bool infoFound; // have we gotten a 3, 6, or a 10?
 
 #define TEN_SPAWN_WIDTH 12
@@ -49,9 +44,7 @@ void init() {
     enScore = 0.0f; // initialized because
         // we use it to calculate change in score
     
-    // Reset enemy-awareness variables
-    enNumSamples = 0;
-    enDrillSquaresIdx = 0;
+
 
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
@@ -172,7 +165,7 @@ void loop() {
         //checks to see if the sphere is above the square
         positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
         //sets the drill height
-        DEBUG(("%f terrain heairhaen", game.getTerrainHeight(drillSquare)));
+        DEBUG(("%f terrain height", game.getTerrainHeight(drillSquare)));
         if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.02f
         and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
             DEBUG(("Starting Drill"));
@@ -188,7 +181,6 @@ void loop() {
             if (game.checkSample()){
                 game.pickupSample();
                 //picks up sample and changes the square (temporary)
-                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
             }
         }
     }
@@ -203,18 +195,8 @@ void loop() {
 
     
     
-    if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
-        // Possible score gains from drilling
-        DEBUG(("Enemy just drilled"));
-        if (enDrillSquaresIdx>4) enDrillSquaresIdx = 0;
-            // wrap, so that if they drill more than five before drop-off,
-            // we only catch the last five
-        game.pos2square(enPos, enDrillSquares[enDrillSquaresIdx]);
-        if (enNumSamples < 5) enNumSamples++;
-        enDrillSquaresIdx++;
-    }
-	
-    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
+    
+    if (sampNum == 5)
     or (myFuel<=fuel2base)) {
         DEBUG(("Heading back to base"));
         float dropOffAtt[3];
