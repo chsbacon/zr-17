@@ -88,7 +88,7 @@ void loop(){
                         usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
                         fixEdge(usefulIntVec);
                         int index=(game.getTerrainHeight(usefulIntVec)-.4f)*12.5f;
-                        DEBUG(("%i",index));
+                        //DEBUG(("%i",index));
                         heights[index]+=1;
                     }
                     float goodHeight=.4f;
@@ -100,7 +100,7 @@ void loop(){
                     }
                     DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
                     if (heights[0]>1){
-                        DEBUG(("GROUP"));
+                        //DEBUG(("GROUP"));
                         for (int a=0;a<4;a++){
                             usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
                             fixEdge(usefulIntVec);
@@ -148,8 +148,8 @@ void loop(){
     if (not dropping){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.028f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.028f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.031f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.031f;
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
             positionTarget[2]=.26f;
