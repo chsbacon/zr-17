@@ -15,7 +15,7 @@ float enState[12];
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
 #define enRot (&enState[9])//These are pointers. They will have the values that
-#define MAXDRILLS 2
+#define MAXDRILLS 3
 int siteCoords[3];
 bool newLoc;
 bool dropping;
@@ -24,8 +24,9 @@ bool drilling;
 int samples;
 float vcoef;
 int corner;
+float enScore;
 void init(){
-    
+    enScore=0;
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
@@ -40,8 +41,8 @@ void init(){
 }
 
 void loop(){
-    
-    
+    float enDeltaScore=game.getOtherScore()-enScore;
+    enScore=enScore+enDeltaScore;
     if (game.checkSample()){
         game.dropSample(4);
         game.pickupSample();
@@ -128,6 +129,11 @@ void loop(){
             }
         }
         newLoc=false;
+    }
+    if (enDeltaScore==3.5f){
+        game.pos2square(enPos,siteCoords);
+        siteCoords[0]*=-1;
+        siteCoords[1]*=-1;
     }
     vcoef=.120f;
     if (geyserOnMe){
@@ -223,6 +229,7 @@ void loop(){
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1){
+        DEBUG(("Broke"));
         if (game.getNumSamplesHeld()>3){
             dropping=true;
         }
