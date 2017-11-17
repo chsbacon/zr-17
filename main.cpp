@@ -161,7 +161,7 @@ void loop(){
         }
         else{
             DEBUG(("D"));
-            positionTarget[2]=game.getTerrainHeight(siteCoords)-.15f;
+            positionTarget[2]=game.getTerrainHeight(siteCoords)-.13f;
         }
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
@@ -173,7 +173,7 @@ void loop(){
          and (siteCoords[0]==mySquare[0] 
          and siteCoords[1]==mySquare[1]) 
         ) and not game.getDrillError()
-        and (myPos[2]-positionTarget[2]<.04f and myPos[2]-positionTarget[2]>-0.f)){
+        and (myPos[2]-positionTarget[2]<.02f and myPos[2]-positionTarget[2]>-0.02f)){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
             api.setAttitudeTarget(usefulVec);
             
@@ -258,7 +258,7 @@ void loop(){
     
     scale(myVel,.28f);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.24f);
+    scale(fvector,.25f);
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
