@@ -1,4 +1,3 @@
-//{"sha":"6bb28520f8a505e798f9d1f532e420a605cc1ced"}
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
