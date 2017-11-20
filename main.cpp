@@ -81,8 +81,8 @@ void loop() {
 
     
     int tenLoc[2];
-    tenLoc[0] = 7; //just for testing
-    tenLoc[1] = 7;
+    tenLoc[0] = 3; //just for testing
+    tenLoc[1] = 3;
     
     float squarePos[3];
     float shortestDist = 10000;
@@ -171,7 +171,7 @@ void loop() {
         //checks to see if the sphere is above the square
         positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
         //sets the drill height
-        DEBUG(("%f terrain height", game.getTerrainHeight(drillSquare)));
+        //fDEBUG(("%f terrain height", game.getTerrainHeight(drillSquare)));
         if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.02f
         and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
             DEBUG(("Starting Drill"));
@@ -202,7 +202,7 @@ void loop() {
     
     
     
-    if ((sampNum == 5) or (myFuel<=fuel2base)) {
+    if ((sampNum == 5) or (myFuel<=fuel2base) or myFuel < 5) {
         if(myPos[2] < 0.285f){
             DEBUG(("Heading back to base"));
             float dropOffAtt[3];
