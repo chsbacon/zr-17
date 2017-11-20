@@ -40,8 +40,7 @@ float vcoef; // A coefficient for our movement speed
 int drillSquare[2]; // Will eventually store the optimal drilling square
     // It's important that this is global because sometimes it doesn't
     // get updated
-int checkNum;
-#define sampNum (checkNum)
+int sampNum;
 bool pickUp[2];
 bool isBlue;
 float analyzer[3];
@@ -65,7 +64,7 @@ void init() {
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
         // including the center lmao, but we ignore it
-    checkNum = 0;
+    sampNum = 0;//Number of samples we have
     
     api.getMyZRState(myState);
     isBlue = (myState[1] > 0);
@@ -94,9 +93,9 @@ void loop() {
     
     //checking fuel to see if we need to go back to base
     float magnitude = sqrtf(mathSquare(myPos[0]) + mathSquare(myPos[1]) + mathSquare(-0.1f-myPos[2])); //finding magnitude
-    DEBUG(("Magnitude is %f", magnitude));
+    //DEBUG(("Magnitude is %f", magnitude));
     float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
-    DEBUG(("The fuel to get back to the base is %f",fuel2base));
+    //DEBUG(("The fuel to get back to the base is %f",fuel2base));
 
     if(infoFound){
         DEBUG(("WE FOUND SOMETHING"));
@@ -124,8 +123,7 @@ void loop() {
         // default to last loop's drill spot
         // (this will only be the case when we found the ten)
         float minDist = infoFound ? PROXIMITY_REQUIREMENT : LARGE_NUMBER;
-        DEBUG(("myDrillSquares"));
-        DEBUG(("(%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d)",myDrillSquares[0][0],myDrillSquares[0][1], myDrillSquares[1][0],myDrillSquares[1][1],myDrillSquares[2][0],myDrillSquares[2][1]));
+        
         DEBUG(("sampNum: %d", sampNum));
         for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
             for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
@@ -196,19 +194,19 @@ void loop() {
             DEBUG(("CHECKING"));
             
             memcpy(myDrillSquares[sampNum], drillSquare, 8);
-            
+            DEBUG(("myDrillSquares (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d)",myDrillSquares[0][0],myDrillSquares[0][1], myDrillSquares[1][0],myDrillSquares[1][1],myDrillSquares[2][0],myDrillSquares[2][1]));
             float analysis = game.analyzeTerrain();
-            #ifdef dev
             DEBUG(("Samp #%d %f score: %f @ (%d, %d)", 
                 sampNum, 
                 analysis,
                 (5 * analysis + 2),
                 drillSquare[0], drillSquare[1] ));
+            #ifdef dev
             updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
             #else
             updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
             #endif
-            sampNum++;
+            sampNum++;//We have to manually increment # of samples because we don't actually have any
         }
     }
     
@@ -355,9 +353,9 @@ void updateTenSquares(int (*squares)[2], float deltaScore, int batchSize) {
                                                 int dist2 = distSquared(testTen, mirrorSquare);
                                                 
                                                 // next we determine if i,j being the bullseye is consistent with this square/score pairing
-                                                bool possible = ((dist1 == 0 or dist2 == 0) and perm[idx] == 3) // a 10
-                                                    or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
-                                                    or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
+                                                bool possible = ((dist1 == 0 or dist2 == 0) and perm[idx] == 3); // a 10
+                                                    //or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
+                                                    //or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
                                                     // normal square (1 point) corresponds to 1 and thus will always be false
                                                 if (possible){
                                                     infoFound = true;
