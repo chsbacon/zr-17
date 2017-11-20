@@ -166,10 +166,7 @@ void loop() {
             break;
     }
     
-    if (geyserOnMe){
-        vcoef+=.04f;
-    }
-    
+
     if(dist(xyPos, xyPositionTarget) < .06) {
         //checks to see if the sphere is above the square
         positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
@@ -206,38 +203,48 @@ void loop() {
     
     
     if ((sampNum == 5) or (myFuel<=fuel2base)) {
-        DEBUG(("Heading back to base"));
-        float dropOffAtt[3];
-        dropOffAtt[0] = 0.0f;
-        dropOffAtt[1] = 0.0f;
-        dropOffAtt[2] = -1.0f;
-        api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
-            // direction in order to drop off
-        
-        // Go the closest point that is a specifed dist from the origin
-        memcpy(positionTarget, myPos, 12);
-        mathVecNormalize(positionTarget, 3);
-        #define DROP_OFF_RADIUS_TARGET 0.23f
-        scale(positionTarget, DROP_OFF_RADIUS_TARGET);
-        
-        if(game.atBaseStation()) {
-            float samples[5];
-                // store the concentrations from each sample
-            for (int i = 0; i < sampNum; i++) { // for each sample
-        
-                samples[i] = game.dropSample(i);
-                
+        if(myPos[2] < 0.285f){
+            DEBUG(("Heading back to base"));
+            float dropOffAtt[3];
+            dropOffAtt[0] = 0.0f;
+            dropOffAtt[1] = 0.0f;
+            dropOffAtt[2] = -1.0f;
+            api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
+                // direction in order to drop off
+            
+            // Go the closest point that is a specifed dist from the origin
+            memcpy(positionTarget, myPos, 12);
+            mathVecNormalize(positionTarget, 3);
+            #define DROP_OFF_RADIUS_TARGET 0.23f
+            scale(positionTarget, DROP_OFF_RADIUS_TARGET);
+            
+            if(game.atBaseStation()) {
+                float samples[5];
+                    // store the concentrations from each sample
+                for (int i = 0; i < sampNum; i++) { // for each sample
+            
+                    samples[i] = game.dropSample(i);
+                    
+                }
             }
+        }
+        else{
+            memcpy(positionTarget, myPos, 12);
+            positionTarget[2] = 0.28f;
+            
         }
     }
 	
-	if(dist(myPos, positionTarget) > 0.02f or angle(myAtt, xyLookAxis, 3) >= XY_DRILL_PLANE_ANGLE) {
+	if(dist(myPos, positionTarget) > 0.02f or angle(myAtt, xyLookAxis, 3) >= XY_DRILL_PLANE_ANGLE or game.getDrillError() or geyserOnMe) {
 	    game.stopDrill();
 	    //this stops the drill only if the sphere is moved or we have a full inventory, 
 	    //this also prevents geysers from breaking drilling because our position would be far from position target 
 	}
 	PRINT_VEC_F("positionTarget", positionTarget);
 	
+	if(geyserOnMe){
+	    memcpy(positionTarget, zeroVec, 12);
+	}
 	
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
