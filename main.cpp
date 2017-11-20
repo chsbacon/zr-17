@@ -75,8 +75,8 @@ void loop(){
         modPos[2]=.2f;//this favors high points
     }
     if (newLoc and !game.checkSample() and not drilling){
-        DEBUG(("%d",newLoc));
-        DEBUG(("reselecting"));
+        //DEBUG(("%d",newLoc));
+        //DEBUG(("reselecting"));
         for (int i=-6;i<6;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
             for (int j=-8;j<8;j++){
@@ -98,7 +98,7 @@ void loop(){
                             goodHeight=other*.08f+.4f;//silent fail specific to goodheight
                         }
                     }
-                    DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
+                    //DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
                     if (heights[0]>1){
                         //DEBUG(("GROUP"));
                         for (int a=0;a<4;a++){
@@ -134,10 +134,6 @@ void loop(){
         game.pos2square(enPos,siteCoords);
         siteCoords[0]*=-1;
         siteCoords[1]*=-1;
-    }
-    vcoef=.120f;
-    if (geyserOnMe){
-        vcoef+=.04f;
     }
     
     
@@ -256,9 +252,9 @@ void loop(){
     distance = mathVecNormalize(fvector, 3);
     mathVecSubtract(fvector, destination, myPos, 3);
     
-    scale(myVel,.28f);
-    mathVecSubtract(fvector,fvector,myVel,3);
+    scale(myVel,.1f);
     scale(fvector,.25f);
+    mathVecSubtract(fvector,fvector,myVel,3);
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
