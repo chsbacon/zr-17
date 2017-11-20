@@ -152,17 +152,17 @@ void loop() {
     switch (game.getNumSamplesHeld()) {
         case 0:
         case 1:
+            drillSquare[0] = tenLoc[0];
+            drillSquare[1] = tenLoc[1];
+            break;
+        case 2:
             drillSquare[0] = bestSix[1][0];
             drillSquare[1] = bestSix[1][1];
             break;
-        case 2:
-            drillSquare[0] = bestSix[0][0];
-            drillSquare[1] = bestSix[0][1];
-            break;
         case 3:
         case 4:
-            drillSquare[0] = tenLoc[0];
-            drillSquare[1] = tenLoc[1];
+            drillSquare[0] = bestSix[0][0];
+            drillSquare[1] = bestSix[0][1];
             break;
     }
     
