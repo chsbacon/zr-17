@@ -191,9 +191,9 @@ void loop() {
         }
     }
     else{
-        positionTarget[2] = 0.28f;
+        positionTarget[2] = 0.285f;
         //if the sphere is under a certain height, move to that height before traveling in the x or y direction
-        if(myPos[2] >= 0.28f) {
+        if(myPos[2] >= 0.285f) {
             positionTarget[0] = myPos[0];
             positionTarget[1] = myPos[1];
         }
