@@ -1,12 +1,5 @@
+//{"sha":"6bb28520f8a505e798f9d1f532e420a605cc1ced"}
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
-float positionTarget[3];
-int targetCoordinates[3];
-float zeroVec[3];
-float myState[13];
-float usefulVec[3];
-int usefulIntVec[3];
-int mySquare[3];
-float enState[12];
 #define myPos (&myState[0])
 #define myVel (&myState[3])
 #define myQuatAtt (&myState[6])
@@ -29,7 +22,7 @@ void init(){
     enScore=0;
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
-	memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
+	
 	#define SPEEDCONST .35f
     #define DERIVCONST 2.35f
     api.setPosGains(SPEEDCONST,0,DERIVCONST);
@@ -41,6 +34,15 @@ void init(){
 }
 
 void loop(){
+    float positionTarget[3];
+    int targetCoordinates[3];
+    float zeroVec[3];
+    float myState[13];
+    float usefulVec[3];
+    int usefulIntVec[3];
+    int mySquare[3];
+    float enState[12];
+    memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
     float enDeltaScore=game.getOtherScore()-enScore;
     enScore=enScore+enDeltaScore;
     if (game.checkSample()){
@@ -75,8 +77,8 @@ void loop(){
         modPos[2]=.2f;//this favors high points
     }
     if (newLoc and !game.checkSample() and not drilling){
-        //DEBUG(("%d",newLoc));
-        //DEBUG(("reselecting"));
+        DEBUG(("%d",newLoc));
+        DEBUG(("reselecting"));
         for (int i=-6;i<6;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
             for (int j=-8;j<8;j++){
@@ -98,8 +100,8 @@ void loop(){
                             goodHeight=other*.08f+.4f;//silent fail specific to goodheight
                         }
                     }
-                    //DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
-                    if (heights[0]>2){
+                    DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
+                    if (heights[0]>1){
                         //DEBUG(("GROUP"));
                         for (int a=0;a<4;a++){
                             usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
@@ -134,6 +136,10 @@ void loop(){
         game.pos2square(enPos,siteCoords);
         siteCoords[0]*=-1;
         siteCoords[1]*=-1;
+    }
+    vcoef=.120f;
+    if (geyserOnMe){
+        vcoef+=.04f;
     }
     
     
@@ -194,7 +200,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            rotConst=-.15f;
+            rotConst=-.1f;
         }
         
         
@@ -222,6 +228,17 @@ void loop(){
         api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
+    if (game.getDrillError() 
+    or geyserOnMe 
+    or game.getDrills(mySquare)>MAXDRILLS-1){
+        DEBUG(("Broke"));
+        if (game.getNumSamplesHeld()>3){
+            dropping=true;
+        }
+        game.stopDrill();
+        newLoc=true;
+        drilling=false;
+    }
     if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
@@ -229,18 +246,6 @@ void loop(){
     }
     if (game.getNumSamplesHeld()==0){
         dropping=false;
-    }
-    if (game.getDrillError() 
-    or geyserOnMe
-    or (game.getDrills(mySquare)>MAXDRILLS-1 and mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1])){
-        DEBUG(("Broke"));
-        if (samples>6){
-            dropping=true;
-            samples=0;
-        }
-        game.stopDrill();
-        newLoc=true;
-        drilling=false;
     }
 
     
@@ -253,9 +258,9 @@ void loop(){
     distance = mathVecNormalize(fvector, 3);
     mathVecSubtract(fvector, destination, myPos, 3);
     
-    scale(myVel,.18f*mathVecMagnitude(fvector,3));
-    scale(fvector,.22f);
+    scale(myVel,.28f);
     mathVecSubtract(fvector,fvector,myVel,3);
+    scale(fvector,.25f);
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
