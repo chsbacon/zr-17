@@ -99,7 +99,7 @@ void loop(){
                         }
                     }
                     //DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
-                    if (heights[0]>1){
+                    if (heights[0]>2){
                         //DEBUG(("GROUP"));
                         for (int a=0;a<4;a++){
                             usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
@@ -194,7 +194,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            rotConst=-.1f;
+            rotConst=-.15f;
         }
         
         
@@ -222,17 +222,6 @@ void loop(){
         api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
-    if (game.getDrillError() 
-    or geyserOnMe 
-    or game.getDrills(mySquare)>MAXDRILLS-1){
-        DEBUG(("Broke"));
-        if (game.getNumSamplesHeld()>3){
-            dropping=true;
-        }
-        game.stopDrill();
-        newLoc=true;
-        drilling=false;
-    }
     if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
@@ -240,6 +229,18 @@ void loop(){
     }
     if (game.getNumSamplesHeld()==0){
         dropping=false;
+    }
+    if (game.getDrillError() 
+    or geyserOnMe
+    or (game.getDrills(mySquare)>MAXDRILLS-1 and mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1])){
+        DEBUG(("Broke"));
+        if (samples>6){
+            dropping=true;
+            samples=0;
+        }
+        game.stopDrill();
+        newLoc=true;
+        drilling=false;
     }
 
     
@@ -252,8 +253,8 @@ void loop(){
     distance = mathVecNormalize(fvector, 3);
     mathVecSubtract(fvector, destination, myPos, 3);
     
-    scale(myVel,.1f);
-    scale(fvector,.25f);
+    scale(myVel,.18f*mathVecMagnitude(fvector,3));
+    scale(fvector,.22f);
     mathVecSubtract(fvector,fvector,myVel,3);
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
