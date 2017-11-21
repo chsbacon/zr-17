@@ -12,12 +12,13 @@ int siteCoords[3];
 bool newLoc;
 bool dropping;
 bool drilling;
+bool guarding;
 //are described in their names, and act as length-3 float arrays
 int samples;
-float vcoef;
 int corner;
 float enScore;
 void init(){
+    guarding=false;
     enScore=0;
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
@@ -76,8 +77,8 @@ void loop(){
         modPos[2]=.2f;//this favors high points
     }
     if (newLoc and !game.checkSample() and not drilling){
-        DEBUG(("%d",newLoc));
-        DEBUG(("reselecting"));
+        //DEBUG(("%d",newLoc));
+        //DEBUG(("reselecting"));
         for (int i=-6;i<6;i++){//This checks all of the grid spaces, and sees which is both
         //closest to us and in the center. You should understand this search structure - it's important!
             for (int j=-8;j<8;j++){
@@ -99,7 +100,7 @@ void loop(){
                             goodHeight=other*.08f+.4f;//silent fail specific to goodheight
                         }
                     }
-                    DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
+                    //DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
                     if (heights[0]>1){
                         //DEBUG(("GROUP"));
                         for (int a=0;a<4;a++){
@@ -136,17 +137,11 @@ void loop(){
         siteCoords[0]*=-1;
         siteCoords[1]*=-1;
     }
-    vcoef=.120f;
-    if (geyserOnMe){
-        vcoef+=.04f;
-    }
     
     
-    float rotConst;
-    rotConst=0;
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if (not dropping){
+    if ((not dropping) and (not guarding)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
         positionTarget[0]+=((corner%2)*-2+1)*0.031f;
@@ -186,7 +181,7 @@ void loop(){
                 game.startDrill();
             }
             else{
-                rotConst=.1f;
+                zeroVec[2]=.1f;
             }
             drilling=true;
             
@@ -199,7 +194,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            rotConst=-.1f;
+            zeroVec[2]=-.1f;
         }
         
         
@@ -207,20 +202,25 @@ void loop(){
     }
     //otherwise, drop off our samples
     else{
-        if (myPos[2]>.29f){
-            memcpy(positionTarget,myPos,8);
-        }
         memcpy(positionTarget,myPos,12);
-        scale(positionTarget,.23f/mathVecMagnitude(myPos,3));
+        if (myPos[2]>.29f){
+            positionTarget[2]=.05f;
+        }
+        else{
+            guarding=(game.getScore()>enScore and mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f);
+            if (guarding){
+                memcpy(positionTarget,enPos,12);
+            }
+            scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));
+        }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2]+=1;
-        rotConst=.1f;
+        zeroVec[2]=.1f;//Slow down
+        
         
     }
     PRINTVEC("myQuatAtt",myQuatAtt);
     myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
-    zeroVec[2]=rotConst;
     api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
     zeroVec[2]=0;
     if (drilling){
