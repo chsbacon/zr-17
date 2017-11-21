@@ -35,7 +35,6 @@ void init(){
 
 void loop(){
     float positionTarget[3];
-    int targetCoordinates[3];
     float zeroVec[3];
     float myState[13];
     float usefulVec[3];
@@ -70,9 +69,9 @@ void loop(){
     float maxDist=100;//Sets this large
     float modPos[3];
     memcpy(modPos,myPos,12);
-    for (int i=0;i<2;i++){
-        modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
-    }    
+    // for (int i=0;i<2;i++){
+    //     modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
+    // }    
     if (samples%4!=2){
         modPos[2]=.2f;//this favors high points
     }
@@ -89,9 +88,11 @@ void loop(){
                     for (int a=0;a<4;a++){//Allows to cycle through four points of square
                         usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
                         fixEdge(usefulIntVec);
-                        int index=(game.getTerrainHeight(usefulIntVec)-.4f)*12.5f;
+                        int index=(game.getTerrainHeight(usefulIntVec)*12.5f)-5;
                         //DEBUG(("%i",index));
-                        heights[index]+=1;
+                        if (game.getDrills(usefulIntVec)==0){
+                            heights[index]+=1;
+                        }
                     }
                     float goodHeight=.4f;
                     for (int other=1;other<4;other++){
@@ -115,8 +116,7 @@ void loop(){
                             and not game.isGeyserHere(usefulIntVec) 
                             //and i*i+j*j>8 and i*i<16 and j*j<16 
                             and dist(enPos,usefulVec)>.22f){
-                                siteCoords[0]=i+a%2;siteCoords[1]=j+a/2;
-                                fixEdge(siteCoords);
+                                memcpy(siteCoords,usefulIntVec,8);
                                 
                                 corner=a;
                                 
@@ -146,6 +146,7 @@ void loop(){
         game.square2pos(siteCoords,positionTarget);
         positionTarget[0]+=((corner%2)*-2+1)*0.031f;
         positionTarget[1]+=((corner/2)*-2+1)*0.031f;
+        
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
             positionTarget[2]=.26f;
@@ -181,7 +182,7 @@ void loop(){
                 game.startDrill();
             }
             else{
-                zeroVec[2]=.1f;
+                zeroVec[2]=.04f;
             }
             drilling=true;
             
@@ -194,7 +195,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            zeroVec[2]=-.1f;
+            zeroVec[2]=-.04f;
         }
         
         
@@ -215,7 +216,7 @@ void loop(){
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2]=.1f;//Slow down
+        zeroVec[2]=.05f;//Slow down
         
         
     }
@@ -234,30 +235,31 @@ void loop(){
         if (game.getNumSamplesHeld()>3){
             dropping=true;
         }
-        game.stopDrill();
         newLoc=true;
         drilling=false;
     }
     if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
-        game.stopDrill();
+        
     }
     if (game.getNumSamplesHeld()==0){
         dropping=false;
+    }
+    if (not drilling){
+        game.stopDrill();
     }
 
     
     
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
-    float distance,flocal,fvector[3];
+    #define fvector usefulVec
+    float flocal;
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
-    distance = mathVecNormalize(fvector, 3);
     mathVecSubtract(fvector, destination, myPos, 3);
-    
-    scale(myVel,.28f);
+    scale(myVel,.28f+.24f*(mathVecMagnitude(fvector,3)<.03f));
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.25f);
     if (geyserOnMe){
