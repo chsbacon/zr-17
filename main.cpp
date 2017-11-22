@@ -208,11 +208,11 @@ void loop(){
             positionTarget[2]=.05f;
         }
         else{
-            guarding=(game.getScore()>enScore and mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f);
+            guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
-            scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));
+            scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .05 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
@@ -238,15 +238,15 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){//at the end of the game, drop off what we have
         dropping=true;
         drilling=false;
         
     }
-    if (game.getNumSamplesHeld()==0){
+    if (game.getNumSamplesHeld()==0){//don't drop off with no samples
         dropping=false;
     }
-    if (not drilling){
+    if (not drilling){//don't drill if we aren't drilling
         game.stopDrill();
     }
 
