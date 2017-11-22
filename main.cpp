@@ -207,11 +207,14 @@ void loop(){
         if (myPos[2]>.29f){
             positionTarget[2]=.05f;
         }
+
         else{
-            guarding=(game.getScore()>enScore and mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f);
+            //if we have more points than the, are close to the origin, and the enemy is far from the origin, or we were already guarding, guard.
+            guarding=((game.getScore()>enScore and mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding);
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
+            //go to a position that is .05 in the same direction at the enemy. In other words, between them and the origin.
             scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));
         }
         zeroVec[2]-=1;
@@ -238,14 +241,17 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
+    //at the end of the game, drop off what we have
     if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
         
     }
+    //don't drop off with no samples
     if (game.getNumSamplesHeld()==0){
         dropping=false;
     }
+    //don't drill if we aren't drilling
     if (not drilling){
         game.stopDrill();
     }
