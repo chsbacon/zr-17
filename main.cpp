@@ -68,13 +68,8 @@ void loop(){
     geyserOnMe=game.isGeyserHere(mySquare);
     float maxDist=100;//Sets this large
     float modPos[3];
-    memcpy(modPos,myPos,12);
-    // for (int i=0;i<2;i++){
-    //     modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
-    // }    
-    if (samples%4!=2){
-        modPos[2]=.2f;//this favors high points
-    }
+    memcpy(modPos,myPos,8);
+    modPos[2]=.2f;//this favors high points
     if (newLoc and !game.checkSample() and not drilling){
         //DEBUG(("%d",newLoc));
         //DEBUG(("reselecting"));
@@ -86,11 +81,11 @@ void loop(){
                     int heights[4];
                     memset(heights,0,16);
                     for (int a=0;a<4;a++){//Allows to cycle through four points of square
-                        usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
+                        usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;
                         fixEdge(usefulIntVec);
                         int index=(game.getTerrainHeight(usefulIntVec)*12.5f)-5;
                         //DEBUG(("%i",index));
-                        if (game.getDrills(usefulIntVec)==0){
+                        if (game.getDrills(usefulIntVec)==0 or (mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1])){
                             heights[index]+=1;
                         }
                     }
@@ -144,8 +139,8 @@ void loop(){
     if ((not dropping) and (not guarding)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.031f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.031f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.029f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.029f;
         
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
@@ -208,11 +203,11 @@ void loop(){
             positionTarget[2]=.05f;
         }
         else{
-            guarding=(game.getScore()>enScore and mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f);
+            guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
-            scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));
+            scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .05 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
@@ -238,15 +233,15 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){//at the end of the game, drop off what we have
         dropping=true;
         drilling=false;
         
     }
-    if (game.getNumSamplesHeld()==0){
+    if (game.getNumSamplesHeld()==0){//don't drop off with no samples
         dropping=false;
     }
-    if (not drilling){
+    if (not drilling){//don't drill if we aren't drilling
         game.stopDrill();
     }
 
@@ -259,9 +254,9 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    scale(myVel,.28f+.24f*(mathVecMagnitude(fvector,3)<.03f));
+    scale(myVel,.2f+.7f*(mathVecMagnitude(fvector,3)<.05f));
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.25f);
+    scale(fvector,.24f-.13f*(mathVecMagnitude(fvector,3)<.05f));
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
