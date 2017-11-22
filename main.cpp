@@ -139,8 +139,8 @@ void loop(){
     if ((not dropping) and (not guarding)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.031f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.031f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.029f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.029f;
         
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
@@ -254,9 +254,9 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    scale(myVel,.1f+.4f*(mathVecMagnitude(fvector,3)<.03f));
+    scale(myVel,.2f+.7f*(mathVecMagnitude(fvector,3)<.05f));
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.23f-.12f*(mathVecMagnitude(fvector,3)<.05f));
+    scale(fvector,.24f-.13f*(mathVecMagnitude(fvector,3)<.05f));
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
