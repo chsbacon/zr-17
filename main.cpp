@@ -90,7 +90,7 @@ void loop(){
                         fixEdge(usefulIntVec);
                         int index=(game.getTerrainHeight(usefulIntVec)*12.5f)-5;
                         //DEBUG(("%i",index));
-                        if (game.getDrills(usefulIntVec)==0){
+                        if (game.getDrills(usefulIntVec)==0 or (mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1])){
                             heights[index]+=1;
                         }
                     }
@@ -207,14 +207,11 @@ void loop(){
         if (myPos[2]>.29f){
             positionTarget[2]=.05f;
         }
-
         else{
-            //if we have more points than the, are close to the origin, and the enemy is far from the origin, or we were already guarding, guard.
-            guarding=((game.getScore()>enScore and mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding);
+            guarding=(game.getScore()>enScore and mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f);
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
-            //go to a position that is .05 in the same direction at the enemy. In other words, between them and the origin.
             scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));
         }
         zeroVec[2]-=1;
@@ -241,17 +238,14 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    //at the end of the game, drop off what we have
     if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){
         dropping=true;
         drilling=false;
         
     }
-    //don't drop off with no samples
     if (game.getNumSamplesHeld()==0){
         dropping=false;
     }
-    //don't drill if we aren't drilling
     if (not drilling){
         game.stopDrill();
     }
@@ -265,9 +259,9 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    scale(myVel,.28f+.24f*(mathVecMagnitude(fvector,3)<.03f));
+    scale(myVel,.1f+.4f*(mathVecMagnitude(fvector,3)<.03f));
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.25f);
+    scale(fvector,.23f-.1*(mathVecMagnitude(fvector,3)<.03f));
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
