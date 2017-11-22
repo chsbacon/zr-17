@@ -44,6 +44,7 @@ void loop(){
     memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
     float enDeltaScore=game.getOtherScore()-enScore;
     enScore=enScore+enDeltaScore;
+    if(api.getTime() > 15){
     if (game.checkSample()){
         game.dropSample(4);
         game.pickupSample();
@@ -244,7 +245,6 @@ void loop(){
     if (not drilling){//don't drill if we aren't drilling
         game.stopDrill();
     }
-
     
     
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
@@ -265,6 +265,8 @@ void loop(){
     }
     api.setVelocityTarget(fvector);
 }
+}
+
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
     mathVecSubtract(ansVec, vec1, vec2, 3);
