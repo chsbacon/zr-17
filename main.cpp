@@ -68,13 +68,8 @@ void loop(){
     geyserOnMe=game.isGeyserHere(mySquare);
     float maxDist=100;//Sets this large
     float modPos[3];
-    memcpy(modPos,myPos,12);
-    // for (int i=0;i<2;i++){
-    //     modPos[i]+=(myPos[i]-usefulVec[i])*6*geyserOnMe;
-    // }    
-    if (samples%4!=2){
-        modPos[2]=.2f;//this favors high points
-    }
+    memcpy(modPos,myPos,8);
+    modPos[2]=.2f;//this favors high points
     if (newLoc and !game.checkSample() and not drilling){
         //DEBUG(("%d",newLoc));
         //DEBUG(("reselecting"));
@@ -86,7 +81,7 @@ void loop(){
                     int heights[4];
                     memset(heights,0,16);
                     for (int a=0;a<4;a++){//Allows to cycle through four points of square
-                        usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
+                        usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;
                         fixEdge(usefulIntVec);
                         int index=(game.getTerrainHeight(usefulIntVec)*12.5f)-5;
                         //DEBUG(("%i",index));
@@ -261,7 +256,7 @@ void loop(){
     mathVecSubtract(fvector, destination, myPos, 3);
     scale(myVel,.1f+.4f*(mathVecMagnitude(fvector,3)<.03f));
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.23f-.1*(mathVecMagnitude(fvector,3)<.03f));
+    scale(fvector,.23f-.12f*(mathVecMagnitude(fvector,3)<.05f));
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
