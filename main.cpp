@@ -1,3 +1,4 @@
+//{"sha":"3cc991b52e60bc023800e1415ef2f7af6e563e27"}
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
@@ -133,14 +134,14 @@ void loop(){
         siteCoords[1]*=-1;
     }
     
-    
+    guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if ((not dropping) and (not guarding)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.029f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.029f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.031f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.031f;
         
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
@@ -177,7 +178,7 @@ void loop(){
                 game.startDrill();
             }
             else{
-                zeroVec[2]=.04f;
+                zeroVec[2]=.1f;
             }
             drilling=true;
             
@@ -190,30 +191,32 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            zeroVec[2]=-.04f;
+            zeroVec[2]=-.1f;
         }
         
         
        
     }
     //otherwise, drop off our samples
-    else{
+    else if (guarding) {
+        newLoc=true;
+        dropping = false;
+    } else {
         memcpy(positionTarget,myPos,12);
         if (myPos[2]>.29f){
             positionTarget[2]=.05f;
         }
         else{
-            guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
+            /*guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
-            }
+                dropping = false;
+            }*/
             scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .05 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
         zeroVec[2]=.05f;//Slow down
-        
-        
     }
     PRINTVEC("myQuatAtt",myQuatAtt);
     myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
@@ -227,13 +230,13 @@ void loop(){
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1){
         DEBUG(("Broke"));
-        if (game.getNumSamplesHeld()>3){
+        if (game.getNumSamplesHeld()>4){
             dropping=true;
         }
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>165 and api.getTime()<180) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f)) && !guarding){//at the end of the game, drop off what we have
         dropping=true;
         drilling=false;
         
@@ -254,16 +257,38 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    scale(myVel,.2f+.7f*(mathVecMagnitude(fvector,3)<.05f));
+    scale(myVel,.1f+.4f*(mathVecMagnitude(fvector,3)<.03f));
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.24f-.13f*(mathVecMagnitude(fvector,3)<.05f));
+    scale(fvector,.23f-.12f*(mathVecMagnitude(fvector,3)<.05f));
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
         fvector[1]/=flocal;
         fvector[2]=0.01f;
     }
-    api.setVelocityTarget(fvector);
+    if (game.getFuelRemaining()<0.04f) {
+        api.setVelocityTarget(zeroVec);
+        game.stopDrill();
+
+    } else {
+        float tempVec[3];
+        for (int i = 0; i < 3; i++) {
+            tempVec[i] = fvector[i]+myPos[i]+myVel[i];
+        }
+        //mathVecAdd(usefulVec, fvector, myPos, 3);
+        //mathVecAdd(usefulVec, usefulVec, myVel, 3);
+        int sqr[3];
+        game.pos2square(tempVec, sqr);
+        DEBUG(("Heading over sqr: %i, %i", sqr[0], sqr[1]));
+        if (game.isGeyserHere(sqr) && !geyserOnMe) {
+            DEBUG(("geyser in next sqr"));
+            for (int i = 0; i < 2; i++) {
+                fvector[i]=0;
+            }
+        }
+        DEBUG(("TARGETED THRUST: %f, %f, %f", fvector[0], fvector[1], fvector[2]));
+        api.setVelocityTarget(fvector);
+    }
 }
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
