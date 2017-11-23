@@ -221,7 +221,7 @@ void loop(){
         api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
-    float fuel=game.getFuelRemaining()*100;
+    float fuel=game.getFuelRemaining();
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1){
