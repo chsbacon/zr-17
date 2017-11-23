@@ -85,7 +85,7 @@ void loop(){
                         fixEdge(usefulIntVec);
                         int index=(game.getTerrainHeight(usefulIntVec)*12.5f)-5;
                         //DEBUG(("%i",index));
-                        if (game.getDrills(usefulIntVec)==0 or (mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1])){
+                        if (game.getDrills(usefulIntVec)==0 or (mySquare[0]-i==(mySquare[0]-i)%2 and (mySquare[1]-j)==(mySquare[1]-j)%2)){//Now checks if we are within that group
                             heights[index]+=1;
                         }
                     }
@@ -203,7 +203,7 @@ void loop(){
             positionTarget[2]=.05f;
         }
         else{
-            guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
+            guarding=(game.getScore()>enScore and ((mathVecMagnitude(enPos,3)>.32f and mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f) or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
@@ -258,7 +258,7 @@ void loop(){
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.24f-.13f*(mathVecMagnitude(fvector,3)<.05f));
     if (geyserOnMe){
-        flocal=mathVecMagnitude(fvector,3)/.2f;
+        flocal=mathVecMagnitude(fvector,3)/15;
         fvector[0]/=flocal;
         fvector[1]/=flocal;
         fvector[2]=0.01f;
