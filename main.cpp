@@ -240,7 +240,7 @@ void loop(){
         dropping=true;
         drilling=false;
     }*/
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>165 and api.getTime()<180) or (game.getFuelRemaining() < .20f and game.getFuelRemaining() > .8f)) && !guarding){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>160 and api.getTime()<180) or (game.getFuelRemaining() < .20f and game.getFuelRemaining() > .8f)) && !enGuarding){//at the end of the game, drop off what we have
         dropping=true;
         drilling=false;
         
