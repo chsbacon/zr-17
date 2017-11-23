@@ -1,4 +1,3 @@
-//{"sha":"3cc991b52e60bc023800e1415ef2f7af6e563e27"}
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
@@ -178,7 +177,7 @@ void loop(){
                 game.startDrill();
             }
             else{
-                zeroVec[2]=.1f;
+                zeroVec[2]=0.04f;
             }
             drilling=true;
             
@@ -191,7 +190,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            zeroVec[2]=-.1f;
+            zeroVec[2]=-.04f;
         }
         
         
@@ -237,11 +236,11 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>3 and ((api.getTime()>155 and api.getTime()<180) or (game.getFuelRemaining() < .20f and game.getFuelRemaining() > .9f)) && !guarding) {
+    /*if (game.getNumSamplesHeld()>3 and ((api.getTime()>155 and api.getTime()<180) or (game.getFuelRemaining() < .20f and game.getFuelRemaining() > .9f)) && !guarding) {
         dropping=true;
         drilling=false;
-    }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>165 and api.getTime()<180) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f)) && !guarding){//at the end of the game, drop off what we have
+    }*/
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>165 and api.getTime()<180) or (game.getFuelRemaining() < .20f and game.getFuelRemaining() > .8f)) && !guarding){//at the end of the game, drop off what we have
         dropping=true;
         drilling=false;
         
