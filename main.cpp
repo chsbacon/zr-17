@@ -13,12 +13,14 @@ int siteCoords[3];
 bool newLoc;
 bool dropping;
 bool drilling;
+bool enGuarding;
 bool guarding;
 //are described in their names, and act as length-3 float arrays
 int samples;
 int corner;
 float enScore;
 void init(){
+    enGuarding=false;
     guarding=false;
     enScore=0;
     newLoc=true;
@@ -133,15 +135,13 @@ void loop(){
         siteCoords[0]*=-1;
         siteCoords[1]*=-1;
     }
-    
-    guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
-    
+    enGuarding = (mathVecMagnitude(enPos, 3))<0.26f;
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if ((not dropping) and (not guarding)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.031f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.031f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.029f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.029f;
         
         positionTarget[2]=myPos[2];//vertical movement to avoid terrain
         if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
@@ -197,21 +197,22 @@ void loop(){
         
        
     }
-    //otherwise, drop off our samples
-    else if (guarding) {
-        newLoc=true;
+    else if (enGuarding && mathVecMagnitude(myPos, 3) > 0.26f) {
         dropping = false;
-    } else {
+        newLoc = true;
+    }
+    //otherwise, drop off our samples
+    else {
         memcpy(positionTarget,myPos,12);
         if (myPos[2]>.29f){
             positionTarget[2]=.05f;
         }
         else{
-            /*guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
+            guarding=(game.getScore()>enScore and ((mathVecMagnitude(myPos,3)<.24f and mathVecMagnitude(enPos,3)>.32f) or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
                 dropping = false;
-            }*/
+            }
             scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .05 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
@@ -257,9 +258,9 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    scale(myVel,.1f+.4f*(mathVecMagnitude(fvector,3)<.03f));
+    scale(myVel,.2f+.7f*(mathVecMagnitude(fvector,3)<.05f));
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.23f-.12f*(mathVecMagnitude(fvector,3)<.05f));
+    scale(fvector,.24f-.13f*(mathVecMagnitude(fvector,3)<.05f));
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/.2f;
         fvector[0]/=flocal;
