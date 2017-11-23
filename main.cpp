@@ -38,7 +38,7 @@ void loop(){
     float zeroVec[3];
     float myState[13];
     float usefulVec[3];
-    int usefulIntVec[3];
+    int usefulIntVec[2];
     int mySquare[3];
     float enState[12];
     memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
@@ -100,7 +100,7 @@ void loop(){
                     if (heights[0]>1){
                         //DEBUG(("GROUP"));
                         for (int a=0;a<4;a++){
-                            usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;usefulIntVec[2]=0;
+                            usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;
                             fixEdge(usefulIntVec);
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
@@ -133,7 +133,7 @@ void loop(){
         siteCoords[1]*=-1;
     }
     
-    
+    bool onSite= (mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if ((not dropping) and (not guarding)){
@@ -142,8 +142,8 @@ void loop(){
         positionTarget[0]+=((corner%2)*-2+1)*0.029f;
         positionTarget[1]+=((corner/2)*-2+1)*0.029f;
         
-        positionTarget[2]=myPos[2];//vertical movement to avoid terrain
-        if ((mySquare[0]!=siteCoords[0] or mySquare[1]!=siteCoords[1]) and dist(positionTarget,myPos)>.02f){
+        //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
+        if (!onSite){
             positionTarget[2]=.26f;
             DEBUG(("O"));
             if (myPos[2]>.29f){
@@ -162,12 +162,10 @@ void loop(){
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if ((mathVecMagnitude(myVel,3)<.01f
         and (mathVecMagnitude(myRot,3)<.035f or drilling)
-         and (siteCoords[0]==mySquare[0] 
-         and siteCoords[1]==mySquare[1]) 
-        ) and not game.getDrillError()
+        and (onSite))
+        and not game.getDrillError()
         and (myPos[2]-positionTarget[2]<.02f and myPos[2]-positionTarget[2]>-0.02f)){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
-            api.setAttitudeTarget(usefulVec);
             
             // usefulVec[0]=0;
             // usefulVec[1]=0;
@@ -184,7 +182,7 @@ void loop(){
         }
         else{
             usefulVec[0]=myAtt[0];usefulVec[1]=myAtt[1];usefulVec[2]=0;
-            api.setAttitudeTarget(usefulVec);
+            
             // memcpy(usefulVec,myRot,12);
             // scale(usefulVec,-0.6f);
             // api.setAttRateTarget(usefulVec);
@@ -192,6 +190,7 @@ void loop(){
             drilling=false;
             zeroVec[2]=-.04f;
         }
+        api.setAttitudeTarget(usefulVec);
         
         
        
@@ -218,11 +217,11 @@ void loop(){
     PRINTVEC("myQuatAtt",myQuatAtt);
     myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
     api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
-    zeroVec[2]=0;
     if (drilling){
         api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
+    float fuel=game.getFuelRemaining()*100;
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1){
@@ -233,12 +232,16 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (game.getFuelRemaining() < .16f and game.getFuelRemaining() > .8f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (fuel<.16f and fuel> .13f))){//at the end of the game, drop off what we have
         dropping=true;
         drilling=false;
         
     }
-    if (game.getNumSamplesHeld()==0){//don't drop off with no samples
+    if (fuel<.03f and myVel[2]>0){
+        memcpy(positionTarget,myPos,12);
+        positionTarget[2]-=1;
+    }
+    if (!game.getNumSamplesHeld()){//don't drop off with no samples
         dropping=false;
     }
     if (not drilling){//don't drill if we aren't drilling
@@ -254,9 +257,10 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    scale(myVel,.2f+.7f*(mathVecMagnitude(fvector,3)<.05f));
+    usefulIntVec[0]=(mathVecMagnitude(fvector,3)<.05f);//Just storing this value as a functional boolean
+    scale(myVel,.2f+.7f*usefulIntVec[0]);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.24f-.13f*(mathVecMagnitude(fvector,3)<.05f));
+    scale(fvector,.24f-.13f*usefulIntVec[0]);
     if (geyserOnMe){
         flocal=mathVecMagnitude(fvector,3)/15;
         fvector[0]/=flocal;
