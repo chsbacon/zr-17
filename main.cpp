@@ -135,7 +135,7 @@ void loop(){
         siteCoords[0]*=-1;
         siteCoords[1]*=-1;
     }
-    enGuarding = (mathVecMagnitude(enPos, 3))<0.26f;
+    enGuarding = (mathVecMagnitude(enPos, 3))<0.12f;
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if ((not dropping) and (not guarding)){
         //adjust positiontarget to the corner of a square
