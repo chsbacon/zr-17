@@ -1,7 +1,7 @@
 
 // for jt/smartAware {"sha":"b47d8f72e22af2569fb63b0ade3c93d7b26281a0"}
 
-//#define dev
+#define dev
 //Standard defines
 #define myPos (&myState[0])
 #define myVel (&myState[3])
@@ -44,12 +44,14 @@ int sampNum;
 bool pickUp[2];
 bool isBlue;
 float analyzer[3];
+bool tenFound;
 
 float myState[12];
 float enState[12];
 
 void init() {
     infoFound = false;
+    tenFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
     vcoef = 0.154f; 
@@ -96,22 +98,17 @@ void loop() {
     //DEBUG(("Magnitude is %f", magnitude));
     float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
     //DEBUG(("The fuel to get back to the base is %f",fuel2base));
-
-    if(infoFound){
-        DEBUG(("WE FOUND SOMETHING"));
+    
+    if(tenFound){
+        DEBUG(("WE FOUND 10 at (%d, %d)", myDrillSquares[sampNum - 1][0], myDrillSquares[sampNum - 1][1]));
     }
     else if(!pickUp[isBlue] and game.hasAnalyzer() != isBlue + 1){
-        
         //api.setPositionTarget(ANALYZER_POSITION);
         memcpy(positionTarget, analyzer, 12);
         //api.setPositionTarget(positionTarget);
     }
     else { // Find a spot to drill
-        float drillAtt[3];
-        drillAtt[0] = 1.0f;
-        drillAtt[1] = 0.0f;
-        drillAtt[2] = 0.0f;
-        api.setAttitudeTarget(drillAtt); // direction requirement for drilling
+        
         
         #define LARGE_NUMBER 10.0f
             // while we're hunting, any possible square will do
@@ -125,62 +122,67 @@ void loop() {
         float minDist = infoFound ? PROXIMITY_REQUIREMENT : LARGE_NUMBER;
         
         DEBUG(("sampNum: %d", sampNum));
-        for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
-            for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
-                if (possibleTenSquares[c][r]) { // exclude center
-                    #define zeroSquare (int*)zeroVec
-                    // Store (col,row) as a square
-                    int square[2];
-                    square[0] = c + (c>=TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
-                    square[1] = r + (r>=TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
-                    // We are reversing this operation from updateTenSquares:
-                    // {i + (i>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
-                    // j + (j>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
-                    
-                    float testPos[3];
-                    game.square2pos(square, testPos);
-                    testPos[2] = SURFACE_Z;
-                    float distance = dist(myPos, testPos);
-                    
-                    // Go over samples we already have to make sure
-                    // this spot isn't too close to them
-                    for (int samp=0; samp<sampNum; samp++) {
-                        int mirrorSquare[2] = {-myDrillSquares[samp][0],
-                            -myDrillSquares[samp][1]};
-                            // reflect across the origin
-                        #define HUNTING_DRILL_SPACING 22
-                            // when we're hunting, we want widely spaced
-                            // drill spots, so info doesn't overlap
-                        #define EXCLUDE_RADIUS 0
-                            // once we find info, don't drill in the same spot
-                            // unless no other spots are possible
-                        #define CENTER_INFO_RADIUS 10
-                            // tens can't spawn in the center, so we want our
-                            // info to not include any of that area
-                        #define CENTER_KEEPAWAY_RADIUS 4
-                            // even if the ten is close to the center,
-                            // we still don't want to drill the center itself
-        
-                        if (distSquared(square, myDrillSquares[samp])
-                        <= (infoFound ? EXCLUDE_RADIUS : HUNTING_DRILL_SPACING)
-                            // if close to a previous drill spot 
-                        or distSquared(square, mirrorSquare) <= HUNTING_DRILL_SPACING
-                            // or that drill spot reflected across the origin
-                        or distSquared(square, zeroSquare)
-                        <= (infoFound ? CENTER_KEEPAWAY_RADIUS : CENTER_INFO_RADIUS)) {
-                            // or too close to the center
-                            goto skip;
-                                // ignore square as a potential drill spot
+        if (infoFound) {
+            //NARROW IT DOWN
+        }
+        else{
+            for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
+                for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
+                    if (possibleTenSquares[c][r] == '*') { // exclude center
+                        #define zeroSquare (int*)zeroVec
+                        // Store (col,row) as a square
+                        int square[2];
+                        square[0] = c + (c>=TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
+                        square[1] = r + (r>=TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
+                        // We are reversing this operation from updateTenSquares:
+                        // {i + (i>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
+                        // j + (j>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
+                        
+                        float testPos[3];
+                        game.square2pos(square, testPos);
+                        testPos[2] = SURFACE_Z;
+                        float distance = dist(myPos, testPos);
+                        
+                        // Go over samples we already have to make sure
+                        // this spot isn't too close to them
+                        for (int samp=0; samp<sampNum; samp++) {
+                            int mirrorSquare[2] = {-myDrillSquares[samp][0],
+                                -myDrillSquares[samp][1]};
+                                // reflect across the origin
+                            #define HUNTING_DRILL_SPACING 22
+                                // when we're hunting, we want widely spaced
+                                // drill spots, so info doesn't overlap
+                            #define EXCLUDE_RADIUS 0
+                                // once we find info, don't drill in the same spot
+                                // unless no other spots are possible
+                            #define CENTER_INFO_RADIUS 10
+                                // tens can't spawn in the center, so we want our
+                                // info to not include any of that area
+                            #define CENTER_KEEPAWAY_RADIUS 4
+                                // even if the ten is close to the center,
+                                // we still don't want to drill the center itself
+                            
+                            if (distSquared(square, myDrillSquares[samp])
+                            <= (infoFound ? EXCLUDE_RADIUS : HUNTING_DRILL_SPACING)
+                                // if close to a previous drill spot 
+                            or distSquared(square, mirrorSquare) <= HUNTING_DRILL_SPACING
+                                // or that drill spot reflected across the origin
+                            or distSquared(square, zeroSquare)
+                            <= (infoFound ? CENTER_KEEPAWAY_RADIUS : CENTER_INFO_RADIUS)) {
+                                // or too close to the center
+                                goto skip;
+                                    // ignore square as a potential drill spot
+                            }
                         }
+                        // go to the closest point that is a possible ten
+                        if (distance < minDist) { // if this one is closer
+                            // than the closest so far
+                            // Make it the new closest
+                            memcpy(drillSquare, square, 8);
+                            minDist = distance;
+                        }
+                        skip: continue;
                     }
-                    // go to the closest point that is a possible ten
-                    if (distance < minDist) { // if this one is closer
-                        // than the closest so far
-                        // Make it the new closest
-                        memcpy(drillSquare, square, 8);
-                        minDist = distance;
-                    }
-                    skip: continue;
                 }
             }
         }
@@ -207,10 +209,12 @@ void loop() {
             updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
             #endif
             sampNum++;//We have to manually increment # of samples because we don't actually have any
+            
+            infoFound = (2.5f < (5 * analysis + 2)) and ((5 * analysis + 2) < 7.0f);
         }
     }
     
-    if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
+    /*if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
         // Possible score gains from drilling
         DEBUG(("Enemy just drilled"));
         if (enDrillSquaresIdx>4) enDrillSquaresIdx = 0;
@@ -230,7 +234,7 @@ void loop() {
 	    // reset stale enemy-awareness variables
 	    enNumSamples = 0;
 	    enDrillSquaresIdx = 0;
-	}
+	}*/
 	
 	PRINT_VEC_F("positionTarget", positionTarget);
 	// Movement code
@@ -353,14 +357,13 @@ void updateTenSquares(int (*squares)[2], float deltaScore, int batchSize) {
                                                 int dist2 = distSquared(testTen, mirrorSquare);
                                                 
                                                 // next we determine if i,j being the bullseye is consistent with this square/score pairing
-                                                bool possible = ((dist1 == 0 or dist2 == 0) and perm[idx] == 3); // a 10
-                                                    //or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
-                                                    //or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
+                                                bool possible = ((dist1 == 0 or dist2 == 0) and perm[idx] == 3) // a 10
+                                                    or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
+                                                    or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
                                                     // normal square (1 point) corresponds to 1 and thus will always be false
-                                                if (possible){
-                                                    infoFound = true;
-                                                }
-                                                        
+                                                
+                                                tenFound = (deltaScore == pointVals[3]);// Points in a ten
+                                                
                                                 if (dist1 <= 5 or dist2 <= 5) {  // only update cells within the radius of the target
                                                     possibleTenSquares[c][r] = possible ? '*' : 'x';
                                                 }
