@@ -235,8 +235,13 @@ void loop(){
     }
     if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<165) or (fuel<.16f and fuel> .12f))){//at the end of the game, drop off what we have
         dropping=true;
-        drilling=false;
         
+    }
+    if (mathVecMagnitude(enPos,3)<.18f){
+        dropping=false;
+    }
+    if (dropping){
+        drilling=false;
     }
     if (fuel<.03f and myVel[2]>0){
         memcpy(positionTarget,myPos,12);
