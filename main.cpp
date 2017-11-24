@@ -19,10 +19,6 @@
 #define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
 
 float enScore;
-int enDrillSquares[5][2]; // where the enemy has drilled since dropping off
-int enNumSamples; // how many times the enemy has drilled since drop-off
-int enDrillSquaresIdx; // where in enDrilSquares we will record the enemy's
-    // next drill spot
 int myDrillSquares[5][2]; // where we have drilled
 bool infoFound; // have we gotten a 3, 6, or a 10?
 
@@ -49,7 +45,6 @@ void init() {
     
     // Reset enemy-awareness variables
     enNumSamples = 0;
-    enDrillSquaresIdx = 0;
 
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
@@ -65,7 +60,6 @@ void loop() {
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
 	int myFuel = game.getFuelRemaining()*100;
-	float enDeltaScore = game.getOtherScore() - enScore;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
 	
@@ -218,27 +212,6 @@ void loop() {
         }
     }
     
-    if (enDeltaScore == 1.0f or enDeltaScore == 2.0f or enDeltaScore == 3.0f){
-        // Possible score gains from drilling
-        DEBUG(("Enemy just drilled"));
-        if (enDrillSquaresIdx>4) enDrillSquaresIdx = 0;
-            // wrap, so that if they drill more than five before drop-off,
-            // we only catch the last five
-        game.pos2square(enPos, enDrillSquares[enDrillSquaresIdx]);
-        if (enNumSamples < 5) enNumSamples++;
-        enDrillSquaresIdx++;
-    }
-	
-	if (enDeltaScore >= 2.5f and enDeltaScore != 3.0f) { // if they got points, but only drop-off points, not drilling points
-	        // stores which indices in the pointVals array
-	        // that correspond to sample concentration values
-	    DEBUG(("enemy dropped %d samples off for a total increase of: %f", enNumSamples, enDeltaScore));
-	    updateTenSquares(enDrillSquares, enDeltaScore, enNumSamples);
-	    
-	    // reset stale enemy-awareness variables
-	    enNumSamples = 0;
-	    enDrillSquaresIdx = 0;
-	}
 	
 	PRINT_VEC_F("positionTarget", positionTarget);
 	// Movement code
