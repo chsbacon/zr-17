@@ -203,7 +203,7 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            guarding=(game.getScore()>enScore and ((mathVecMagnitude(enPos,3)>.32f and mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f) or guarding));
+            guarding=(game.getScore()>enScore and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
@@ -233,7 +233,7 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<163) or (fuel<.16f and fuel> .13f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<165) or (fuel<.16f and fuel> .12f))){//at the end of the game, drop off what we have
         dropping=true;
         drilling=false;
         
