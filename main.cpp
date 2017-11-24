@@ -202,11 +202,12 @@ void loop(){
             positionTarget[2]=.05f;
         }
         else{
+            //maybe take out the mathvecMagnitude expression for codesize
             guarding=(game.getScore()>enScore and ((mathVecMagnitude(enPos,3)>.32f and mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f) or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
-            scale(positionTarget,(.23f-.18f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .05 in the same direction at the enemy. In other words, between them and the origin.
+            scale(positionTarget,(.23f-.14f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
