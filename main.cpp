@@ -133,7 +133,7 @@ void loop(){
         siteCoords[1]*=-1;
     }
     
-    bool onSite= (mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
+    bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if ((not dropping) and (not guarding)){
@@ -268,9 +268,10 @@ void loop(){
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.06f*flocal);
     if (geyserOnMe){
-        flocal=mathVecMagnitude(fvector,3)/15;
-        fvector[0]/=flocal;
-        fvector[1]/=flocal;
+        // flocal=mathVecMagnitude(fvector,3)/15;
+        // fvector[0]/=flocal;
+        // fvector[1]/=flocal;
+        scale(fvector,15/mathVecMagnitude(fvector,3));
         fvector[2]=0.01f;
     }
     api.setVelocityTarget(fvector);
