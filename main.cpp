@@ -110,7 +110,7 @@ void loop(){
                             and game.getDrills(usefulIntVec)<1 
                             and not game.isGeyserHere(usefulIntVec) 
                             //and i*i+j*j>8 and i*i<16 and j*j<16 
-                            and dist(enPos,usefulVec)>.22f){
+                            and dist(enPos,usefulVec)>.35f){
                                 memcpy(siteCoords,usefulIntVec,8);
                                 
                                 corner=a;
@@ -263,7 +263,7 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
     scale(myVel,.2f+flocal/1.5f);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.06f*flocal);
