@@ -43,8 +43,7 @@ void init() {
     enScore = 0.0f; // initialized because
         // we use it to calculate change in score
     
-    // Reset enemy-awareness variables
-    enNumSamples = 0;
+
 
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
