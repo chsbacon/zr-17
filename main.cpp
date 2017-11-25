@@ -34,6 +34,7 @@ void init(){
 }
 
 void loop(){
+    float flocal;
     float positionTarget[3];
     float zeroVec[3];
     float myState[13];
@@ -105,10 +106,9 @@ void loop(){
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
                             float score=dist(usefulVec,modPos);
-                            if ( usefulVec[2]==goodHeight
+                            if (usefulVec[2]==goodHeight
                             and score<maxDist 
                             and game.getDrills(usefulIntVec)<1 
-                            and not game.isGeyserHere(usefulIntVec) 
                             //and i*i+j*j>8 and i*i<16 and j*j<16 
                             and dist(enPos,usefulVec)>.35f){
                                 memcpy(siteCoords,usefulIntVec,8);
@@ -142,9 +142,10 @@ void loop(){
         positionTarget[0]+=((corner%2)*-2+1)*0.029f;
         positionTarget[1]+=((corner/2)*-2+1)*0.029f;
         
+        
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
-        if (!onSite){
-            positionTarget[2]=.26f;
+        if (!onSite and (game.getTerrainHeight(mySquare)>game.getTerrainHeight(siteCoords) or dist(myPos,positionTarget)>.05f)){
+            positionTarget[2]=.27f;
             DEBUG(("O"));
             if (myPos[2]>.29f){
                 DEBUG(("U"));
@@ -174,9 +175,7 @@ void loop(){
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
-            else{
-                zeroVec[2]=.04f;
-            }
+            zeroVec[2]=.04f;
             drilling=true;
             
         }
@@ -222,7 +221,7 @@ void loop(){
         api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
-    float fuel=game.getFuelRemaining();
+    flocal=game.getFuelRemaining();
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1){
@@ -233,7 +232,7 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<165) or (fuel<.16f and fuel> .12f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
         dropping=true;
         
     }
@@ -243,7 +242,7 @@ void loop(){
     if (dropping){
         drilling=false;
     }
-    if (fuel<.03f and myVel[2]>0){
+    if (flocal<.03f and myVel[2]>0){
         memcpy(positionTarget,myPos,12);
         positionTarget[2]-=1;
     }
@@ -259,14 +258,14 @@ void loop(){
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
     #define fvector usefulVec
-    float flocal;
+    
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal/1.5f);
+    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.27f-.06f*flocal);
+    scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
         // flocal=mathVecMagnitude(fvector,3)/15;
         // fvector[0]/=flocal;
