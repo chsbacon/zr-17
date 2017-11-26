@@ -1,3 +1,5 @@
+//{"sha":"d2d1471f03b117a4e56fbe96cfe59ef086b18bd5"}
+
 
 // #define dev
 //Standard defines
@@ -14,6 +16,7 @@
 #define SPHERE_RADIUS 0.11f
 #define SPEEDCONST 0.45f
 #define DERIVCONST 2.8f
+#define XY_DRILL_PLANE_ANGLE 0.1963f
 
 // DEBUG shorthand functions (F is for floats, I is for ints)
 #define PRINT_VEC_F(str, vec) DEBUG(("%s %f %f %f",str, vec[0], vec[1], vec[2]))
@@ -21,6 +24,14 @@
 float enScore;
 int myDrillSquares[5][2]; // where we have drilled
 bool infoFound; // have we gotten a 3, 6, or a 10?
+bool tenFound;
+int mySquare[3];
+
+int sampNum;
+bool pickUp[2];
+bool isBlue;
+float analyzer[3];
+
 
 #define TEN_SPAWN_WIDTH 12
 #define TEN_SPAWN_HEIGHT 16
@@ -34,8 +45,16 @@ float vcoef; // A coefficient for our movement speed
 int drillSquare[2]; // Will eventually store the optimal drilling square
     // It's important that this is global because sometimes it doesn't
     // get updated
-void init() {
-    infoFound = false;
+int stage;
+
+int tenLoc[2];
+float myState[12];
+float enState[12];
+
+
+void init(){
+	    infoFound = false;
+    tenFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
     vcoef = 0.154f; 
@@ -48,206 +67,348 @@ void init() {
     memset(possibleTenSquares, '*', TEN_SPAWN_HEIGHT * TEN_SPAWN_WIDTH);
         // at the start, all squares are possible tens
         // including the center lmao, but we ignore it
+        
+    stage = 0;
+    sampNum = 0;//Number of samples we have
+    
+    api.getMyZRState(myState);
+    isBlue = (myState[1] > 0);
+    
+    analyzer[0] = (isBlue) ? -0.30f : 0.30f;
+    analyzer[1] = (isBlue) ? 0.48f : -0.48f;
+    analyzer[2] = (isBlue) ? -0.16f : -0.16f;
 }
 
-void loop() {
+void loop(){
     float zeroVec[3] = {0.0, 0.0, 0.0}; // just a convenience thing
     float positionTarget[3]; // where we're going
     // Update state
-    float myState[12];
-    float enState[12];
 	api.getMyZRState(myState);
 	api.getOtherZRState(enState);
 	int myFuel = game.getFuelRemaining()*100;
 	enScore = game.getOtherScore();
 	int sampNum = game.getNumSamplesHeld();
+	game.pos2square(myPos,mySquare);
+
+	bool geyserOnMe;
+    geyserOnMe=game.isGeyserHere(mySquare);
 	
     float drillSquarePos[3];
     game.square2pos(drillSquare,drillSquarePos);
+    
+    game.getAnalyzer(pickUp);
+
     
     //checking fuel to see if we need to go back to base
     float magnitude = sqrtf(mathSquare(myPos[0]) + mathSquare(myPos[1]) + mathSquare(-0.1f-myPos[2])); //finding magnitude
     DEBUG(("Magnitude is %f", magnitude));
     float fuel2base = magnitude*(22*(mathSquare(.6*magnitude - .9)));//multiplying magnitude by fuel2square algorithm
     DEBUG(("The fuel to get back to the base is %f",fuel2base));
-
-    if ((sampNum == 5) or (sampNum >= 2 and angle(myPos, drillSquarePos, 2) > 2.8f)
-    or (myFuel<=fuel2base)) {
-        DEBUG(("Heading back to base"));
-        float dropOffAtt[3];
-        dropOffAtt[0] = 0.0f;
-        dropOffAtt[1] = 0.0f;
-        dropOffAtt[2] = -1.0f;
-        api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
-            // direction in order to drop off
-        
-        // Go the closest point that is a specifed dist from the origin
-        memcpy(positionTarget, myPos, 12);
-        mathVecNormalize(positionTarget, 3);
-        #define DROP_OFF_RADIUS_TARGET 0.23f
-        scale(positionTarget, DROP_OFF_RADIUS_TARGET);
-        
-        if(game.atBaseStation()) {
-            float samples[5];
-                // store the concentrations from each sample
-            for (int i = 0; i < sampNum; i++) { // for each sample
+    
+    if(stage == 0){
+        if(tenFound){
+            DEBUG(("WE FOUND 10 at (%d, %d)", myDrillSquares[sampNum - 1][0], myDrillSquares[sampNum - 1][1]));
+            stage++;
+            tenLoc[0] = myDrillSquares[sampNum - 1][0];
+            tenLoc[1] = myDrillSquares[sampNum - 1][1];
+            
+        }
+        else if(!pickUp[isBlue] and game.hasAnalyzer() != isBlue + 1){
+            //api.setPositionTarget(ANALYZER_POSITION);
+            memcpy(positionTarget, analyzer, 12);
+            //api.setPositionTarget(positionTarget);
+        }
+        else { // Find a spot to drill
+            
+            
+            #define LARGE_NUMBER 10.0f
+                // while we're hunting, any possible square will do
+            #define PROXIMITY_REQUIREMENT 0.453f
+                // if infoFound, it must be within 1 ten radius
+                // square width * dist from one end of concentration to the other
+                // 0.08 * sqrt(4^2,4^2)
+            // If no possible squares are closer than minDist, then we will
+            // default to last loop's drill spot
+            // (this will only be the case when we found the ten)
+            float minDist = infoFound ? PROXIMITY_REQUIREMENT : LARGE_NUMBER;
+            
+            DEBUG(("sampNum: %d", sampNum));
+            if (infoFound) {
+                //NARROW IT DOWN
+            }
+            else{
+                for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
+                    for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
+                        if (possibleTenSquares[c][r] == '*') { // exclude center
+                            #define zeroSquare (int*)zeroVec
+                            // Store (col,row) as a square
+                            int square[2];
+                            square[0] = c + (c>=TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
+                            square[1] = r + (r>=TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
+                            // We are reversing this operation from updateTenSquares:
+                            // {i + (i>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
+                            // j + (j>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
+                            
+                            float testPos[3];
+                            game.square2pos(square, testPos);
+                            testPos[2] = SURFACE_Z;
+                            float distance = dist(myPos, testPos);
+                            
+                            // Go over samples we already have to make sure
+                            // this spot isn't too close to them
+                            for (int samp=0; samp<sampNum; samp++) {
+                                int mirrorSquare[2] = {-myDrillSquares[samp][0],
+                                    -myDrillSquares[samp][1]};
+                                    // reflect across the origin
+                                #define HUNTING_DRILL_SPACING 22
+                                    // when we're hunting, we want widely spaced
+                                    // drill spots, so info doesn't overlap
+                                #define EXCLUDE_RADIUS 0
+                                    // once we find info, don't drill in the same spot
+                                    // unless no other spots are possible
+                                #define CENTER_INFO_RADIUS 10
+                                    // tens can't spawn in the center, so we want our
+                                    // info to not include any of that area
+                                #define CENTER_KEEPAWAY_RADIUS 4
+                                    // even if the ten is close to the center,
+                                    // we still don't want to drill the center itself
+                                
+                                if (distSquared(square, myDrillSquares[samp])
+                                <= (infoFound ? EXCLUDE_RADIUS : HUNTING_DRILL_SPACING)
+                                    // if close to a previous drill spot 
+                                or distSquared(square, mirrorSquare) <= HUNTING_DRILL_SPACING
+                                    // or that drill spot reflected across the origin
+                                or distSquared(square, zeroSquare)
+                                <= (infoFound ? CENTER_KEEPAWAY_RADIUS : CENTER_INFO_RADIUS)) {
+                                    // or too close to the center
+                                    goto skip;
+                                        // ignore square as a potential drill spot
+                                }
+                            }
+                            // go to the closest point that is a possible ten
+                            if (distance < minDist) { // if this one is closer
+                                // than the closest so far
+                                // Make it the new closest
+                                memcpy(drillSquare, square, 8);
+                                minDist = distance;
+                            }
+                            skip: continue;
+                        }
+                    }
+                }
+            }
+            //Check at the spot we picked
+            DEBUG(("Checking at %d, %d", drillSquare[0], drillSquare[1]));
+            game.square2pos(drillSquare, positionTarget);
+            positionTarget[2] = -0.16f;
+            
+            if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
+            and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
+                DEBUG(("CHECKING"));
+                
+                memcpy(myDrillSquares[sampNum], drillSquare, 8);
+                DEBUG(("myDrillSquares (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d)",myDrillSquares[0][0],myDrillSquares[0][1], myDrillSquares[1][0],myDrillSquares[1][1],myDrillSquares[2][0],myDrillSquares[2][1]));
+                float analysis = game.analyzeTerrain();
+                DEBUG(("Samp #%d %f score: %f @ (%d, %d)", 
+                    sampNum, 
+                    analysis,
+                    (5 * analysis + 2),
+                    drillSquare[0], drillSquare[1] ));
                 #ifdef dev
-                samples[i] = game.dropSample(i);
-                DEBUG(("Samp #%d %f score: %f @ (%d, %d)", i+1, samples[i],
-                    (5 * samples[i] + 2),
-                    myDrillSquares[i][0], myDrillSquares[i][1] ));
-                updateTenSquares(&(myDrillSquares[i]), 5 * samples[i] + 2, 1);
+                updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
                 #else
-                updateTenSquares(&(myDrillSquares[i]), 5 * game.dropSample(i) + 2, 1);
+                updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
                 #endif
+                sampNum++;//We have to manually increment # of samples because we don't actually have any
+                
+                infoFound = (2.5f < (5 * analysis + 2)) and ((5 * analysis + 2) < 7.0f);
             }
         }
     }
-    else { // Find a spot to drill
-        float drillAtt[3];
-        drillAtt[0] = 1.0f;
-        drillAtt[1] = 0.0f;
-        drillAtt[2] = 0.0f;
-        api.setAttitudeTarget(drillAtt); // direction requirement for drilling
-        
-        #define LARGE_NUMBER 10.0f
-            // while we're hunting, any possible square will do
-        #define PROXIMITY_REQUIREMENT 0.453f
-            // if infoFound, it must be within 1 ten radius
-            // square width * dist from one end of concentration to the other
-            // 0.08 * sqrt(4^2,4^2)
-        // If no possible squares are closer than minDist, then we will
-        // default to last loop's drill spot
-        // (this will only be the case when we found the ten)
-        float minDist = infoFound ? PROXIMITY_REQUIREMENT : LARGE_NUMBER;
-        DEBUG(("myDrillSquares"));
-        DEBUG(("(%d %d) (%d %d) (%d %d)",myDrillSquares[0][0],myDrillSquares[0][1],
-        myDrillSquares[1][0],myDrillSquares[1][1],myDrillSquares[2][0],myDrillSquares[2][1]));
-        DEBUG(("sampNum: %d", sampNum));
-        for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
-            for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
-                if (possibleTenSquares[c][r]) { // exclude center
-                    #define zeroSquare (int*)zeroVec
-                    // Store (col,row) as a square
-                    int square[2];
-                    square[0] = c + (c>=TEN_SPAWN_WIDTH/2 ? 1 : 0) - TEN_SPAWN_WIDTH/2;
-                    square[1] = r + (r>=TEN_SPAWN_HEIGHT/2 ? 1 : 0) - TEN_SPAWN_HEIGHT/2;
-                    // We are reversing this operation from updateTenSquares:
-                    // {i + (i>0 ? -1 : 0) + TEN_SPAWN_WIDTH/2,
-                    // j + (j>0 ? -1 : 0) + TEN_SPAWN_HEIGHT/2};
+    if(stage == 1){
+        float squarePos[3];
+        float shortestDist = 10000;
+        float secondShortestDist = 100000;
+        float tenPos[3];
+        game.square2pos(tenLoc, tenPos);
+        int bestSix[2][2];
+        bestSix[0][0] = 0;
+        bestSix[0][1] = 0;
+        bestSix[1][0] = 0;
+        bestSix[1][1] = 0;
+        tenPos[2] = game.getTerrainHeight(tenLoc);
+        for(int i = -1; i<2; i++) {
+            for(int j = -1; j<2;j++) {
+                int square[2];
+                square[0] = i+tenLoc[0];
+                square[1] = j+tenLoc[1];
+                if(square[0] == 0){
+                    square[0] += i;
+                }
+                if(square[1] == 0){
+                    square[1] += i;
+                }
+                //goes through each square around the 10 and finds the tallest ont (not complete)
+                game.square2pos(square, squarePos);
+                squarePos[2] = game.getTerrainHeight(square);
+                if(game.getDrills(square) < 2 and shortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
+                    bestSix[0][0] = square[0];
+                    bestSix[0][1] = square[1];
+                    shortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
                     
-                    float testPos[3];
-                    game.square2pos(square, testPos);
-                    testPos[2] = SURFACE_Z;
-                    float distance = dist(myPos, testPos);
+                }
+                else if(game.getDrills(square) < 2 and secondShortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
+                    bestSix[1][0] = square[0];
+                    bestSix[1][1] = square[1];
+                    secondShortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
                     
-                    // Go over samples we already have to make sure
-                    // this spot isn't too close to them
-                    for (int samp=0; samp<sampNum; samp++) {
-                        int mirrorSquare[2] = {-myDrillSquares[samp][0],
-                            -myDrillSquares[samp][1]};
-                            // reflect across the origin
-                        #define HUNTING_DRILL_SPACING 22
-                            // when we're hunting, we want widely spaced
-                            // drill spots, so info doesn't overlap
-                        #define EXCLUDE_RADIUS 0
-                            // once we find info, don't drill in the same spot
-                            // unless no other spots are possible
-                        #define CENTER_INFO_RADIUS 10
-                            // tens can't spawn in the center, so we want our
-                            // info to not include any of that area
-                        #define CENTER_KEEPAWAY_RADIUS 4
-                            // even if the ten is close to the center,
-                            // we still don't want to drill the center itself
-        
-                        if (distSquared(square, myDrillSquares[samp])
-                        <= (infoFound ? EXCLUDE_RADIUS : HUNTING_DRILL_SPACING)
-                            // if close to a previous drill spot 
-                        or distSquared(square, mirrorSquare) <= HUNTING_DRILL_SPACING
-                            // or that drill spot reflected across the origin
-                        or distSquared(square, zeroSquare)
-                        <= (infoFound ? CENTER_KEEPAWAY_RADIUS : CENTER_INFO_RADIUS)) {
-                            // or too close to the center
-                            goto skip;
-                                // ignore square as a potential drill spot
-                        }
-                    }
-                    // go to the closest point that is a possible ten
-                    if (distance < minDist) { // if this one is closer
-                        // than the closest so far
-                        // Make it the new closest
-                        memcpy(drillSquare, square, 8);
-                        minDist = distance;
-                    }
-                    skip: continue;
                 }
             }
         }
-        // drill at the spot we picked
-        if (game.getDrillError()){
-            game.stopDrill();
-        }
+        DEBUG(("best square %d %d", bestSix[0][0], bestSix[0][1]));
+        DEBUG(("second best square %d %d", bestSix[1][0], bestSix[1][1]));
+        
+        // Find a spot to drill
+         // drill at the spot we picked
+         
+        float xyLookAxis[3];
+        xyLookAxis[0] = myAtt[0];
+        xyLookAxis[1] = myAtt[1];
+        xyLookAxis[2] = 0;
         DEBUG(("Drilling at %d, %d", drillSquare[0], drillSquare[1]));
+        api.setAttitudeTarget(xyLookAxis);
+        
+        #define XY_DRILL_PLANE_ANGLE 0.1963f
+            
         game.square2pos(drillSquare, positionTarget);
-        positionTarget[2] = 0.35;
-    
-        if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
-        and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
-            DEBUG(("Starting Drill"));
-            game.startDrill();
+        //sets positionTarget to the square to be drilled
+        PRINT_VEC_F("position target", positionTarget);
+        float xyPos[3];
+        float xyPositionTarget[3];
+        memcpy(xyPositionTarget, positionTarget, 12);
+        memcpy(xyPos, myPos, 12);
+        xyPos[2] = 0;
+        xyPositionTarget[2] = 0;
+        
+        //creates two vectors based off the positionTarget and myPos that are in the same xy plane 
+        switch (game.getNumSamplesHeld()) {
+            case 0:
+            case 1:
+                drillSquare[0] = tenLoc[0];
+                drillSquare[1] = tenLoc[1];
+                break;
+            case 2:
+                drillSquare[0] = bestSix[1][0];
+                drillSquare[1] = bestSix[1][1];
+                break;
+            case 3:
+            case 4:
+                drillSquare[0] = bestSix[0][0];
+                drillSquare[1] = bestSix[0][1];
+                break;
         }
-        else if (game.getDrillEnabled()) {
-            DEBUG(("Drilling"));
-            float drillVec[3];
-            drillVec[0] = myAtt[1];
-            drillVec[1] = -myAtt[0];
-            drillVec[2] = 0.0f;
-            api.setAttitudeTarget(drillVec);
-            if (game.checkSample()){
-                game.pickupSample();
-                game.stopDrill();
-                memcpy(myDrillSquares[game.getNumSamplesHeld()-1], drillSquare, 8);
+        
+    
+        if(dist(xyPos, xyPositionTarget) < .06) {
+            //checks to see if the sphere is above the square
+            positionTarget[2] = game.getTerrainHeight(drillSquare) - 0.13f;
+            //sets the drill height
+            //fDEBUG(("%f terrain height", game.getTerrainHeight(drillSquare)));
+            if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.02f
+            and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled() and angle(myAtt, xyLookAxis, 3) <= XY_DRILL_PLANE_ANGLE){
+                DEBUG(("Starting Drill"));
+                game.startDrill();
+            }
+            else if (game.getDrillEnabled()) {
+                DEBUG(("Drilling"));
+                float drillVec[3];
+                drillVec[0] = 0;
+                drillVec[1] = 0;
+                drillVec[2] = 0.5f;
+                api.setAttRateTarget(drillVec);
+                if (game.checkSample()){
+                    game.pickupSample();
+                    //picks up sample and changes the square (temporary)
+                }
             }
         }
+        else{
+            positionTarget[2] = 0.285f;
+            //if the sphere is under a certain height, move to that height before traveling in the x or y direction
+            if(myPos[2] >= 0.285f) {
+                positionTarget[0] = myPos[0];
+                positionTarget[1] = myPos[1];
+            }
+        }
+    
+        
+        
+        
+        if ((sampNum == 5) or (myFuel<=fuel2base) or myFuel < 5) {
+            if(myPos[2] < 0.285f){
+                DEBUG(("Heading back to base"));
+                float dropOffAtt[3];
+                dropOffAtt[0] = 0.0f;
+                dropOffAtt[1] = 0.0f;
+                dropOffAtt[2] = -1.0f;
+                api.setAttitudeTarget(dropOffAtt); // Must be pointing in a certain
+                    // direction in order to drop off
+                
+                // Go the closest point that is a specifed dist from the origin
+                memcpy(positionTarget, myPos, 12);
+                mathVecNormalize(positionTarget, 3);
+                #define DROP_OFF_RADIUS_TARGET 0.23f
+                scale(positionTarget, DROP_OFF_RADIUS_TARGET);
+                
+                if(game.atBaseStation()) {
+                    float samples[5];
+                        // store the concentrations from each sample
+                    for (int i = 0; i < sampNum; i++) { // for each sample
+                
+                        samples[i] = game.dropSample(i);
+                        
+                    }
+                }
+            }
+            else{
+                memcpy(positionTarget, myPos, 12);
+                positionTarget[2] = 0.28f;
+                
+            }
+        }
+    	
+    	if(dist(myPos, positionTarget) > 0.02f or angle(myAtt, xyLookAxis, 3) >= XY_DRILL_PLANE_ANGLE or game.getDrillError() or geyserOnMe) {
+    	    game.stopDrill();
+    	    //this stops the drill only if the sphere is moved or we have a full inventory, 
+    	    //this also prevents geysers from breaking drilling because our position would be far from position target 
+    	}
+    	PRINT_VEC_F("positionTarget", positionTarget);
+    	
+    	if(geyserOnMe){
+    	    memcpy(positionTarget, zeroVec, 12);
+    	}
     }
     
-	
-	PRINT_VEC_F("positionTarget", positionTarget);
-	// Movement code
-	float distance,flocal,fvector[3];
-    #define ACCEL 0.0175f
-    mathVecSubtract(fvector, positionTarget, myPos, 3); // vector from us to the target
-    distance = mathVecNormalize(fvector, 3); // distance to target
-    if (distance > 0.05f) { // If not close, pick a velocity
-        flocal = vcoef;
-        if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
-            flocal = sqrtf(distance*ACCEL)-.02f;
-            //DEBUG(("Slower"));
-        }
-        scale(fvector, flocal);
-        api.setVelocityTarget(fvector);
+    #define destination positionTarget//This (next 20 or so lines) is movement code.
+	//It is fairly strange - we will go over exactly how it works eventually
+    float distance,flocal,fvector[3];
+    #define ACCEL .014f
+    //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
+    distance = mathVecNormalize(fvector, 3);
+    mathVecSubtract(fvector, destination, myPos, 3);
+    
+    scale(myVel,.28f);
+    mathVecSubtract(fvector,fvector,myVel,3);
+    scale(fvector,.24f);
+    if (geyserOnMe){
+        flocal=mathVecMagnitude(fvector,3)/.2f;
+        fvector[0]/=flocal;
+        fvector[1]/=flocal;
+        fvector[2]=0.01f;
     }
-    else {// if we are very close
-        api.setPositionTarget(positionTarget);
-    }
-    if (!game.getDrillEnabled() and myRot[2] > 0.037f){
-        api.setAttRateTarget(zeroVec);
-    }
-    #ifdef dev
-    if (api.getTime()%15 == 0) {
-        DEBUG(("possibleTenSquares: "));
-        for (int i=0; i<TEN_SPAWN_HEIGHT; i++) { // print out all of possibleTenSquares
-            DEBUG(("%c %c %c %c | %c %c %c %c | %c %c %c %c", possibleTenSquares[0][i],
-            possibleTenSquares[1][i], possibleTenSquares[2][i],
-            possibleTenSquares[3][i], i>5 and i<10 ? '-' : possibleTenSquares[4][i],
-            i>5 and i<10 ? '-' : possibleTenSquares[5][i], i>5 and i<10 ? '-' : possibleTenSquares[6][i],
-            i>5 and i<10 ? '-' : possibleTenSquares[7][i], possibleTenSquares[8][i],
-            possibleTenSquares[9][i], possibleTenSquares[10][i],
-            possibleTenSquares[11][i] ));
-        }
-    }
-    #endif
+    api.setVelocityTarget(fvector);
 }
+
 
 /**
  * @param squares - array containing sets of squares positions
@@ -337,10 +498,9 @@ void updateTenSquares(int (*squares)[2], float deltaScore, int batchSize) {
                                                     or ((dist1==1 or dist1==2 or dist2==1 or dist2==2) and perm[idx] == 2) // a 6
                                                     or ((dist1==4 or dist1==5 or dist2==4 or dist2==5) and perm[idx] == 1); // a 3
                                                     // normal square (1 point) corresponds to 1 and thus will always be false
-                                                if (possible){
-                                                    infoFound = true;
-                                                }
-                                                        
+                                                
+                                                tenFound = (deltaScore == pointVals[3]);// Points in a ten
+                                                
                                                 if (dist1 <= 5 or dist2 <= 5) {  // only update cells within the radius of the target
                                                     possibleTenSquares[c][r] = possible ? '*' : 'x';
                                                 }
