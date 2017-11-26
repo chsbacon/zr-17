@@ -34,6 +34,7 @@ void init(){
 }
 
 void loop(){
+    float flocal;
     float positionTarget[3];
     float zeroVec[3];
     float myState[13];
@@ -105,12 +106,11 @@ void loop(){
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
                             float score=dist(usefulVec,modPos);
-                            if ( usefulVec[2]==goodHeight
+                            if (usefulVec[2]==goodHeight
                             and score<maxDist 
                             and game.getDrills(usefulIntVec)<1 
-                            and not game.isGeyserHere(usefulIntVec) 
                             //and i*i+j*j>8 and i*i<16 and j*j<16 
-                            and dist(enPos,usefulVec)>.22f){
+                            and dist(enPos,usefulVec)>.35f){
                                 memcpy(siteCoords,usefulIntVec,8);
                                 
                                 corner=a;
@@ -133,7 +133,7 @@ void loop(){
         siteCoords[1]*=-1;
     }
     
-    bool onSite= (mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
+    bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     if ((not dropping) and (not guarding)){
@@ -142,9 +142,10 @@ void loop(){
         positionTarget[0]+=((corner%2)*-2+1)*0.029f;
         positionTarget[1]+=((corner/2)*-2+1)*0.029f;
         
+        
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
-        if (!onSite){
-            positionTarget[2]=.26f;
+        if (!onSite and (game.getTerrainHeight(mySquare)>game.getTerrainHeight(siteCoords) or dist(myPos,positionTarget)>.05f)){
+            positionTarget[2]=.27f;
             DEBUG(("O"));
             if (myPos[2]>.29f){
                 DEBUG(("U"));
@@ -174,9 +175,7 @@ void loop(){
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
-            else{
-                zeroVec[2]=.04f;
-            }
+            zeroVec[2]=.04f;
             drilling=true;
             
         }
@@ -203,7 +202,7 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            guarding=(game.getScore()>enScore+12 and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
+            guarding=(game.getScore()>enScore and game.getScore()>30 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
@@ -222,7 +221,7 @@ void loop(){
         api.setAttRateTarget(usefulVec);
     }
     //if our drill breaks or we get a geyser, stop the current drill
-    float fuel=game.getFuelRemaining();
+    flocal=game.getFuelRemaining();
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1){
@@ -233,7 +232,7 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((api.getTime()>157 and api.getTime()<165) or (fuel<.16f and fuel> .12f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
         dropping=true;
         
     }
@@ -243,7 +242,7 @@ void loop(){
     if (dropping){
         drilling=false;
     }
-    if (fuel<.03f and myVel[2]>0){
+    if (flocal<.02f and myVel[2]>.005f){
         memcpy(positionTarget,myPos,12);
         positionTarget[2]-=1;
     }
@@ -259,18 +258,19 @@ void loop(){
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
     #define fvector usefulVec
-    float flocal;
+    
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    usefulIntVec[0]=(mathVecMagnitude(fvector,3)<.05f);//Just storing this value as a functional boolean
-    scale(myVel,.2f+.7f*usefulIntVec[0]);
+    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    scale(myVel,.2f+flocal*1.01f);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.24f-.13f*usefulIntVec[0]);
+    scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
-        flocal=mathVecMagnitude(fvector,3)/15;
-        fvector[0]/=flocal;
-        fvector[1]/=flocal;
+        // flocal=mathVecMagnitude(fvector,3)/15;
+        // fvector[0]/=flocal;
+        // fvector[1]/=flocal;
+        scale(fvector,15/mathVecMagnitude(fvector,3));
         fvector[2]=0.01f;
     }
     api.setVelocityTarget(fvector);
