@@ -202,7 +202,7 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            guarding=(game.getScore()>enScore+12 and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
+            guarding=(game.getScore()>enScore and game.getScore()>30 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
             if (guarding){
                 memcpy(positionTarget,enPos,12);
             }
@@ -242,7 +242,7 @@ void loop(){
     if (dropping){
         drilling=false;
     }
-    if (flocal<.03f and myVel[2]>0){
+    if (flocal<.02f and myVel[2]>.005f){
         memcpy(positionTarget,myPos,12);
         positionTarget[2]-=1;
     }
