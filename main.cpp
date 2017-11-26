@@ -135,6 +135,7 @@ void loop(){
             DEBUG(("sampNum: %d", sampNum));
             if (infoFound) {
                 //NARROW IT DOWN
+                DEBUG(("INFO FOUND"));
             }
             else{
                 for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
