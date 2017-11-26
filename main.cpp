@@ -262,8 +262,8 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.035f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal);
+    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    scale(myVel,.2f+flocal*1.01f);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
