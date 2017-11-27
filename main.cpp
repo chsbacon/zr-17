@@ -45,8 +45,7 @@ void loop(){
     enScore=enScore+enDeltaScore;
     if (game.checkSample()){
         game.dropSample(4);
-        game.pickupSample();
-        samples+=1;
+        samples+=(bool)(game.pickupSample());
     }
     if (game.atBaseStation()){
         for (int i=0;i<5;i++){
