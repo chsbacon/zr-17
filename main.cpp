@@ -1,4 +1,7 @@
 
+
+//{"sha":"ab7b62b5bf7cf8dbf6186321c7c7744cb0f456b6"}
+
 // for jt/smartAware {"sha":"b47d8f72e22af2569fb63b0ade3c93d7b26281a0"}
 
 #define dev
@@ -110,22 +113,24 @@ void loop() {
     else { // Find a spot to drill
         
         
-        #define LARGE_NUMBER 10.0f
-            // while we're hunting, any possible square will do
-        #define PROXIMITY_REQUIREMENT 0.453f
-            // if infoFound, it must be within 1 ten radius
-            // square width * dist from one end of concentration to the other
-            // 0.08 * sqrt(4^2,4^2)
-        // If no possible squares are closer than minDist, then we will
-        // default to last loop's drill spot
-        // (this will only be the case when we found the ten)
-        float minDist = infoFound ? PROXIMITY_REQUIREMENT : LARGE_NUMBER;
         
         DEBUG(("checkNum: %d", checkNum));
-        if (infoFound) {
+        if (infoFound and false) {
             DEBUG(("NARROW IT DOWN"));
         }
         else{
+            #define LARGE_NUMBER 10.0f
+            // while we're hunting, any possible square will do
+            #define PROXIMITY_REQUIREMENT 5.65f
+                // previous number 0.453f
+                // if infoFound, it must be within 1 ten radius
+                // square width * dist from one end of concentration to the other
+                // 0.08 * sqrt(4^2,4^2)
+            // If no possible squares are closer than minDist, then we will
+            // default to last loop's drill spot
+            // (this will only be the case when we found the ten)
+            float minDist = infoFound ? PROXIMITY_REQUIREMENT : LARGE_NUMBER;
+            
             for (int c=0; c<TEN_SPAWN_WIDTH; c++) { // iterate over possibleTenSquares
                 for (int r=0; r<TEN_SPAWN_HEIGHT; r++) {
                     if (possibleTenSquares[c][r] == '*') { // exclude center
@@ -195,7 +200,7 @@ void loop() {
                 DEBUG(("CHECKING"));
                 
                 memcpy(myDrillSquares[checkNum], drillSquare, 8);
-                DEBUG(("myDrillSquares (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d)",myDrillSquares[0][0],myDrillSquares[0][1], myDrillSquares[1][0],myDrillSquares[1][1],myDrillSquares[2][0],myDrillSquares[2][1]));
+                DEBUG(("myDrillSquares (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d)",myDrillSquares[0][0],myDrillSquares[0][1], myDrillSquares[1][0],myDrillSquares[1][1],myDrillSquares[2][0],myDrillSquares[2][1],myDrillSquares[3][0],myDrillSquares[3][1],myDrillSquares[4][0],myDrillSquares[4][1]));
                 float analysis = game.analyzeTerrain();
                 DEBUG(("Samp #%d %f score: %f @ (%d, %d)", 
                     checkNum, 
@@ -424,8 +429,3 @@ void scale(float* vec, float scale){
     for (int i=0; i<3; i++)
         vec[i] *= scale;
 }
-
-/*
-
-
-*/
