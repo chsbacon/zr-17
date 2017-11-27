@@ -202,10 +202,12 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            guarding=(game.getScore()>enScore and game.getScore()>30 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
-            if (guarding){
-                memcpy(positionTarget,enPos,12);
-            }
+            guarding=false;
+            //guarding=(game.getScore()>enScore+12 and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
+            
+            //if (guarding){
+            //    memcpy(positionTarget,enPos,12);
+            //}
             scale(positionTarget,(.23f-.14f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
@@ -242,7 +244,7 @@ void loop(){
     if (dropping){
         drilling=false;
     }
-    if (flocal<.02f and myVel[2]>.005f){
+    if (flocal<.03f and myVel[2]>0){
         memcpy(positionTarget,myPos,12);
         positionTarget[2]-=1;
     }
@@ -263,7 +265,7 @@ void loop(){
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
     flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal*1.01f);
+    scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
