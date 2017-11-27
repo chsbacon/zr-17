@@ -106,11 +106,11 @@ void loop(){
     DEBUG(("The fuel to get back to the base is %f",fuel2base));
     
     if(stage == 0){
-        if(tenFound){
+        if(tenFound or true){
             DEBUG(("WE FOUND 10 at (%d, %d)", myDrillSquares[sampNum - 1][0], myDrillSquares[sampNum - 1][1]));
             stage++;
-            tenLoc[0] = myDrillSquares[sampNum - 1][0];
-            tenLoc[1] = myDrillSquares[sampNum - 1][1];
+            tenLoc[0] = 5;//myDrillSquares[sampNum - 1][0];
+            tenLoc[1] = 3;//myDrillSquares[sampNum - 1][1];
             
         }
         else if(!pickUp[isBlue] and game.hasAnalyzer() != isBlue + 1){
@@ -227,47 +227,9 @@ void loop(){
         }
     }
     if(stage == 1){
-        float squarePos[3];
-        float shortestDist = 10000;
-        float secondShortestDist = 100000;
-        float tenPos[3];
-        game.square2pos(tenLoc, tenPos);
-        int bestSix[2][2];
-        bestSix[0][0] = 0;
-        bestSix[0][1] = 0;
-        bestSix[1][0] = 0;
-        bestSix[1][1] = 0;
-        tenPos[2] = game.getTerrainHeight(tenLoc);
-        for(int i = -1; i<2; i++) {
-            for(int j = -1; j<2;j++) {
-                int square[2];
-                square[0] = i+tenLoc[0];
-                square[1] = j+tenLoc[1];
-                if(square[0] == 0){
-                    square[0] += i;
-                }
-                if(square[1] == 0){
-                    square[1] += i;
-                }
-                //goes through each square around the 10 and finds the tallest ont (not complete)
-                game.square2pos(square, squarePos);
-                squarePos[2] = game.getTerrainHeight(square);
-                if(game.getDrills(square) < 2 and shortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
-                    bestSix[0][0] = square[0];
-                    bestSix[0][1] = square[1];
-                    shortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
-                    
-                }
-                else if(game.getDrills(square) < 2 and secondShortestDist > dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3) and dist(squarePos, tenPos) > 0.03f){
-                    bestSix[1][0] = square[0];
-                    bestSix[1][1] = square[1];
-                    secondShortestDist = dist(squarePos, tenPos) + mathVecMagnitude(squarePos, 3);
-                    
-                }
-            }
-        }
-        DEBUG(("best square %d %d", bestSix[0][0], bestSix[0][1]));
-        DEBUG(("second best square %d %d", bestSix[1][0], bestSix[1][1]));
+        int secondTen[2];
+        secondTen[0] = -1*tenLoc[0];
+        secondTen[1] = -1*tenLoc[1];
         
         // Find a spot to drill
          // drill at the spot we picked
@@ -295,17 +257,14 @@ void loop(){
         switch (game.getNumSamplesHeld()) {
             case 0:
             case 1:
+            case 2:
                 drillSquare[0] = tenLoc[0];
                 drillSquare[1] = tenLoc[1];
                 break;
-            case 2:
-                drillSquare[0] = bestSix[1][0];
-                drillSquare[1] = bestSix[1][1];
-                break;
             case 3:
             case 4:
-                drillSquare[0] = bestSix[0][0];
-                drillSquare[1] = bestSix[0][1];
+                drillSquare[0] = secondTen[0];
+                drillSquare[1] = secondTen[1];
                 break;
         }
         
