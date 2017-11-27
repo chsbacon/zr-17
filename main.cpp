@@ -202,12 +202,10 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            guarding=false;
-            //guarding=(game.getScore()>enScore+12 and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
-            
-            //if (guarding){
-            //    memcpy(positionTarget,enPos,12);
-            //}
+            guarding=(game.getScore()>enScore+12 and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
+            if (guarding){
+                memcpy(positionTarget,enPos,12);
+            }
             scale(positionTarget,(.23f-.14f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
