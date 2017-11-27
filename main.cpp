@@ -344,7 +344,12 @@ void loop(){
     	PRINT_VEC_F("positionTarget", positionTarget);
     	
     	if(geyserOnMe){
-    	    memcpy(positionTarget, zeroVec, 12);
+    	    if(myPos[2] < 0.285f){
+    	        memcpy(positionTarget, zeroVec, 12);
+    	    }
+    	    else{
+    	        positionTarget[2] = 0.28;
+    	    }
     	}
     }
     
