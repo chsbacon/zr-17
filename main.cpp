@@ -204,7 +204,7 @@ void loop(){
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2]=.05f;//Slow down
+        zeroVec[2]=0;//.01f;//Slow down
         
         
     }
@@ -230,9 +230,6 @@ void loop(){
         dropping=true;
         
     }
-    if (mathVecMagnitude(enPos,3)<.18f){
-        dropping=false;
-    }
     if (dropping){
         drilling=false;
     }
@@ -240,7 +237,7 @@ void loop(){
         memcpy(positionTarget,myPos,12);
         positionTarget[2]-=1;
     }
-    if (!game.getNumSamplesHeld()){//don't drop off with no samples
+    if (!game.getNumSamplesHeld() or mathVecMagnitude(enPos,3)<.16){//don't drop off with no samples
         dropping=false;
     }
     if (not drilling){//don't drill if we aren't drilling
@@ -261,11 +258,12 @@ void loop(){
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
+        fvector[2]=0;
         // flocal=mathVecMagnitude(fvector,3)/15;
         // fvector[0]/=flocal;
         // fvector[1]/=flocal;
-        scale(fvector,15/mathVecMagnitude(fvector,3));
-        fvector[2]=0.01f;
+        scale(fvector,5/mathVecMagnitude(fvector,3));
+        fvector[2]=0.05f;
     }
     api.setVelocityTarget(fvector);
 }
