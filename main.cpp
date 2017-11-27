@@ -254,18 +254,17 @@ void loop(){
         xyPositionTarget[2] = 0;
         
         //creates two vectors based off the positionTarget and myPos that are in the same xy plane 
-        switch (game.getNumSamplesHeld()) {
-            case 0:
-            case 1:
-            case 2:
+        if(game.getDrills(tenLoc) < 3){
                 drillSquare[0] = tenLoc[0];
                 drillSquare[1] = tenLoc[1];
-                break;
-            case 3:
-            case 4:
+        }
+        else if(game.getDrills(tenLoc)<3){
                 drillSquare[0] = secondTen[0];
                 drillSquare[1] = secondTen[1];
-                break;
+        }
+        else{
+            drillSquare[0] = secondTen[0];
+            drillSquare[1] = secondTen[1] + 1;
         }
         
     
