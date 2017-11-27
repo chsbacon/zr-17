@@ -137,8 +137,8 @@ void loop(){
     if ((not dropping)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.029f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.029f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.027f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.027f;
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
