@@ -15,6 +15,7 @@ bool drilling;
 //are described in their names, and act as length-3 float arrays
 int samples;
 int corner;
+bool guarding;
 float enScore;
 void init(){
     enScore=0;
@@ -28,6 +29,7 @@ void init(){
     //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
     samples=0;
+    guarding=false;
 	drilling=false;
 }
 
@@ -133,11 +135,11 @@ void loop(){
     bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if ((not dropping)){
+    if ((not dropping) and (not guarding)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.027f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.027f;
+        positionTarget[0]+=((corner%2)*-2+1)*0.029f;
+        positionTarget[1]+=((corner/2)*-2+1)*0.029f;
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
@@ -199,7 +201,11 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            scale(positionTarget,.23f/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
+            guarding=(game.getScore()>enScore+10 and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
+            if (guarding){
+                memcpy(positionTarget,enPos,12);
+            }
+            scale(positionTarget,(.23f-.16f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.        }
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
@@ -252,7 +258,7 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    flocal=0.0333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
     scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.09f*flocal);
@@ -262,7 +268,7 @@ void loop(){
         // fvector[0]/=flocal;
         // fvector[1]/=flocal;
         scale(fvector,5/mathVecMagnitude(fvector,3));
-        fvector[2]=0.05f;
+        //fvector[2]=0.05f;
     }
     api.setVelocityTarget(fvector);
 }
