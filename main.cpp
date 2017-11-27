@@ -12,13 +12,11 @@ int siteCoords[3];
 bool newLoc;
 bool dropping;
 bool drilling;
-bool guarding;
 //are described in their names, and act as length-3 float arrays
 int samples;
 int corner;
 float enScore;
 void init(){
-    guarding=false;
     enScore=0;
     newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
@@ -136,7 +134,7 @@ void loop(){
     bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if ((not dropping) and (not guarding)){
+    if ((not dropping)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
         positionTarget[0]+=((corner%2)*-2+1)*0.029f;
@@ -202,11 +200,7 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            guarding=(game.getScore()>enScore+12 and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
-            if (guarding){
-                memcpy(positionTarget,enPos,12);
-            }
-            scale(positionTarget,(.23f-.14f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
+            scale(positionTarget,.23f/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
@@ -262,10 +256,10 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal);
+    flocal=0.03f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    scale(myVel,.25f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.27f-.09f*flocal);
+    scale(fvector,.22f-.04f*flocal);
     if (geyserOnMe){
         // flocal=mathVecMagnitude(fvector,3)/15;
         // fvector[0]/=flocal;
