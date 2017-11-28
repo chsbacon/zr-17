@@ -362,25 +362,26 @@ void loop() {
 	
 	PRINT_VEC_F("positionTarget", positionTarget);
 	// Movement code
-	float distance,flocal,fvector[3];
-    #define ACCEL 0.0175f
-    mathVecSubtract(fvector, positionTarget, myPos, 3); // vector from us to the target
-    distance = mathVecNormalize(fvector, 3); // distance to target
-    if (distance > 0.05f) { // If not close, pick a velocity
-        flocal = vcoef;
-        if (flocal*flocal/ACCEL>distance-.02f){//Cap on how fast we go
-            flocal = sqrtf(distance*ACCEL)-.02f;
-            //DEBUG(("Slower"));
-        }
-        scale(fvector, flocal);
-        api.setVelocityTarget(fvector);
+	#define destination positionTarget//This (next 20 or so lines) is movement code.
+	//It is fairly strange - we will go over exactly how it works eventually
+    float distance,flocal,fvector[3];
+    #define ACCEL .014f
+    //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
+    distance = mathVecNormalize(fvector, 3);
+    mathVecSubtract(fvector, destination, myPos, 3);
+    
+    scale(myVel,.28f);
+    mathVecSubtract(fvector,fvector,myVel,3);
+    scale(fvector,.24f);
+    if (geyserOnMe){
+        flocal=mathVecMagnitude(fvector,3)/.2f;
+        fvector[0]/=flocal;
+        fvector[1]/=flocal;
+        fvector[2]=0.01f;
     }
-    else {// if we are very close
-        api.setPositionTarget(positionTarget);
-    }
-    if (!game.getDrillEnabled() and myRot[2] > 0.037f){
-        api.setAttRateTarget(zeroVec);
-    }
+    api.setVelocityTarget(fvector);
+    
+    
     #ifdef dev
     if (api.getTime()%15 == 0) {
         DEBUG(("possibleTenSquares: "));
