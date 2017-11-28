@@ -1,29 +1,24 @@
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
-#define myQuatAtt (&myState[6])
-#define myRot (&myState[10])
+#define myAtt (&myState[6])
+#define myRot (&myState[9])
 #define enPos (&enState[0])
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
 #define enRot (&enState[9])//These are pointers. They will have the values that
 #define MAXDRILLS 3
-int siteCoords[3];
-bool newLoc;
+int siteCoords[2];
 bool dropping;
 bool drilling;
 //are described in their names, and act as length-3 float arrays
 int samples;
 int corner;
-bool guarding;
-float enScore;
 bool valArray[12][8];
 int tenCoords[2];
 bool tenFound;
 bool concFound;
 void init(){
-    enScore=0;
-    newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	
 	#define SPEEDCONST .35f
@@ -33,7 +28,6 @@ void init(){
     //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
     samples=0;
-    guarding=false;
 	drilling=false;
 	concFound=false;
 	memset(valArray,true,96);
@@ -44,7 +38,7 @@ void loop(){
     float flocal;
     float positionTarget[3];
     float zeroVec[3];
-    float myState[13];
+    float myState[12];
     float usefulVec[3];
     int usefulIntVec[2];
     int mySquare[3];
@@ -58,14 +52,9 @@ void loop(){
         for (int i=0;i<5;i++){
             game.dropSample(i);
         }
-        newLoc=true;
         dropping=false;
     }
-    api.getMySphState(myState);
-    float myAtt[3];
-    zeroVec[0]-=1;
-    api.quat2AttVec(zeroVec,myQuatAtt,myAtt);
-    zeroVec[0]+=1;
+    api.getMyZRState(myState);
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
     game.square2pos(mySquare,usefulVec);
@@ -261,7 +250,6 @@ void loop(){
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2]=0;//.01f;//Slow down
         
         
     }
@@ -281,20 +269,19 @@ void loop(){
         if (game.getNumSamplesHeld()>3){
             dropping=true;
         }
-        newLoc=true;
         drilling=false;
     }
     if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
         dropping=true;
-        
-    }
-    if (dropping){
         drilling=false;
     }
-    if (flocal<.03f and myVel[2]>0){
-        memcpy(positionTarget,myPos,12);
-        positionTarget[2]-=1;
+    if (dropping){
+        
     }
+    // if (flocal<.03f and myVel[2]>0){
+    //     memcpy(positionTarget,myPos,12);
+    //     positionTarget[2]-=1;
+    // }
     if (!game.getNumSamplesHeld() or mathVecMagnitude(enPos,3)<.16){//don't drop off with no samples
         dropping=false;
     }
