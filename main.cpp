@@ -1,8 +1,8 @@
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
-#define myAtt (&myState[6])
-#define myRot (&myState[9])
+#define myQuatAtt (&myState[6])
+#define myRot (&myState[10])
 #define enPos (&enState[0])
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
@@ -14,11 +14,15 @@ bool drilling;
 //are described in their names, and act as length-3 float arrays
 int samples;
 int corner;
+bool guarding;
+float enScore;
 bool valArray[12][8];
 int tenCoords[2];
 bool tenFound;
 bool concFound;
 void init(){
+    enScore=0;
+    newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	
 	#define SPEEDCONST .35f
@@ -28,6 +32,7 @@ void init(){
     //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
     samples=0;
+    guarding=false;
 	drilling=false;
 	concFound=false;
 	memset(valArray,true,96);
@@ -38,12 +43,14 @@ void loop(){
     float flocal;
     float positionTarget[3];
     float zeroVec[3];
-    float myState[12];
+    float myState[13];
     float usefulVec[3];
     int usefulIntVec[2];
     int mySquare[3];
     float enState[12];
     memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
+    float enDeltaScore=game.getOtherScore()-enScore;
+    enScore=enScore+enDeltaScore;
     if (game.checkSample()){
         game.dropSample(4);
         samples+=(bool)(game.pickupSample());
@@ -52,15 +59,26 @@ void loop(){
         for (int i=0;i<5;i++){
             game.dropSample(i);
         }
+        newLoc=true;
         dropping=false;
     }
-    api.getMyZRState(myState);
+    api.getMySphState(myState);
+    float myAtt[3];
+    zeroVec[0]-=1;
+    api.quat2AttVec(zeroVec,myQuatAtt,myAtt);
+    zeroVec[0]+=1;
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
     game.square2pos(mySquare,usefulVec);
     bool geyserOnMe;
     geyserOnMe=game.isGeyserHere(mySquare);
     float maxDist=100;//Sets this large
+    
+    if (enDeltaScore==3.5f){
+        game.pos2square(enPos,siteCoords);
+        siteCoords[0]*=-1;
+        siteCoords[1]*=-1;
+    }
     
     bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
     if (!game.hasAnalyzer()){
@@ -147,9 +165,10 @@ void loop(){
                 }
             }
             if (myPos[1]<0){
-                siteCoords[1]*=-1;
                 siteCoords[0]*=-1;
+                siteCoords[1]*=-1;
             }
+            
             game.square2pos(siteCoords,positionTarget);
             DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
             positionTarget[2]=.27f;
@@ -210,7 +229,7 @@ void loop(){
         and (onSite))
         and not game.getDrillError()
         and (myPos[2]-positionTarget[2]<.02f and myPos[2]-positionTarget[2]>-0.02f)){
-            usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=0;//myAtt[2]*-5;
+            usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
             
             // usefulVec[0]=0;
             // usefulVec[1]=0;
@@ -219,7 +238,7 @@ void loop(){
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
-            //zeroVec[2]=.04f;
+            zeroVec[2]=.04f;
             drilling=true;
             
         }
@@ -231,7 +250,7 @@ void loop(){
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            //zeroVec[2]=-.04f;
+            zeroVec[2]=-.04f;
         }
         api.setAttitudeTarget(usefulVec);
         
@@ -246,20 +265,20 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            scale(positionTarget,(.23f)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
+            scale(positionTarget,(.23f)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.        }
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
+        zeroVec[2]=0;//.01f;//Slow down
         
         
     }
-    
-    //PRINTVEC("myQuatAtt",myQuatAtt);
-    // myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
-    // api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
-    // if (drilling){
-    //     api.setAttRateTarget(usefulVec);
-    // }
+    PRINTVEC("myQuatAtt",myQuatAtt);
+    myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
+    api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
+    if (drilling){
+        api.setAttRateTarget(usefulVec);
+    }
     //if our drill breaks or we get a geyser, stop the current drill
     flocal=game.getFuelRemaining();
     if (game.getDrillError() 
@@ -269,6 +288,7 @@ void loop(){
         if (game.getNumSamplesHeld()>3){
             dropping=true;
         }
+        newLoc=true;
         drilling=false;
     }
     if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
