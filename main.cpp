@@ -27,6 +27,7 @@
 bool infoFound; // have we gotten a 3, 6, or a 10?
 bool tenFound;
 int mySquare[3];
+int targetSquare[3];
 float targetPos[3];
 int startSquare[3];
 
@@ -39,6 +40,8 @@ bool searching;
 int iOff;
 int jOff;
 int theTen[2];
+int sumI;
+int sumJ;
 
 char tenSquares[5][5]; // stores whether
     // or not each square could be a ten
@@ -76,6 +79,7 @@ void init(){
     analyzer[1] = (isBlue) ? 0.48f : -0.48f;
     analyzer[2] = (isBlue) ? -0.16f : -0.16f;
     
+    // tenSquares starts out all possible
     for(int i = 0; i < 5; i ++){
         for(int j = 0; j < 5; j ++){
             tenSquares[i][j] = 'O';
@@ -103,15 +107,17 @@ void loop(){
     game.getAnalyzer(pickUp);
     
     if(stage == 0){
-        if(tenFound){
-            DEBUG(("Ten found at %d, %d", tenLoc[0], tenLoc[1]));
+        if(!searching){
+            DEBUG(("Ten found at %d, %d", theTen[0], theTen[1]));
         }
+        // first, get the analyzer
         else if(game.hasAnalyzer() != isBlue + 1){
             memcpy(positionTarget, analyzer, 12);
             targetPos[0] = positionTarget[0];
             targetPos[1] = -positionTarget[1];
             targetPos[2] = positionTarget[2];
         }
+        // then, search in a line along the y-axis
         else if(!infoFound){
             memcpy(positionTarget, targetPos, 12);
             searching = true;
@@ -120,52 +126,62 @@ void loop(){
                 DEBUG(("We got something"));
                 game.pos2square(myPos, startSquare);
                 infoFound = true;
-                if(dist(myPos, analyzer) < .06){
+                if(dist(myPos, analyzer) < .06){ // if we start on the info, keep note of that
                     startedOn = true;
                 }
             }
         }
         else{
-            count = 0;
-            iOff = startSquare[0] - mySquare[0];
-            jOff = startSquare[1] - mySquare[1];
+            count = 0; // the number of squares that could be 10s
+            sumI = 0; // the sum of x indices
+            sumJ = 0; // the sum of the y indices
+            iOff = startSquare[0] - mySquare[0]; // the relative x offset (from the center of tenSquares)
+            jOff = startSquare[1] - mySquare[1]; // the relative y offset (from the center of tenSquares)
             for(int i = -2; i < 3; i ++){
-                for(int j = -2; j < 3; j ++){
-                    if(!startedOn){
-                        // if the distance between one before my current square and the cell I am looking at is close enough, disregard them 
-                        if((i)*(i) + (j+(-1 + isBlue * 2))*(j+(-1 + isBlue * 2)) <= 5){
-                            tenSquares[i][j] = 'X';
+                for(int j = -2; j < 3; j ++){ // iterate through every possible 10 value
+                    if(!startedOn){ // if we didn't start on the interesting square we can act like there's a 1 right before
+                    // if the distance between the offset square and the cell I am looking at is close or far enough, disregard them
+                        if((i)*(i) + (j+(-1 + isBlue * 2))*(j+(-1 + isBlue * 2)) <= 5){  
+                            tenSquares[i][j] = 'X'; // X means not a 10 there
                         }
                     }
                     if(game.analyzeTerrain() == .3){
-                        if((i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) < 4 or (i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) > 5){
+                        // this is inline distSquared
+                        if((i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) < 4 or (i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) > 5){ // different possible range for a three
                             tenSquares[i][j] = 'X';
                         }
                     }
                     if(game.analyzeTerrain() == .6){
-                        if((i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) > 2){
+                        if((i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) > 2){ // different possible range for a six
                             tenSquares[i][j] = 'X';
                         }
                     }
-                    if(game.analyzeTerrain() == 1.0f){
+                    if(game.analyzeTerrain() == 1.0f){ // if it's a 10 we know where it is
+                        searching = false;
                         theTen[0] = mySquare[0];
                         theTen[1] = mySquare[1];
                     }
                     if(tenSquares[i][j] == 'O'){
+                        //if it's a possible ten, increase the count by one and add the indexes to the total
                         count ++;
+                        sumI += i;
+                        sumJ += j;
                         theTen[0] = startSquare[0] + i;
                         theTen[1] = startSquare[1] + j;
                     }
                 }
             }
-            //calculate the centroid of the O's and go in that direction
-            if(count == 1){
+            //calculates the centroid, or the average square index
+            targetSquare[0] = sumI / count;
+            targetSquare[1] = sumJ / count;
+            targetSquare[2] = 0; //current altitude
+            if(count == 1){ // if there's only one possiblity, our work is done
                 searching = false;
                 //findTen is finished. theTen now contains the location of the ten
             }
         }
     }
-
+    game.square2pos(targetSquare, positionTarget);
     
     #define destination positionTarget//This (next 20 or so lines) is movement code.
  	//It is fairly strange - we will go over exactly how it works eventually
