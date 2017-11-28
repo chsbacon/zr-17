@@ -242,7 +242,7 @@ void loop(){
         memcpy(positionTarget,myPos,12);
         positionTarget[2]-=1;
     }
-    if (!game.getNumSamplesHeld() or mathVecMagnitude(enPos,3)<.16){//don't drop off with no samples
+    if (!game.getNumSamplesHeld()){//don't drop off with no samples
         dropping=false;
     }
     if (not drilling){//don't drill if we aren't drilling
