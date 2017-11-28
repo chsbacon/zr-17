@@ -68,15 +68,11 @@ void loop() {
     
     // contains the position of the origin
     float zeroVec[3];
-    memset(zeroVec, 0.0f, 12);// Sets all places in an array to 0
+    memset(zeroVec, 0.0f, 12); // sets first 3 floats to 0
     
-    // update our state
+    // our state
     float myState[13]; // we use quaternions for our own attitude
-    api.getMySphState(myState);
     
-    // update their state
-    float enState[12];
-    api.getOtherZRState(enState);
     
     // arrays used in multiple contexts to save space
     float usefulVec[3];
@@ -84,8 +80,11 @@ void loop() {
     
     // the square we are currently on
     int mySquare[3];
-    game.pos2square(myPos,mySquare);
     
+    // their state
+    float enState[12];
+    
+
     // contains the change in the enemy's score since the last second
     float enDeltaScore = game.getOtherScore() - enScore;
     // updates the enemy's score
@@ -107,11 +106,19 @@ void loop() {
         newLoc = true;
         dropping = false;
     }
+    
+    // update state arrays
+    api.getMySphState(myState);
+    api.getOtherZRState(enState);
+    
     //convert quaternion into attitude vector
     float myAtt[3];
     zeroVec[0] -= 1; // we avoid a new vector to save space
     api.quat2AttVec(zeroVec, myQuatAtt, myAtt);
     zeroVec[0] += 1; // zeroVec should be restored to its original value
+    
+    
+    game.pos2square(myPos,mySquare);
     
     // @ USEFUL VEC IS NOW THE 3D POSITION OF OUR SQUARE @
     game.square2pos(mySquare, usefulVec);
@@ -231,7 +238,7 @@ void loop() {
     // stores whether we are at the square we are targetubg
     bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
     
-    // drill code
+    // drilling translational movement
     if ((not dropping) and (not guarding)) {
         // set positionTarget to the drill square
         game.square2pos(siteCoords, positionTarget);
@@ -351,10 +358,14 @@ void loop() {
     // @ FLOCAL IS NOW REMAINING FUEL @
     flocal = game.getFuelRemaining();
     // if we have samples and either time or fuel is running out
-    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .9f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld() > 1 
+    and ((!(int)((api.getTime() - 161) / 4)) // time is within 4 sec of 161 
+    or (flocal < 0.16f and flocal >  0.9f))) {
+        // drop off what we have
         dropping=true;
     }
 
+    // prioritize dropping over drilling
     if (dropping) {
         drilling = false;
     }
@@ -365,32 +376,38 @@ void loop() {
         memcpy(positionTarget, myPos, 12);
         positionTarget[2] -= 1.0f;
     }
-    if (!game.getNumSamplesHeld()){//don't drop off with no samples
-        dropping=false;
+    
+    //don't drop off if we have no samples
+    if (!game.getNumSamplesHeld()) {
+        dropping = false;
     }
     
-    if (not drilling){// don't drill if we aren't drilling
+    // turn off the drill if we aren't in drill mode
+    if (not drilling) {
         game.stopDrill();
     }
 
-    
+    // create aliases for variables with potentially confusing names
 	#define destination positionTarget
     #define fvector usefulVec
     
     #define ACCEL .014f
-    // mathVecSubtract(fvector, destination, myPos, 3);// Gets the vector from us to the target
+    
+    // store the vector from us to the destination in fvector
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal);
-    mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.27f-.09f*flocal);
-    if (geyserOnMe){
-        fvector[2]=0;
-        // flocal=mathVecMagnitude(fvector,3)/15;
-        // fvector[0]/=flocal;
-        // fvector[1]/=flocal;
-        scale(fvector,5/mathVecMagnitude(fvector,3));
-        //fvector[2]=0.05f;
+    
+    // @ FLOCAL IS NOW A FACTOR RELATED TO PROXIMITY TO OUR DESTINATION @
+    
+    flocal = 0.05f / (0.05f + mathVecMagnitude(fvector, 3));
+    scale(myVel, 0.2f + flocal);
+    mathVecSubtract(fvector, fvector, myVel, 3);
+    scale(fvector, 0.27f - (0.09f * flocal));
+    
+    // if we're on a geyser
+    if (geyserOnMe) {
+        // don't bother moving vertically
+        fvector[2] = 0.0f;
+        scale(fvector, 5 / mathVecMagnitude(fvector, 3));
     }
     api.setVelocityTarget(fvector);
 }
@@ -406,12 +423,17 @@ float dist(float* vec1, float* vec2) {
     return mathVecMagnitude(ansVec, 3);
 }
 
-void fixEdge(int coorVec[2]){
-    if (coorVec[1]==0){
-        coorVec[1]=1;
+/**
+ * @param coorVec - a square
+ * Changes zeros to ones to reflect that squares cannot
+ * have a row or column equal to zero
+ */
+void fixEdge(int coorVec[2]) {
+    if (coorVec[1] == 0) {
+        coorVec[1] = 1;
     }
-    if (coorVec[0]==0){
-        coorVec[0]=1;
+    if (coorVec[0] == 0) {
+        coorVec[0] = 1;
     }
 }
 
