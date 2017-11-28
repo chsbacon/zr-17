@@ -69,7 +69,7 @@ void loop(){
     float maxDist=100;//Sets this large
     float modPos[3];
     memcpy(modPos,myPos,8);
-    modPos[2]=.2f;//this favors high points
+    modPos[2]=-10.0f;//this favors high points
     if (newLoc and !game.checkSample() and not drilling){
         //DEBUG(("%d",newLoc));
         //DEBUG(("reselecting"));
@@ -231,7 +231,7 @@ void loop(){
         newLoc=true;
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .9f))){//at the end of the game, drop off what we have
         dropping=true;
         
     }
