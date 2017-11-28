@@ -2,7 +2,7 @@
 
 //Known issues:
 //Will break if searching across the line
-//
+//Garbage values for sumI and sumJ
 
 // #define dev
 //Standard defines
@@ -71,6 +71,8 @@ void init(){
     vcoef = 0.154f; 
     stage = 0;
     sampNum = 0;//Number of samples we have
+    int sumI = 0;
+    int sumJ = 0;
     
     api.getMyZRState(myState);
     isBlue = (myState[1] > 0);
@@ -107,7 +109,7 @@ void loop(){
     game.getAnalyzer(pickUp);
     
     if(stage == 0){
-        if(!searching){
+        if(tenFound){
             DEBUG(("Ten found at %d, %d", theTen[0], theTen[1]));
         }
         // first, get the analyzer
@@ -145,6 +147,12 @@ void loop(){
                             tenSquares[i][j] = 'X'; // X means not a 10 there
                         }
                     }
+                    if(game.analyzeTerrain() == .1){
+                        // this is inline distSquared
+                        if((i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) <= 5){ // different possible range for a one
+                            tenSquares[i][j] = 'X';
+                        }
+                    }
                     if(game.analyzeTerrain() == .3){
                         // this is inline distSquared
                         if((i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) < 4 or (i*iOff)*(i*iOff) + (j*jOff)*(j*jOff) > 5){ // different possible range for a three
@@ -158,6 +166,7 @@ void loop(){
                     }
                     if(game.analyzeTerrain() == 1.0f){ // if it's a 10 we know where it is
                         searching = false;
+                        tenFound = true;
                         theTen[0] = mySquare[0];
                         theTen[1] = mySquare[1];
                     }
@@ -172,16 +181,18 @@ void loop(){
                 }
             }
             //calculates the centroid, or the average square index
-            targetSquare[0] = sumI / count;
-            targetSquare[1] = sumJ / count;
+            targetSquare[0] = sumI / count + startSquare[0];
+            targetSquare[1] = sumJ / count + startSquare[1];
             targetSquare[2] = 0; //current altitude
+            DEBUG(("Target square %d + " " + %d",  count, sumJ));
             if(count == 1){ // if there's only one possiblity, our work is done
                 searching = false;
+                tenFound = true;
                 //findTen is finished. theTen now contains the location of the ten
             }
+            game.square2pos(targetSquare, positionTarget);
         }
     }
-    game.square2pos(targetSquare, positionTarget);
     
     #define destination positionTarget//This (next 20 or so lines) is movement code.
  	//It is fairly strange - we will go over exactly how it works eventually
