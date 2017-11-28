@@ -17,6 +17,10 @@ int samples;
 int corner;
 bool guarding;
 float enScore;
+bool valArray[12][8];
+int tenCoords[2];
+bool tenFound;
+bool concFound;
 void init(){
     enScore=0;
     newLoc=true;
@@ -31,6 +35,9 @@ void init(){
     samples=0;
     guarding=false;
 	drilling=false;
+	concFound=false;
+	memset(valArray,true,96);
+	tenFound=false;
 }
 
 void loop(){
@@ -67,65 +74,7 @@ void loop(){
     bool geyserOnMe;
     geyserOnMe=game.isGeyserHere(mySquare);
     float maxDist=100;//Sets this large
-    float modPos[3];
-    memcpy(modPos,myPos,8);
-    modPos[2]=.2f;//this favors high points
-    if (newLoc and !game.checkSample() and not drilling){
-        //DEBUG(("%d",newLoc));
-        //DEBUG(("reselecting"));
-        for (int i=-6;i<6;i++){//This checks all of the grid spaces, and sees which is both
-        //closest to us and in the center. You should understand this search structure - it's important!
-            for (int j=-8;j<8;j++){
-                if (i*j!=0 and (i<-3 or i>2 or j<-3 or j>2)){
-                    //DEBUG(("%i %i",i,j));
-                    int heights[4];
-                    memset(heights,0,16);
-                    for (int a=0;a<4;a++){//Allows to cycle through four points of square
-                        usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;
-                        fixEdge(usefulIntVec);
-                        int index=(game.getTerrainHeight(usefulIntVec)*12.5f)-5;
-                        //DEBUG(("%i",index));
-                        if (game.getDrills(usefulIntVec)==0 or (mySquare[0]-i==(mySquare[0]-i)%2 and (mySquare[1]-j)==(mySquare[1]-j)%2)){//Now checks if we are within that group
-                            heights[index]+=1;
-                        }
-                    }
-                    float goodHeight=.4f;
-                    for (int other=1;other<4;other++){
-                        if (heights[other]==3){
-                            heights[0]=3;
-                            goodHeight=other*.08f+.4f;//silent fail specific to goodheight
-                        }
-                    }
-                    //DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
-                    if (heights[0]>1){
-                        //DEBUG(("GROUP"));
-                        for (int a=0;a<4;a++){
-                            usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;
-                            fixEdge(usefulIntVec);
-                            game.square2pos(usefulIntVec,usefulVec);
-                            usefulVec[2]=game.getTerrainHeight(usefulIntVec);
-                            float score=dist(usefulVec,modPos);
-                            if (usefulVec[2]==goodHeight
-                            and score<maxDist 
-                            and game.getDrills(usefulIntVec)<1 
-                            //and i*i+j*j>8 and i*i<16 and j*j<16 
-                            and dist(enPos,usefulVec)>.35f){
-                                memcpy(siteCoords,usefulIntVec,8);
-                                
-                                corner=a;
-                                
-                                //DEBUG(("Changed %f", score));
-                                maxDist = score;
-                            }
-                        }
-                    }
-                    
-                    
-                }
-            }
-        }
-        newLoc=false;
-    }
+    
     if (enDeltaScore==3.5f){
         game.pos2square(enPos,siteCoords);
         siteCoords[0]*=-1;
@@ -133,9 +82,86 @@ void loop(){
     }
     
     bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
-    
+    if (!game.hasAnalyzer()){
+        positionTarget[0]=.3f;
+        positionTarget[1]=-.48f;
+        if (myPos[1]>0){
+            scale(positionTarget,-1);
+        }
+        positionTarget[2]=-.16f;
+    }
+    else if (!tenFound){
+        float terrain=game.analyzeTerrain();
+        DEBUG(("%f",terrain));
+        if (terrain>.9f){
+            game.pos2square(myPos,tenCoords);
+        }
+        
+        else{
+            if (myPos[1]<0){
+                mySquare[0]*=-1;
+                mySquare[1]*=-1;
+            }
+            int valCount=0;
+            siteCoords[0]=0;siteCoords[1]=0;
+            for (int i=-6;i<7;i++){
+                if (!i){
+                    i++;
+                }
+                for (int j=1;j<9;j++){
+                    bool inRad=(i-mySquare[0])*(i-mySquare[0])+(j-mySquare[1])*(j-mySquare[1])<(terrain>.5f?3:8);
+                    if (terrain>.15f){
+                        concFound=true;
+                        inRad=!inRad;
+                        DEBUG(("conc!"));
+                    }
+                    if (inRad){
+                        valArray[i+6][j-1]=false;
+                        if (i==-6 and j==1){
+                            DEBUG(("HI"));
+                        }
+                    }
+                    if (valArray[i+6][j-1]){
+                        siteCoords[0]+=i;
+                        siteCoords[1]+=j;
+                        valCount++;
+                    }
+                }
+            }
+            siteCoords[0]+=(siteCoords[0]-mySquare[0]*valCount)*3;
+            siteCoords[1]+=(siteCoords[1]-mySquare[1]*valCount)*3;
+            siteCoords[0]/=valCount;siteCoords[1]/=valCount;
+            if (!concFound){
+                if (valArray[0][0]){
+                    siteCoords[0]=-4;
+                    siteCoords[1]=2;
+                }
+                else if (valArray[11][0]){
+                    siteCoords[0]=4;
+                    siteCoords[1]=2;
+                }
+                else if (valArray[11][7]){
+                    siteCoords[0]=4;
+                    siteCoords[1]=7;
+                }
+            }
+            if (myPos[0]==siteCoords[0] and myPos[1]==siteCoords[1]){
+                siteCoords[0]+=1;
+                siteCoords[1]+=1;
+            }
+            if (myPos[1]<0){
+                siteCoords[0]*=-1;
+                siteCoords[1]*=-1;
+            }
+            
+            game.square2pos(siteCoords,positionTarget);
+            DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+            positionTarget[2]=.27f;
+            
+        }
+    }
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if ((not dropping) and (not guarding)){
+    else if ((not dropping)){
         //adjust positiontarget to the corner of a square
         game.square2pos(siteCoords,positionTarget);
         positionTarget[0]+=((corner%2)*-2+1)*0.029f;
@@ -201,11 +227,7 @@ void loop(){
         }
         else{
             //maybe take out the mathvecMagnitude expression for codesize
-            guarding=(game.getScore()>enScore and game.getScore()>38 and (mathVecMagnitude(enPos,3)>mathVecMagnitude(myPos,3)+.1f or guarding));
-            if (guarding){
-                memcpy(positionTarget,enPos,12);
-            }
-            scale(positionTarget,(.23f-.16f*guarding)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.        }
+            scale(positionTarget,(.23f)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.        }
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
@@ -269,6 +291,14 @@ void loop(){
         // fvector[1]/=flocal;
         scale(fvector,5/mathVecMagnitude(fvector,3));
         //fvector[2]=0.05f;
+    }
+    if (!tenFound and game.hasAnalyzer()){
+        mathVecNormalize(fvector,3);
+        scale(fvector,.039f);
+        fvector[2]=.1f*(.27f-myPos[2]);
+        while (mathVecMagnitude(fvector,3)>.039f){
+            scale(fvector,.99f);
+        }
     }
     api.setVelocityTarget(fvector);
 }
