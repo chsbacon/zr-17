@@ -22,6 +22,9 @@ bool dropping;
 // flag for if we are drilling
 bool drilling;
 
+// flag for if we are guarding
+bool guarding;
+
 // total number of samples drilled
 int samples;
 
@@ -32,25 +35,28 @@ int corner;
 float enScore;
 
 void init(){
-    // they start with 0 points
-    enScore=0;
-    
-    // we begin the game looking for a square
-    newLoc=true;
+  // they start with 0 points
+  enScore = 0;
+
+  // we begin the game looking for a square
+  newLoc = true;
 	
 	// movement parameters
-	#define SPEEDCONST .35f
-    #define DERIVCONST 2.35f
-    api.setPosGains(SPEEDCONST,0,DERIVCONST);
+	#define SPEEDCONST 0.35f
+  #define DERIVCONST 2.35f
+  api.setPosGains(SPEEDCONST, 0, DERIVCONST);
 
-    // we begin the game not dropping samples
-    dropping=false;
-    
-    // we start with no samples
-    samples=0;
-    
-    // we start the game not drilling
-	drilling=false;
+  // we begin the game not dropping samples
+  dropping = false;
+
+  // we start with no samples
+  samples = 0;
+
+  // we start the game not drilling
+  drilling = false;
+  // we start the game not guarding
+  guarding = false;
+	
 }
 
 void loop() {
@@ -89,9 +95,7 @@ void loop() {
     if (game.checkSample()) {
         // if we want to drill more than 5, we have to drop the last one
         game.dropSample(4);
-        
-        game.pickupSample();
-        samples += 1;
+        samples += (bool)(game.pickupSample());
     }
     
     // if we are at the base, drop off our samples
@@ -227,13 +231,12 @@ void loop() {
     bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
     
     // drill code
-    if (not dropping) {
+    if ((not dropping) and (not guarding)) {
         // set positionTarget to the drill square
         game.square2pos(siteCoords, positionTarget);
-        
         // adjust positionTarget to the corner of a square
-        positionTarget[0] += ((corner % 2) * -2 + 1) * 0.027f;
-        positionTarget[1] += ((corner / 2) * -2 + 1) * 0.027f;
+        positionTarget[0] += ((corner % 2) * -2 + 1) * 0.029f;
+        positionTarget[1] += ((corner / 2) * -2 + 1) * 0.029f;
         
         // avoid crashing into terrain
         if (!onSite 
@@ -301,15 +304,25 @@ void loop() {
             positionTarget[2] = 0.05f;
         }
         else {
-            // go to the closest point that is just within the base station
+            // if we have more points than them and
+            // we're closer to the origin than them
+            guarding = (game.getScore() > enScore and game.getScore() > 38.0f 
+                        and (mathVecMagnitude(enPos, 3) > mathVecMagnitude(myPos, 3) + 0.1f
+                             or guarding));
+            if (guarding) {
+                memcpy(positionTarget, enPos, 12);
+            }
+            // scale either enPos or myPos depending if we are guarding or not
             #define BASE_STATION_RADIUS 0.24f
-            scale(positionTarget, (BASE_STATION_RADIUS-0.01f)
-                / mathVecMagnitude(positionTarget, 3) );
+            // depending on whether or not we are guarding, there are two
+            // different target distances from the origin
+            scale(positionTarget, ((BASE_STATION_RADIUS-0.01f) - (0.16f * guarding))
+                  / mathVecMagnitude(positionTarget, 3));
         }
         // rotate to satisfy drop off requirement
         zeroVec[2] -= 1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2] = 0.05f; // Slow down
+        zeroVec[2] = 0.0f; //Slow down        
     }
     
     PRINTVEC("myQuatAtt", myQuatAtt);
@@ -342,13 +355,7 @@ void loop() {
     and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))) {
         dropping = true;
     }
-    
-    // if the enenemy is close to the origin (likely guarding)
-    if (mathVecMagnitude(enPos, 3) < 0.18f) {
-        // stop dropping off
-        dropping = false;
-    }
-    
+
     if (dropping) {
         drilling = false;
     }
@@ -359,8 +366,7 @@ void loop() {
         memcpy(positionTarget, myPos, 12);
         positionTarget[2] -= 1.0f;
     }
-    
-    if (!game.getNumSamplesHeld()){// don't drop off with no samples
+    if (!game.getNumSamplesHeld() or mathVecMagnitude(enPos,3)<.16){//don't drop off with no samples
         dropping=false;
     }
     
@@ -375,16 +381,17 @@ void loop() {
     #define ACCEL .014f
     // mathVecSubtract(fvector, destination, myPos, 3);// Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));// Just storing this value as a functional boolean
+    flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
     scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
-        //  flocal=mathVecMagnitude(fvector,3)/15;
-        //  fvector[0]/=flocal;
-        //  fvector[1]/=flocal;
-        scale(fvector,15/mathVecMagnitude(fvector,3));
-        fvector[2]=0.01f;
+        fvector[2]=0;
+        // flocal=mathVecMagnitude(fvector,3)/15;
+        // fvector[0]/=flocal;
+        // fvector[1]/=flocal;
+        scale(fvector,5/mathVecMagnitude(fvector,3));
+        //fvector[2]=0.05f;
     }
     api.setVelocityTarget(fvector);
 }
