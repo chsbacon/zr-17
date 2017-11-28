@@ -95,8 +95,8 @@ void loop() {
     }
     
     // if we are at the base, drop off our samples
-    if (game.atBaseStation()){
-        for (int i=0; i<5; i++){
+    if (game.atBaseStation()) {
+        for (int i=0; i<5; i++) {
             game.dropSample(i);
         }
         //after dropping, find a new square
@@ -115,7 +115,7 @@ void loop() {
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
     // must be larger than all distances we check
-    float maxDist=100;
+    float minDist = 100;
     
     // contains a position above us, so that we favor high drill spots
     float modPos[3];
@@ -123,56 +123,84 @@ void loop() {
     modPos[2] = 0.2f;
     
     // selects the best square to drill
-    if (newLoc and !game.checkSample() and not drilling){
-        for (int i= -6; i<6; i++){ // This checks all of the sets of 4 squares
+    if (newLoc and !game.checkSample() and not drilling) {
+        for (int i= -6; i<6; i++){ // checks all clumps of 4 squares (blocks)
         // and sees which is both closest to us and in the center.
             for (int j = -8; j<8; j++){ // excludes the center
-                if (i*j != 0 and (i < -3 or i > 2 or j < -3 or j > 2)){
-                    int heights[4]; // contains the number of squares at each level
+                if (i*j != 0 and (i < -3 or i > 2 or j < -3 or j > 2)) {
+                    // initialize array to store number of squares at each level
+                    int heights[4];
                     memset(heights, 0, 16);
-                    // Decides which corner to drill
-                    for (int a=0; a<4; a++){ // cycles through 4 corners
+                    
+                    // Decides which square to drill
+                    for (int a=0; a<4; a++) { // cycles through all 4 squares
+                        // @ USEFUL INT VEC IS NOW THE SQUARE WE ARE CHECKING @
                         usefulIntVec[0] = i + a%2; // goes 0 1 0 1
                         usefulIntVec[1] = j + a/2; // goes 0 0 1 1
                         fixEdge(usefulIntVec);
                         
-                        //tallies up how many squares within each height exist in a block 
-                        #define POINTS_PER_HEIGHT 12.5f
-                        #define FLAT_DEFICIT -5.0f
-                        int index = (game.getTerrainHeight(usefulIntVec) * POINTS_PER_HEIGHT) + FLAT_DEFICIT;
-                        if (game.getDrills(usefulIntVec) == 0 
+                        
+                        // map terrain height [0.4-0.64] to
+                        // index in `heights` array [0-3]
+                        int index = (game.getTerrainHeight(usefulIntVec) * 12.5f)
+                            - 5.0f;
+                        // make sure the square is either undrilled or close to us
+                        if (game.getDrills(usefulIntVec) == 0
                         or (mySquare[0] - i == (mySquare[0] - i) % 2 
-                        and (mySquare[1] - j) == (mySquare[1] - j) % 2)){
+                        and (mySquare[1] - j) == (mySquare[1] - j) % 2)) {
+                            // tally up how many squares for each height exist in a block
                             heights[index] += 1;
                         }
                     }
-                    float goodHeight=.4f;
-                    for (int other=1;other<4;other++){
-                        if (heights[other]==3){
-                            heights[0]=3;
-                            goodHeight=other*.08f+.4f;// silent fail specific to goodheight
+                    
+                    // Our goal is to find a block with many squares
+                    // at the same height.
+    
+                    // stores the height with the most squares
+                    float goodHeight = 0.4f;
+                    for (int other=1; other<4; other++) { // go over each height
+                        // if a there are three squares at one level
+                        if (heights[other] == 3) {
+                            // to save space, we store the highest number of
+                            // squares in heights[0]
+                            heights[0] = 3;
+                            
+                            // update the height with the most squares
+                            goodHeight = (other * 0.08f) + 0.4f;
                         }
                     }
-                    // DEBUG(("%i %i %i %i", heights[0],heights[1],heights[2],heights[3]));
-                    if (heights[0]>1){
-                        // DEBUG(("GROUP"));
-                        for (int a=0;a<4;a++){
-                            usefulIntVec[0]=i+a%2;usefulIntVec[1]=j+a/2;
+                    
+                    // if the height with the most squares has 3 squares
+                    if (heights[0] > 1) {
+                        // go over each square in the block
+                        for (int a=0; a<4; a++) {
+                            usefulIntVec[0] = i + a%2;
+                            usefulIntVec[1] = j + a/2; // see above
                             fixEdge(usefulIntVec);
-                            game.square2pos(usefulIntVec,usefulVec);
-                            usefulVec[2]=game.getTerrainHeight(usefulIntVec);
-                            float score=dist(usefulVec,modPos);
-                            if (usefulVec[2]==goodHeight
-                            and score<maxDist 
-                            and game.getDrills(usefulIntVec)<1 
-                            // and i*i+j*j>8 and i*i<16 and j*j<16 
-                            and dist(enPos,usefulVec)>.35f){
-                                memcpy(siteCoords,usefulIntVec,8);
+                            
+                            // @ USEFUL VEC IS NOW THE SQUARE WE ARE CHECKING @
+                            game.square2pos(usefulIntVec, usefulVec);
+                            usefulVec[2] = game.getTerrainHeight(usefulIntVec);
+                            
+                            // give this square a score based on how far
+                            // it is from a position above us (modPos)
+                            float score = dist(usefulVec, modPos);
+                            
+                            // check if this square is better than our
+                            // previous choice of square
+                            if (usefulVec[2] == goodHeight
+                            and score < minDist 
+                            and game.getDrills(usefulIntVec) < 1 
+                            and dist(enPos, usefulVec) > 0.35f) {
+                                // if it's good, store it in siteCoords
+                                memcpy(siteCoords, usefulIntVec, 8);
                                 
-                                corner=a;
+                                // which square of the block this is
+                                corner = a;
                                 
-                                //  EBUG(("Changed %f", score));
-                                maxDist = score;
+                                // update minDist to reflect that this square
+                                // is the closest we've seen
+                                minDist = score;
                             }
                         }
                     }
@@ -181,126 +209,167 @@ void loop() {
                 }
             }
         }
-        newLoc=false;
-    }
-    if (enDeltaScore==3.5f){
-        game.pos2square(enPos,siteCoords);
-        siteCoords[0]*=-1;
-        siteCoords[1]*=-1;
+        // once we have selected a new drill square, we set this flag so that
+        // we don't immediately pick a different one
+        newLoc = false;
     }
     
-    bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
+    // if they found the 10
+    if (enDeltaScore == 3.5f) {
+        
+        // drill at the other 10
+        game.pos2square(enPos, siteCoords);
+        siteCoords[0] *= -1;
+        siteCoords[1] *= -1;
+    }
     
-    // drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    if ((not dropping)){
-        // adjust positiontarget to the corner of a square
-        game.square2pos(siteCoords,positionTarget);
-        positionTarget[0]+=((corner%2)*-2+1)*0.027f;
-        positionTarget[1]+=((corner/2)*-2+1)*0.027f;
+    // stores whether we are at the square we are targetubg
+    bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
+    
+    // drill code
+    if (not dropping) {
+        // set positionTarget to the drill square
+        game.square2pos(siteCoords, positionTarget);
         
+        // adjust positionTarget to the corner of a square
+        positionTarget[0] += ((corner % 2) * -2 + 1) * 0.027f;
+        positionTarget[1] += ((corner / 2) * -2 + 1) * 0.027f;
         
-        // positionTarget[2]=myPos[2];// vertical movement to avoid terrain
-        if (!onSite and (game.getTerrainHeight(mySquare)>game.getTerrainHeight(siteCoords) or dist(myPos,positionTarget)>.05f)){
-            positionTarget[2]=.27f;
-            DEBUG(("O"));
-            if (myPos[2]>.29f){
-                DEBUG(("U"));
-                memcpy(positionTarget,myPos,8);
+        // avoid crashing into terrain
+        if (!onSite 
+        and (game.getTerrainHeight(mySquare) > game.getTerrainHeight(siteCoords) 
+        or dist(myPos, positionTarget) > 0.05f)) {
+            
+            // target a point above our target so that we don't move vertically
+            positionTarget[2] = 0.27f;
+            
+            // if we are already very close to the surface
+            if (myPos[2] > 0.29f) {
+                // set the x and y of positionTarget to current x and y in
+                // order to stop moving horizontally
+                memcpy(positionTarget, myPos, 8);
             }
         }
-        else{
-            DEBUG(("D"));
-            positionTarget[2]=game.getTerrainHeight(siteCoords)-.13f;
+        // if we are not in danger of hitting the terrain
+        else {
+            // go to an appropriate drilling height
+            positionTarget[2] = game.getTerrainHeight(siteCoords) - 0.13f;
         }
-        DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
-        DEBUG(("%i %i", mySquare[0],mySquare[1]));
+        DEBUG(("target square: (%i, %i)", siteCoords[0],siteCoords[1]));
+        DEBUG(("current square: (%i %i)", mySquare[0],mySquare[1]));
         
         
-        // if we are on the right square and all the conditions line up, start spinning and drilling
-        if ((mathVecMagnitude(myVel,3)<.01f
-        and (mathVecMagnitude(myRot,3)<.035f or drilling)
+        // @ USEFUL VEC IS NOW OUR ATTITUDE TARGET @
+        // check drilling conditions
+        if ((mathVecMagnitude(myVel, 3) < 0.01f
+        and (mathVecMagnitude(myRot, 3) < 0.035f or drilling)
         and (onSite))
         and not game.getDrillError()
-        and (myPos[2]-positionTarget[2]<.02f and myPos[2]-positionTarget[2]>-0.02f)){
-            usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=myAtt[2]*-5;
-            if (!game.getDrillEnabled()){
+        and (myPos[2] - positionTarget[2] < 0.02f 
+        and myPos[2] - positionTarget[2] > -0.02f)) {
+            usefulVec[0] = -myAtt[1];
+            usefulVec[1] = myAtt[0];
+            usefulVec[2] = myAtt[2] * -5.0f;
+            if (!game.getDrillEnabled()) {
                 game.startDrill();
             }
-            zeroVec[2]=.04f;
-            drilling=true;
+            
+            zeroVec[2] = 0.04f;
+            drilling = true;
             
         }
-        else{
-            usefulVec[0]=myAtt[0];usefulVec[1]=myAtt[1];usefulVec[2]=0;
+        // if we are not aligned to start drilling
+        else {
+            usefulVec[0] = myAtt[0];
+            usefulVec[1] = myAtt[1];
+            usefulVec[2] = 0.0f;
             
-            //  memcpy(usefulVec,myRot,12);
-            //  scale(usefulVec,-0.6f);
-            //  api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
-            drilling=false;
-            zeroVec[2]=-.04f;
+            drilling = false;
+            zeroVec[2] = -0.04f;
         }
         api.setAttitudeTarget(usefulVec);
        
     }
-    // otherwise, drop off our samples
-    else{
-        memcpy(positionTarget,myPos,12);
-        if (myPos[2]>.29f){
-            positionTarget[2]=.05f;
+    // if we are not drilling, then drop off samples
+    else {
+        memcpy(positionTarget, myPos, 12);
+        
+        // if we are down in the terrain
+        if (myPos[2] > 0.29f) {
+            // move straight up
+            positionTarget[2] = 0.05f;
         }
-        else{
-            // maybe take out the mathvecMagnitude expression for codesize
-            scale(positionTarget,.23f/mathVecMagnitude(positionTarget,3));// go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
+        else {
+            // go to the closest point that is just within the base station
+            #define BASE_STATION_RADIUS 0.24f
+            scale(positionTarget, (BASE_STATION_RADIUS-0.01f)
+                / mathVecMagnitude(positionTarget, 3) );
         }
-        zeroVec[2]-=1;
+        // rotate to satisfy drop off requirement
+        zeroVec[2] -= 1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2]=.05f;// Slow down
+        zeroVec[2] = 0.05f; // Slow down
     }
     
-    PRINTVEC("myQuatAtt",myQuatAtt);
-    myQuatAtt[3]*=-1;// inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
+    PRINTVEC("myQuatAtt", myQuatAtt);
+    
+    // invert rotation
+    // now rotates fundamental basis rotation vector (k-hat) to our basis
+    myQuatAtt[3] *= -1;
     api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
-    if (drilling){
+    
+    if (drilling) {
         api.setAttRateTarget(usefulVec);
     }
+    
     // if our drill breaks or we get a geyser, stop the current drill
-    flocal=game.getFuelRemaining();
     if (game.getDrillError() 
-    or geyserOnMe 
-    or game.getDrills(mySquare)>MAXDRILLS-1){
+    or geyserOnMe
+    or game.getDrills(mySquare) > MAXDRILLS - 1) {
         DEBUG(("Broke"));
-        if (game.getNumSamplesHeld()>3){
-            dropping=true;
+        if (game.getNumSamplesHeld() > 3) {
+            dropping = true;
         }
-        newLoc=true;
-        drilling=false;
+        newLoc = true;
+        drilling = false;
     }
-    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){// at the end of the game, drop off what we have
-        dropping=true;
-        
+    
+    // @ FLOCAL IS NOW REMAINING FUEL @
+    flocal = game.getFuelRemaining();
+    // if we have samples and either time or fuel is running out
+    if (game.getNumSamplesHeld() > 1
+    and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))) {
+        dropping = true;
     }
-    if (mathVecMagnitude(enPos,3)<.18f){
-        dropping=false;
+    
+    // if the enenemy is close to the origin (likely guarding)
+    if (mathVecMagnitude(enPos, 3) < 0.18f) {
+        // stop dropping off
+        dropping = false;
     }
-    if (dropping){
-        drilling=false;
+    
+    if (dropping) {
+        drilling = false;
     }
-    if (flocal<.03f and myVel[2]>0){
-        memcpy(positionTarget,myPos,12);
-        positionTarget[2]-=1;
+    
+    // if we have low fuel and we are moving towards the terrain
+    if (flocal < 0.03f and myVel[2] > 0.0f) {
+        // move up to avoid terrain crash penalties
+        memcpy(positionTarget, myPos, 12);
+        positionTarget[2] -= 1.0f;
     }
+    
     if (!game.getNumSamplesHeld()){// don't drop off with no samples
         dropping=false;
     }
+    
     if (not drilling){// don't drill if we aren't drilling
         game.stopDrill();
     }
 
     
-    
-	#define destination positionTarget// This (next 20 or so lines) is movement code.
-	// It is fairly strange - we will go over exactly how it works eventually
+	#define destination positionTarget
     #define fvector usefulVec
     
     #define ACCEL .014f
@@ -319,11 +388,18 @@ void loop() {
     }
     api.setVelocityTarget(fvector);
 }
+
+/**
+ * @param vec1 - a 3D position vector
+ * @param vec2 - another 3D position vector
+ * @return the euclidean distance between vec1 and vec2
+ */
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
     mathVecSubtract(ansVec, vec1, vec2, 3);
     return mathVecMagnitude(ansVec, 3);
 }
+
 void fixEdge(int coorVec[2]){
     if (coorVec[1]==0){
         coorVec[1]=1;
@@ -332,7 +408,13 @@ void fixEdge(int coorVec[2]){
         coorVec[0]=1;
     }
 }
-void scale (float* vec, float scale) {// This function scales a length-3 vector by a coeff.
+
+/**
+ * @param vec - a length three float array
+ * @param scale - a float coefficient
+ * multiplies each element in vec by scale
+ */
+void scale (float* vec, float scale) {
     for (int i=0; i<3; i++) {
         vec[i] *= scale;
     }
