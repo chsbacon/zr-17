@@ -124,14 +124,15 @@ void loop() {
     // contains a position above us, so that we favor high drill spots
     float modPos[3];
     memcpy(modPos, myPos, 8);
-    modPos[2] = 0.2f;
-    
+    modPos[2] = -10.0f;
+                  
     // selects the best square to drill
     if (newLoc and !game.checkSample() and not drilling) {
-        for (int i= -6; i<6; i++){ // checks all clumps of 4 squares (blocks)
+        for (int i = -6; i<6; i++){ // checks all clumps of 4 squares (blocks)
         // and sees which is both closest to us and in the center.
-            for (int j = -8; j<8; j++){ // excludes the center
-                if (i*j != 0 and (i < -3 or i > 2 or j < -3 or j > 2)) {
+            for (int j = -8; j<8; j++){
+                if (i*j !=0 and (i < -3 or i > 2 or j < -3 or j > 2)) {
+                    
                     // initialize array to store number of squares at each level
                     int heights[4];
                     memset(heights, 0, 16);
@@ -347,13 +348,11 @@ void loop() {
         newLoc = true;
         drilling = false;
     }
-    
     // @ FLOCAL IS NOW REMAINING FUEL @
     flocal = game.getFuelRemaining();
     // if we have samples and either time or fuel is running out
-    if (game.getNumSamplesHeld() > 1
-    and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))) {
-        dropping = true;
+    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .9f))){//at the end of the game, drop off what we have
+        dropping=true;
     }
 
     if (dropping) {
@@ -366,7 +365,7 @@ void loop() {
         memcpy(positionTarget, myPos, 12);
         positionTarget[2] -= 1.0f;
     }
-    if (!game.getNumSamplesHeld() or mathVecMagnitude(enPos,3)<.16){//don't drop off with no samples
+    if (!game.getNumSamplesHeld()){//don't drop off with no samples
         dropping=false;
     }
     
