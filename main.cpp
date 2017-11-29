@@ -377,8 +377,7 @@ void loop() {
     // if we have low fuel and we are moving towards the terrain
     if (flocal < 0.03f and myVel[2] > 0.0f) {
         // move up to avoid terrain crash penalties
-        memcpy(positionTarget, myPos, 12);
-        positionTarget[2] -= 1.0f;
+        memcpy(positionTarget, zeroVec, 12);
     }
     
     //don't drop off if we have no samples
