@@ -25,8 +25,6 @@ bool drilling;
 // flag for if we are guarding
 bool guarding;
 
-// total number of samples drilled
-int samples;
 
 // which corner of the square we are drilling (0-3)
 int corner;
@@ -49,8 +47,6 @@ void init(){
   // we begin the game not dropping samples
   dropping = false;
 
-  // we start with no samples
-  samples = 0;
 
   // we start the game not drilling
   drilling = false;
@@ -94,7 +90,7 @@ void loop() {
     if (game.checkSample()) {
         // if we want to drill more than 5, we have to drop the last one
         game.dropSample(4);
-        samples += (bool)(game.pickupSample());
+        game.pickupSample();
     }
     
     // if we are at the base, drop off our samples
@@ -243,8 +239,7 @@ void loop() {
         // set positionTarget to the drill square
         game.square2pos(siteCoords, positionTarget);
         // adjust positionTarget to the corner of a square
-        positionTarget[0] += ((corner % 2) * -2 + 1) * 0.029f;
-        positionTarget[1] += ((corner / 2) * -2 + 1) * 0.029f;
+        
         
         // avoid crashing into terrain
         if (!onSite 
@@ -334,7 +329,7 @@ void loop() {
     }
     
     PRINTVEC("myQuatAtt", myQuatAtt);
-    
+    int samplesHeld=game.getNumSamplesHeld();
     // invert rotation
     // now rotates fundamental basis rotation vector (k-hat) to our basis
     myQuatAtt[3] *= -1;
@@ -342,6 +337,9 @@ void loop() {
     
     if (drilling) {
         api.setAttRateTarget(usefulVec);
+        //Cornering now is always towards center if we have samples when we start, as we will likely have to upload next
+        positionTarget[0] += ((samplesHeld<=game.getDrills(mySquare))?((corner % 2) * -2 + 1):(myPos[0]<0)) * 0.035f;
+        positionTarget[1] += ((samplesHeld<=game.getDrills(mySquare))?((corner / 2) * -2 + 1):(myPos[1]<0)) * 0.035f;
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
@@ -349,7 +347,7 @@ void loop() {
     or geyserOnMe
     or game.getDrills(mySquare) > MAXDRILLS - 1) {
         DEBUG(("Broke"));
-        if (game.getNumSamplesHeld() > 3) {
+        if (samplesHeld > 3) {
             dropping = true;
         }
         newLoc = true;
@@ -358,7 +356,7 @@ void loop() {
     // @ FLOCAL IS NOW REMAINING FUEL @
     flocal = game.getFuelRemaining();
     // if we have samples and either time or fuel is running out
-    if (game.getNumSamplesHeld() > 1 
+    if (samplesHeld > 1 
     and ((!(int)((api.getTime() - 161) / 4)) // time is within 4 sec of 161 
     or (flocal < 0.16f and flocal >  0.9f))) {
         // drop off what we have
@@ -378,7 +376,7 @@ void loop() {
     }
     
     //don't drop off if we have no samples
-    if (!game.getNumSamplesHeld()) {
+    if (!samplesHeld) {
         dropping = false;
     }
     
@@ -398,16 +396,17 @@ void loop() {
     
     // @ FLOCAL IS NOW A FACTOR RELATED TO PROXIMITY TO OUR DESTINATION @
     
-    flocal = 0.05f / (0.05f + mathVecMagnitude(fvector, 3));
-    scale(myVel, 0.2f + flocal);
+    flocal = 0.023f / (0.03f + mathVecMagnitude(fvector, 3));
+    scale(myVel, flocal);
     mathVecSubtract(fvector, fvector, myVel, 3);
-    scale(fvector, 0.27f - (0.09f * flocal));
-    
+    scale(fvector, 0.25f);// - (0.09f * flocal));
+    while (mathVecMagnitude(fvector,3)>mathVecMagnitude(myVel,3)+.035f){
+        scale(fvector,.99f);
+    }
     // if we're on a geyser
     if (geyserOnMe) {
         // don't bother moving vertically
-        fvector[2] = 0.0f;
-        scale(fvector, 5 / mathVecMagnitude(fvector, 3));
+        scale(fvector, 1.f / mathVecMagnitude(fvector, 3));
     }
     api.setVelocityTarget(fvector);
 }
