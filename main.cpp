@@ -51,11 +51,13 @@ float enState[12];
 
 
 void init(){
-	    infoFound = false;
+	infoFound = false;
     tenFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
     vcoef = 0.154f; 
+    tenLoc[0] = 3;
+    tenLoc[1] = 4;
     
     enScore = 0.0f; // initialized because
         // we use it to calculate change in score
@@ -108,8 +110,8 @@ void loop(){
             DEBUG(("WE FOUND 10 at (%d, %d)", myDrillSquares[sampNum - 1][0], myDrillSquares[sampNum - 1][1]));
             stage++;
             memcpy(tenLoc, myDrillSquares[sampNum - 1], 8);
-            //tenLoc[0] = 5;//myDrillSquares[sampNum - 1][0];
-            //tenLoc[1] = 3;//myDrillSquares[sampNum - 1][1];
+            tenLoc[0] = myDrillSquares[sampNum - 1][0];
+            tenLoc[1] = myDrillSquares[sampNum - 1][1];
         }
         else if(!pickUp[isBlue] and game.hasAnalyzer() != isBlue + 1){
             //api.setPositionTarget(ANALYZER_POSITION);
@@ -252,12 +254,12 @@ void loop(){
         
         //creates two vectors based off the positionTarget and myPos that are in the same xy plane 
         if(game.getDrills(tenLoc) < 3){
-                drillSquare[0] = tenLoc[0];
-                drillSquare[1] = tenLoc[1];
+            drillSquare[0] = tenLoc[0];
+            drillSquare[1] = tenLoc[1];
         }
         else if(game.getDrills(tenLoc)<3){
-                drillSquare[0] = secondTen[0];
-                drillSquare[1] = secondTen[1];
+            drillSquare[0] = secondTen[0];
+            drillSquare[1] = secondTen[1];
         }
         else{
             drillSquare[0] = secondTen[0];
