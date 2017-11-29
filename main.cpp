@@ -58,6 +58,7 @@ void init(){
     vcoef = 0.154f; 
     tenLoc[0] = 3;
     tenLoc[1] = 4;
+    tenLoc[2] = 0;
     
     enScore = 0.0f; // initialized because
         // we use it to calculate change in score
