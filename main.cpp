@@ -44,10 +44,6 @@ void init(){
   #define DERIVCONST 2.35f
   api.setPosGains(SPEEDCONST, 0, DERIVCONST);
 
-  // we begin the game not dropping samples
-  dropping = false;
-
-
   // we start the game not drilling
   drilling = false;
   // we start the game not guarding
@@ -100,6 +96,12 @@ void loop() {
         }
         //after dropping, find a new square
         newLoc = true;
+    }
+        
+    int samplesHeld = game.getNumSamplesHeld();
+
+    // don't drop off if we have no samples
+    if (!samplesHeld) {
         dropping = false;
     }
     
@@ -329,7 +331,6 @@ void loop() {
     }
     
     PRINTVEC("myQuatAtt", myQuatAtt);
-    int samplesHeld=game.getNumSamplesHeld();
     // invert rotation
     // now rotates fundamental basis rotation vector (k-hat) to our basis
     myQuatAtt[3] *= -1;
@@ -358,7 +359,7 @@ void loop() {
     // if we have samples and either time or fuel is running out
     if (samplesHeld > 1 
     and ((!(int)((api.getTime() - 161) / 4)) // time is within 4 sec of 161 
-    or (flocal < 0.16f and flocal >  0.9f))) {
+    or (flocal < 0.16f and flocal >  0.09f))) {
         // drop off what we have
         dropping=true;
     }
@@ -373,11 +374,6 @@ void loop() {
         // move up to avoid terrain crash penalties
         memcpy(positionTarget, myPos, 12);
         positionTarget[2] -= 1.0f;
-    }
-    
-    //don't drop off if we have no samples
-    if (!samplesHeld) {
-        dropping = false;
     }
     
     // turn off the drill if we aren't in drill mode
@@ -405,8 +401,7 @@ void loop() {
     }
     // if we're on a geyser
     if (geyserOnMe) {
-        // don't bother moving vertically
-        scale(fvector, 1.f / mathVecMagnitude(fvector, 3));
+        scale(fvector, 1.0f / mathVecMagnitude(fvector, 3));
     }
     api.setVelocityTarget(fvector);
 }
