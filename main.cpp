@@ -106,7 +106,7 @@ void loop(){
     DEBUG(("The fuel to get back to the base is %f",fuel2base));
     
     if(stage == 0){
-        if(tenFound or true){
+        if(tenFound){
             DEBUG(("WE FOUND 10 at (%d, %d)", myDrillSquares[sampNum - 1][0], myDrillSquares[sampNum - 1][1]));
             stage++;
             memcpy(tenLoc, myDrillSquares[sampNum - 1], 8);
@@ -229,6 +229,10 @@ void loop(){
         }
     }
     if(stage == 1){
+        
+        tenLoc[0] = 3;
+        tenLoc[1] = 3;
+        tenLoc[2] = 0;
         int secondTen[3];
         secondTen[0] = -1*tenLoc[0];
         secondTen[1] = -1*tenLoc[1];
@@ -291,7 +295,7 @@ void loop(){
             }
             else if (game.getDrillEnabled()) {
                 DEBUG(("Drilling"));
-                float drillVec[3];
+                float drillVec[3];v
                 drillVec[0] = 0;
                 drillVec[1] = 0;
                 drillVec[2] = 0.5f;
@@ -314,7 +318,7 @@ void loop(){
         
         
         
-        if ((sampNum == 5) or (myFuel<=fuel2base) or myFuel < 5) {
+        if ((sampNum == 5) or (myFuel<=fuel2base) or myFuel < 5 or (187-api.getTime())< 15) {
             if(myPos[2] < 0.285f){
                 DEBUG(("Heading back to base"));
                 float dropOffAtt[3];
