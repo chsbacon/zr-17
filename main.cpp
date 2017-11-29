@@ -101,7 +101,7 @@ void loop() {
     int samplesHeld = game.getNumSamplesHeld();
 
     // don't drop off if we have no samples
-    if (!samplesHeld) {
+    if (samplesHeld<2) {
         dropping = false;
     }
     
@@ -343,8 +343,7 @@ void loop() {
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
-    if (game.getDrillError() 
-    or geyserOnMe
+    if (geyserOnMe
     or game.getDrills(mySquare) > MAXDRILLS - 1) {
         DEBUG(("Broke"));
         if (samplesHeld > 3) {
@@ -356,9 +355,9 @@ void loop() {
     // @ FLOCAL IS NOW REMAINING FUEL @
     flocal = game.getFuelRemaining();
     // if we have samples and either time or fuel is running out
-    if (samplesHeld > 1 
-    and ((!(int)((api.getTime() - 161) / 4)) // time is within 4 sec of 161 
-    or (flocal < 0.16f and flocal >  0.09f))) {
+    if (!drilling //not in the middle of drilling (possibly the 3rd drill which gives 3 pts)
+    and (api.getTime()>157 // time is greater than 157 
+    or (flocal < 0.16f and flocal >  0.05f))) {
         // drop off what we have
         dropping=true;
     }
