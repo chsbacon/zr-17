@@ -22,8 +22,7 @@ bool tenFound;
 bool concFound;
 void init(){
     enScore=0;
-    newLoc=true;
-    // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
+
 	
 	#define SPEEDCONST .35f
     #define DERIVCONST 2.35f
@@ -59,7 +58,6 @@ void loop(){
         for (int i=0;i<5;i++){
             game.dropSample(i);
         }
-        newLoc=true;
         dropping=false;
     }
     api.getMySphState(myState);
@@ -288,7 +286,6 @@ void loop(){
         if (game.getNumSamplesHeld()>3){
             dropping=true;
         }
-        newLoc=true;
         drilling=false;
     }
     if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
