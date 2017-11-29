@@ -10,21 +10,16 @@
 #define enRot (&enState[9])//These are pointers. They will have the values that
 #define MAXDRILLS 3
 int siteCoords[3];
-bool newLoc;
 bool dropping;
 bool drilling;
 //are described in their names, and act as length-3 float arrays
 int samples;
 int corner;
-bool guarding;
-float enScore;
 bool valArray[12][8];
 int tenCoords[2];
 bool tenFound;
 bool concFound;
 void init(){
-    enScore=0;
-    newLoc=true;
     // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
 	
 	#define SPEEDCONST .35f
@@ -34,7 +29,6 @@ void init(){
     //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
     samples=0;
-    guarding=false;
 	drilling=false;
 	concFound=false;
 	memset(valArray,true,96);
@@ -59,7 +53,6 @@ void loop(){
         for (int i=0;i<5;i++){
             game.dropSample(i);
         }
-        newLoc=true;
         dropping=false;
     }
     api.getMySphState(myState);
@@ -91,11 +84,12 @@ void loop(){
             tenFound=true;
         }
         else{
-            valArray[mySquare[0]+6-(mySquare[0]>0)][mySquare[1]-1]=false;
+           
             if (myPos[1]<0){
                 mySquare[0]*=-1;
                 mySquare[1]*=-1;
             }
+            valArray[mySquare[0]+6-(mySquare[0]>0)][mySquare[1]-1]=false;
             int valCount=0;
             memset(siteCoords,0,8);
             for (int i=-6;i<7;i++){
@@ -164,7 +158,7 @@ void loop(){
             }
             game.square2pos(siteCoords,positionTarget);
             DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
-            positionTarget[2]=.27f;
+            positionTarget[2]=0.f;
             
         }
     }
@@ -179,10 +173,10 @@ void loop(){
                         if (((drilling and mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1]) or !game.getDrills(usefulIntVec))){
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
-                            if (usefulIntVec[1]<0){
-                                usefulIntVec[0]*=-1;
-                                usefulIntVec[1]*=-1;
-                            }
+                            // if (usefulIntVec[1]<0){
+                            //     usefulIntVec[0]*=-1;
+                            //     usefulIntVec[1]*=-1;
+                            // }
                             flocal=dist(usefulVec,myPos)*3+intDist(usefulIntVec,tenCoords)+.05f*(usefulVec[2]>=game.getTerrainHeight(myPos));
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f){
                                 memcpy(positionTarget,usefulVec,12);
@@ -221,7 +215,7 @@ void loop(){
         and (mathVecMagnitude(myRot,3)<.035f or drilling)
         and (onSite))
         and not game.getDrillError()
-        and (myPos[2]-positionTarget[2]<.02f and myPos[2]-positionTarget[2]>-0.02f)){
+        and (myPos[2]-positionTarget[2]<0.02f and myPos[2]-positionTarget[2]>-0.02f)){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=0;//myAtt[2]*-5;
             
             // usefulVec[0]=0;
@@ -262,7 +256,7 @@ void loop(){
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2]=0;//.01f;//Slow down
+        //zeroVec[2]=0;//.01f;//Slow down
         
         
     }
@@ -282,7 +276,6 @@ void loop(){
         if (game.getNumSamplesHeld()>3){
             dropping=true;
         }
-        newLoc=true;
         drilling=false;
     }
     if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
@@ -325,11 +318,12 @@ void loop(){
         //fvector[2]=0.05f;
     }
     if (!tenFound and game.hasAnalyzer()){
+        fvector[2]=0;
         mathVecNormalize(fvector,3);
-        fvector[2]=.1f*(.27f-myPos[2]);
-        while (mathVecMagnitude(fvector,3)>.039f){
-            scale(fvector,.99f);
-        }
+        //fvector[2]=.1f*(.27f-myPos[2]);
+        //while (mathVecMagnitude(fvector,3)>.039f){
+        scale(fvector,.039f);
+        //}
     }
     api.setVelocityTarget(fvector);
 }
