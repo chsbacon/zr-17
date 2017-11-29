@@ -1,4 +1,3 @@
-//{"sha":"c7e52344a9296bebf7c2c34495908160c50b539d"}
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
@@ -139,15 +138,12 @@ void loop(){
                     siteCoords[1]=7;
                 }
             }
-            while (!valArray[siteCoords[0]+6-(siteCoords[0]>0)][siteCoords[1]-1]){
+            while (!valArray[siteCoords[0]+6-(siteCoords[0]>-1)][siteCoords[1]-1]){
                 siteCoords[0]+=1;
                 if (siteCoords[0]>6){
                     siteCoords[0]=-6;
                     siteCoords[1]++;
-                }
-                if (!siteCoords[0]){
-                    siteCoords[0]++;
-                }
+                }//removing the x=0 skip here shouldn't break things because of how the boolean subtraction is structured in the while condition (ends up same as prev) but may be wrong
                 if (siteCoords[1]>8){
                     siteCoords[1]=1;
                 }
@@ -177,7 +173,7 @@ void loop(){
                             //     usefulIntVec[0]*=-1;
                             //     usefulIntVec[1]*=-1;
                             // }
-                            flocal=dist(usefulVec,myPos)*3+intDist(usefulIntVec,tenCoords)+.05f*(usefulVec[2]>=game.getTerrainHeight(myPos));
+                            flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords);
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f){
                                 memcpy(positionTarget,usefulVec,12);
                                 maxDist=flocal;
@@ -189,8 +185,8 @@ void loop(){
         }
         //adjust positiontarget to the corner of a square
         game.pos2square(positionTarget,siteCoords);
-        positionTarget[0]+=(positionTarget[0]<0)*0.029f;
-        positionTarget[1]+=(positionTarget[1]<0)*0.029f;
+        //positionTarget[0]+=(positionTarget[0]<0)*0.029f;
+        //positionTarget[1]+=(positionTarget[1]<0)*0.029f;
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
@@ -269,27 +265,25 @@ void loop(){
     // }
     //if our drill breaks or we get a geyser, stop the current drill
     flocal=game.getFuelRemaining();
+    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
+        dropping=true;
+    }
     if (game.getDrillError() 
     or geyserOnMe 
-    or game.getDrills(mySquare)>MAXDRILLS-1){
+    or game.getDrills(mySquare)>MAXDRILLS-1
+    or dropping){
         DEBUG(("Broke"));
         if (game.getNumSamplesHeld()>3){
             dropping=true;
         }
         drilling=false;
     }
-    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
-        dropping=true;
-        
-    }
-    if (dropping){
-        drilling=false;
-    }
-    if (flocal<.03f and myVel[2]>0){
-        memcpy(positionTarget,myPos,12);
-        positionTarget[2]-=1;
-    }
-    if (!game.getNumSamplesHeld() or mathVecMagnitude(enPos,3)<.16){//don't drop off with no samples
+    
+    // if (flocal<.03f and myVel[2]>0){
+    //     memcpy(positionTarget,myPos,12);
+    //     positionTarget[2]-=1;
+    // }
+    if (!game.getNumSamplesHeld()){//don't drop off with no samples
         dropping=false;
     }
     if (not drilling){//don't drill if we aren't drilling
