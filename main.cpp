@@ -357,7 +357,7 @@ void loop() {
     // if we have samples and either time or fuel is running out
     if (!drilling //not in the middle of drilling (possibly the 3rd drill which gives 3 pts)
     and (api.getTime()>157 // time is greater than 157 
-    or (flocal < 0.16f and flocal >  0.05f))) {
+    or (flocal < 0.16f and flocal >  0.09f))) {
         // drop off what we have
         dropping=true;
     }
