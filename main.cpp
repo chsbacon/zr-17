@@ -40,22 +40,25 @@ char possibleTenSquares[TEN_SPAWN_WIDTH][TEN_SPAWN_HEIGHT]; // stores whether
 
 float vcoef; // A coefficient for our movement speed
 #define SURFACE_Z 0.48f
-int drillSquare[2]; // Will eventually store the optimal drilling square
+int drillSquare[3]; // Will eventually store the optimal drilling square
     // It's important that this is global because sometimes it doesn't
     // get updated
 int stage;
 
-int tenLoc[2];
+int tenLoc[3];
 float myState[12];
 float enState[12];
 
 
 void init(){
-	    infoFound = false;
+	infoFound = false;
     tenFound = false;
     api.setPosGains(SPEEDCONST,0.1f,DERIVCONST);
     api.setAttGains(0.45f, 0.1f, 2.8f);
     vcoef = 0.154f; 
+    tenLoc[0] = 3;
+    tenLoc[1] = 4;
+    tenLoc[2] = 0;
     
     enScore = 0.0f; // initialized because
         // we use it to calculate change in score
@@ -108,8 +111,8 @@ void loop(){
             DEBUG(("WE FOUND 10 at (%d, %d)", myDrillSquares[sampNum - 1][0], myDrillSquares[sampNum - 1][1]));
             stage++;
             memcpy(tenLoc, myDrillSquares[sampNum - 1], 8);
-            //tenLoc[0] = 5;//myDrillSquares[sampNum - 1][0];
-            //tenLoc[1] = 3;//myDrillSquares[sampNum - 1][1];
+            tenLoc[0] = myDrillSquares[sampNum - 1][0];
+            tenLoc[1] = myDrillSquares[sampNum - 1][1];
         }
         else if(!pickUp[isBlue] and game.hasAnalyzer() != isBlue + 1){
             //api.setPositionTarget(ANALYZER_POSITION);
@@ -212,10 +215,14 @@ void loop(){
                     analysis,
                     (5 * analysis + 2),
                     drillSquare[0], drillSquare[1] ));
+                int drillSquareSmall[2];
+                drillSquareSmall[0] = drillSquare[0];
+                drillSquareSmall[1] = drillSquare[1];
+                
                 #ifdef dev
-                updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
+                updateTenSquares(&(drillSquareSmall), 5 * analysis + 2, 1);
                 #else
-                updateTenSquares(&(drillSquare), 5 * analysis + 2, 1);
+                updateTenSquares(&(drillSquareSmall), 5 * analysis + 2, 1);
                 #endif
                 sampNum++;//We have to manually increment # of samples because we don't actually have any
                 
@@ -224,9 +231,16 @@ void loop(){
         }
     }
     if(stage == 1){
-        int secondTen[2];
+        int secondTen[3];
         secondTen[0] = -1*tenLoc[0];
         secondTen[1] = -1*tenLoc[1];
+        secondTen[2] = 0;
+        float tenPos[3];
+        game.square2pos(tenLoc, tenPos);
+        float secondPos[3];
+        secondPos[0] = -1*tenPos[0];
+        secondPos[1] = -1*tenPos[1];
+        secondPos[2] = 0;   
         
         // Find a spot to drill
          // drill at the spot we picked
@@ -240,6 +254,21 @@ void loop(){
         
         #define XY_DRILL_PLANE_ANGLE 0.1963f
             
+         
+        if(game.getDrills(tenPos) < 3){
+            drillSquare[0] = tenLoc[0];
+            drillSquare[1] = tenLoc[1];
+        }
+        else if(game.getDrills(secondPos)<3){
+            drillSquare[0] = secondTen[0];
+            drillSquare[1] = secondTen[1];
+        }
+        else{
+            drillSquare[0] = secondTen[0];
+            drillSquare[1] = secondTen[1] + 1;
+        }
+        drillSquare[2] = 0;
+        
         game.square2pos(drillSquare, positionTarget);
         //sets positionTarget to the square to be drilled
         PRINT_VEC_F("position target", positionTarget);
@@ -250,19 +279,7 @@ void loop(){
         xyPos[2] = 0;
         xyPositionTarget[2] = 0;
         
-        //creates two vectors based off the positionTarget and myPos that are in the same xy plane 
-        if(game.getDrills(tenLoc) < 3){
-                drillSquare[0] = tenLoc[0];
-                drillSquare[1] = tenLoc[1];
-        }
-        else if(game.getDrills(tenLoc)<3){
-                drillSquare[0] = secondTen[0];
-                drillSquare[1] = secondTen[1];
-        }
-        else{
-            drillSquare[0] = secondTen[0];
-            drillSquare[1] = secondTen[1] + 1;
-        }
+        //creates two vectors based off the positionTarget and myPos that are in the same xy plane
         
     
         if(dist(xyPos, xyPositionTarget) < .06) {
