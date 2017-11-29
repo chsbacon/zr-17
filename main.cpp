@@ -158,8 +158,11 @@ void loop(){
             
         }
     }
+    
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     else if ((not dropping)){
+        int nextSquare[2];
+        memcpy(nextSquare,mySquare,8);
         float maxDist=1000;
         for (int i=-6;i<7;i++){
             if (i){
@@ -173,10 +176,16 @@ void loop(){
                             //     usefulIntVec[0]*=-1;
                             //     usefulIntVec[1]*=-1;
                             // }
-                            flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords);
+                            flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.1f*(game.getTerrainHeight(usefulIntVec)>usefulVec[2]);
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f){
-                                memcpy(positionTarget,usefulVec,12);
-                                maxDist=flocal;
+                                if (drilling and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
+                                    memcpy(nextSquare,usefulIntVec,8);
+                                    maxDist=flocal;
+                                }
+                                else{
+                                    memcpy(positionTarget,usefulVec,12);
+                                    maxDist=flocal;
+                                }
                             }
                         }
                     }
@@ -185,8 +194,8 @@ void loop(){
         }
         //adjust positiontarget to the corner of a square
         game.pos2square(positionTarget,siteCoords);
-        //positionTarget[0]+=(positionTarget[0]<0)*0.029f;
-        //positionTarget[1]+=(positionTarget[1]<0)*0.029f;
+        positionTarget[0]+=(nextSquare[0]>mySquare[0])*0.025f;
+        positionTarget[1]+=(nextSquare[1]>mySquare[1])*0.025f;
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
@@ -210,8 +219,8 @@ void loop(){
         if ((mathVecMagnitude(myVel,3)<.01f
         and (mathVecMagnitude(myRot,3)<.035f or drilling)
         and (onSite))
-        and not game.getDrillError()
-        and (myPos[2]-positionTarget[2]<0.02f and myPos[2]-positionTarget[2]>-0.02f)){
+        //and not game.getDrillError()
+        ){//and (myPos[2]-positionTarget[2]<0.02f and myPos[2]-positionTarget[2]>-0.02f)){
             usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=0;//myAtt[2]*-5;
             
             // usefulVec[0]=0;
@@ -265,7 +274,7 @@ void loop(){
     // }
     //if our drill breaks or we get a geyser, stop the current drill
     flocal=game.getFuelRemaining();
-    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)) or (flocal<.16f and flocal> .12f))){//at the end of the game, drop off what we have
+    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)))){// or (flocal<.18f and flocal> .12f))){//at the end of the game, drop off what we have
         dropping=true;
     }
     if (game.getDrillError() 
@@ -299,7 +308,7 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    flocal=0.04f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
     scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.25f-.09f*flocal+.5*geyserOnMe);
@@ -319,7 +328,7 @@ void loop(){
         mathVecNormalize(fvector,3);
         //fvector[2]=.1f*(.27f-myPos[2]);
         //while (mathVecMagnitude(fvector,3)>.039f){
-        scale(fvector,.039f);
+        scale(fvector,.025f);
         //}
     }
     api.setVelocityTarget(fvector);
