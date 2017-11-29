@@ -521,7 +521,7 @@ bool nextPermutation(int* a, int n) {
                     // Swap the value of a[k] with that of a[l].
                     int temp1 = a[l];
                     a[l] = a[k];
-                    a[k] = temp1;f
+                    a[k] = temp1;
                     // Reverse the sequence from a[k + 1] up to and including the final element a[n].
                     for (int s = 0; s < (n - (k+1))/2; s++) {
                         int temp2 = a[s+k+1];
