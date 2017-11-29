@@ -226,11 +226,10 @@ void loop() {
     
     // if they found the 10
     if (enDeltaScore == 3.5f) {
-        
-        // drill at the other 10
         game.pos2square(enPos, siteCoords);
         siteCoords[0] *= -1;
         siteCoords[1] *= -1;
+        newLoc = false;
     }
     
     // stores whether we are at the square we are targetubg
