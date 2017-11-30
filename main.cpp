@@ -123,6 +123,17 @@ void loop() {
     
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
+    // if our drill breaks or we get a geyser, stop the current drill
+    if (geyserOnMe
+    or game.getDrills(mySquare) > MAXDRILLS - 1) {
+        DEBUG(("Broke"));
+        if (samplesHeld > 3) {
+            dropping = true;
+        }
+        newLoc = true;
+        drilling = false;
+    }
+    
     // must be larger than all distances we check
     float minDist = 100;
     
@@ -316,17 +327,7 @@ void loop() {
         positionTarget[0] += ((samplesHeld<=game.getDrills(mySquare))?((corner % 2) * -2 + 1):(myPos[0]<0)) * (0.025f+.011f*drilling);
         positionTarget[1] += ((samplesHeld<=game.getDrills(mySquare))?((corner / 2) * -2 + 1):(myPos[1]<0)) * (0.025f+.011f*drilling);
     }
-    
-    // if our drill breaks or we get a geyser, stop the current drill
-    if (geyserOnMe
-    or game.getDrills(mySquare) > MAXDRILLS - 1) {
-        DEBUG(("Broke"));
-        if (samplesHeld > 3) {
-            dropping = true;
-        }
-        newLoc = true;
-        drilling = false;
-    }
+
     // @ FLOCAL IS NOW REMAINING FUEL @
     flocal = game.getFuelRemaining();
     // if we have samples and either time or fuel is running out
