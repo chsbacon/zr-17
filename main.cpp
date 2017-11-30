@@ -321,14 +321,14 @@ void loop() {
     for (int i = -1; i < 2; i++) {
         checkSqrs[1]=mySquare[1]+i;
         if (game.isGeyserHere(checkSqrs)) {
-            fvector[0] = -1;
+            fvector[0] = 0;
         }
     }
     checkSqrs[1] = mySquare[1]+(fvector[1] > 0)-(fvector[1]<0);
     for (int i = -1; i < 2; i++) {
         checkSqrs[0]=mySquare[0]+i;
         if (game.isGeyserHere(checkSqrs)) {
-            fvector[1] = -1;
+            fvector[1] = 0;
         }
     }
     api.setVelocityTarget(fvector);
