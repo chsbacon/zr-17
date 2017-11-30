@@ -259,9 +259,7 @@ void loop(){
     }
     if(stage == 1){
         
-        tenLoc[0] = 3;
-        tenLoc[1] = 3;
-        tenLoc[2] = 0;
+        
         int secondTen[3];
         secondTen[0] = -1*tenLoc[0];
         secondTen[1] = -1*tenLoc[1];
