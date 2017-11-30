@@ -313,8 +313,8 @@ void loop() {
     if (drilling) {
         api.setAttRateTarget(usefulVec);
         //Cornering now is always towards center if we have samples when we start, as we will likely have to upload next
-        positionTarget[0] += ((samplesHeld<=game.getDrills(mySquare))?((corner % 2) * -2 + 1):(myPos[0]<0)) * (0.03f+.007f*drilling);
-        positionTarget[1] += ((samplesHeld<=game.getDrills(mySquare))?((corner / 2) * -2 + 1):(myPos[1]<0)) * (0.03f+.007f*drilling);
+        positionTarget[0] += ((samplesHeld<=game.getDrills(mySquare))?((corner % 2) * -2 + 1):(myPos[0]<0)) * (0.025f+.011f*drilling);
+        positionTarget[1] += ((samplesHeld<=game.getDrills(mySquare))?((corner / 2) * -2 + 1):(myPos[1]<0)) * (0.025f+.011f*drilling);
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
