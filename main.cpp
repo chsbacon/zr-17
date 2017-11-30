@@ -252,8 +252,8 @@ void loop() {
     if (drilling) {
         api.setAttRateTarget(usefulVec);
         //Cornering now is always towards center if we have samples when we start, as we will likely have to upload next
-        //positionTarget[0] += ((samplesHeld<=game.getDrills(mySquare))?((corner % 2) * -2 + 1):(myPos[0]<0)) * 0.035f;
-        //positionTarget[1] += ((samplesHeld<=game.getDrills(mySquare))?((corner / 2) * -2 + 1):(myPos[1]<0)) * 0.035f;
+        positionTarget[0] += (0.03f+.007f*drilling);
+        positionTarget[1] += (0.03f+.007f*drilling);
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
@@ -321,14 +321,14 @@ void loop() {
     for (int i = -1; i < 2; i++) {
         checkSqrs[1]=mySquare[1]+i;
         if (game.isGeyserHere(checkSqrs)) {
-            fvector[0] = 0;
+            fvector[0] = -1;
         }
     }
     checkSqrs[1] = mySquare[1]+(fvector[1] > 0)-(fvector[1]<0);
     for (int i = -1; i < 2; i++) {
         checkSqrs[0]=mySquare[0]+i;
         if (game.isGeyserHere(checkSqrs)) {
-            fvector[1] = 0;
+            fvector[1] = -1;
         }
     }
     api.setVelocityTarget(fvector);
