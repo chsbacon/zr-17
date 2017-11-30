@@ -296,7 +296,7 @@ void loop() {
         #define BASE_STATION_RADIUS 0.24f
         // depending on whether or not we are guarding, there are two
         // different target distances from the origin
-        scale(positionTarget, (((BASE_STATION_RADIUS-0.1f) - (0.11f * guarding))
+        scale(positionTarget, (((BASE_STATION_RADIUS-0.01f) - (0.11f * guarding))
               / mathVecMagnitude(positionTarget, 3)));
         // rotate to satisfy drop off requirement
         zeroVec[2] -= 1;
@@ -313,8 +313,8 @@ void loop() {
     if (drilling) {
         api.setAttRateTarget(usefulVec);
         //Cornering now is always towards center if we have samples when we start, as we will likely have to upload next
-        positionTarget[0] += ((samplesHeld<=game.getDrills(mySquare))?((corner % 2) * -2 + 1):(myPos[0]<0)) * 0.035f;
-        positionTarget[1] += ((samplesHeld<=game.getDrills(mySquare))?((corner / 2) * -2 + 1):(myPos[1]<0)) * 0.035f;
+        positionTarget[0] += ((samplesHeld<=game.getDrills(mySquare))?((corner % 2) * -2 + 1):(myPos[0]<0)) * (0.03f+.007f*drilling);
+        positionTarget[1] += ((samplesHeld<=game.getDrills(mySquare))?((corner / 2) * -2 + 1):(myPos[1]<0)) * (0.03f+.007f*drilling);
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
@@ -365,16 +365,18 @@ void loop() {
     
     // @ FLOCAL IS NOW A FACTOR RELATED TO PROXIMITY TO OUR DESTINATION @
     
-    flocal = 0.05f / (0.05f + mathVecMagnitude(fvector, 3));
+    flocal = 0.065f / (0.0325f + mathVecMagnitude(fvector, 3));
     scale(myVel, 0.2f + flocal);
     mathVecSubtract(fvector, fvector, myVel, 3);
-    scale(fvector, 0.25f - (0.09f * flocal));
-    
+    scale(fvector, 0.22f);
+    while (mathVecMagnitude(fvector,3)>0.045f){
+        scale(fvector,.99f);
+    }
     // if we're on a geyser
     if (geyserOnMe) {
         // don't bother moving vertically
         fvector[2] = 0.0f;
-        scale(fvector, 5 / mathVecMagnitude(fvector, 3));
+        scale(fvector, 15 / mathVecMagnitude(fvector, 3));
     }
     api.setVelocityTarget(fvector);
 }
