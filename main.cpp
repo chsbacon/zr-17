@@ -1,4 +1,3 @@
-//{"sha":"d2d1471f03b117a4e56fbe96cfe59ef086b18bd5"}
 
 
 // #define dev
@@ -23,7 +22,7 @@
 
 float enScore;
 int myDrillSquares[5][2]; // where we have drilled
-int myCheckSquares[5][2]; // where we have checked
+int myCheckSquares[14][2]; // where we have checked
 bool infoFound; // have we gotten a 3, 6, or a 10?
 bool tenFound;
 int mySquare[3];
@@ -188,10 +187,10 @@ void loop(){
                                 #define EXCLUDE_RADIUS 0
                                     // once we find info, don't drill in the same spot
                                     // unless no other spots are possible
-                                #define CENTER_INFO_RADIUS 10
+                                #define CENTER_INFO_RADIUS 0//was 10
                                     // tens can't spawn in the center, so we want our
                                     // info to not include any of that area
-                                #define CENTER_KEEPAWAY_RADIUS 4
+                                #define CENTER_KEEPAWAY_RADIUS 0//was 4
                                     // even if the ten is close to the center,
                                     // we still don't want to drill the center itself
                                 
@@ -223,27 +222,30 @@ void loop(){
                 game.square2pos(checkSquare, positionTarget);
                 positionTarget[2] = -0.16f;
                 
-                if (dist(myPos, positionTarget) < 0.03f and mathVecMagnitude(myVel, 3) < 0.01f
-                and mathVecMagnitude(myRot, 3) < 0.04f and !game.getDrillEnabled()){
-                    DEBUG(("CHECKING"));
+                if (dist(myPos, positionTarget) < 0.04f /*and mathVecMagnitude(myVel, 3) < 0.02f*/){
+                    int mySquarePos[2];
+                    game.pos2square(myPos, mySquarePos);
+                    DEBUG(("CHECKING (%d, %d)", mySquarePos[0], mySquarePos[1]));
                     
                     memcpy(myCheckSquares[checkNum], checkSquare, 8);
-                    DEBUG(("myCheckSquares (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d)",
+                    
+                    DEBUG(("myCheckSquares (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d)",
                     myCheckSquares[0][0], myCheckSquares[0][1], myCheckSquares[1][0], myCheckSquares[1][1],
                     myCheckSquares[2][0], myCheckSquares[2][1], myCheckSquares[3][0], myCheckSquares[3][1],
                     myCheckSquares[4][0], myCheckSquares[4][1], myCheckSquares[5][0], myCheckSquares[5][1],
-                    myCheckSquares[6][0], myCheckSquares[6][1], myCheckSquares[7][0], myCheckSquares[7][1]));
+                    myCheckSquares[6][0], myCheckSquares[6][1], myCheckSquares[7][0], myCheckSquares[7][1],
+                    myCheckSquares[8][0], myCheckSquares[8][1], myCheckSquares[9][0], myCheckSquares[9][1],
+                    myCheckSquares[10][0], myCheckSquares[10][1], myCheckSquares[11][0], myCheckSquares[11][1],
+                    myCheckSquares[12][0], myCheckSquares[12][1], myCheckSquares[13][0], myCheckSquares[13][1]));
                     float analysis = game.analyzeTerrain();
                     DEBUG(("Samp #%d %f score: %f @ (%d, %d)", 
                         checkNum, 
                         analysis,
                         (5 * analysis + 2),
                         checkSquare[0], checkSquare[1] ));
-                    #ifdef dev
+                    
                     updateTenSquares(&(checkSquare), 5 * analysis + 2, 1);
-                    #else
-                    updateTenSquares(&(checkSquare), 5 * analysis + 2, 1);
-                    #endif
+                    
                     checkNum++;//We have to manually increment # of samples because we don't actually have any
                     
                     infoFound = (2.5f < (5 * analysis + 2)) and ((5 * analysis + 2) < 7.0f);
