@@ -176,7 +176,7 @@ void loop(){
                             //     usefulIntVec[0]*=-1;
                             //     usefulIntVec[1]*=-1;
                             // }
-                            flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.1f*(game.getTerrainHeight(usefulIntVec)>usefulVec[2]);
+                            flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.1f*(usefulIntVec[2]>game.getTerrainHeight(mySquare));
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f){
                                 if (drilling and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
                                     memcpy(nextSquare,usefulIntVec,8);
@@ -192,10 +192,13 @@ void loop(){
                 }
             }
         }
+        if (game.getNumSamplesHeld()>2){
+            memset(nextSquare,0,8);
+        }
         //adjust positiontarget to the corner of a square
         game.pos2square(positionTarget,siteCoords);
-        positionTarget[0]+=(nextSquare[0]>mySquare[0])*0.025f;
-        positionTarget[1]+=(nextSquare[1]>mySquare[1])*0.025f;
+        positionTarget[0]+=(nextSquare[0]>mySquare[0]-mySquare[0]>nextSquare[0])*0.025f;
+        positionTarget[1]+=(nextSquare[1]>mySquare[1]-mySquare[1]>nextSquare[1])*0.025f;
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
@@ -213,6 +216,7 @@ void loop(){
         }
         DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
+        DEBUG(("%i %i", nextSquare[0],nextSquare[1]));
         
         
         //if we are on the right square and all the conditions line up, start spinning and drilling
@@ -311,7 +315,7 @@ void loop(){
     flocal=0.04f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
     scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.25f-.09f*flocal+.5*geyserOnMe);
+    scale(fvector,.25f-.09f*flocal);//+.5*geyserOnMe);
     if (geyserOnMe){
         fvector[2]=0;
     }
@@ -328,7 +332,7 @@ void loop(){
         mathVecNormalize(fvector,3);
         //fvector[2]=.1f*(.27f-myPos[2]);
         //while (mathVecMagnitude(fvector,3)>.039f){
-        scale(fvector,.025f);
+        scale(fvector,.04f);
         //}
     }
     api.setVelocityTarget(fvector);
