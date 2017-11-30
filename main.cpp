@@ -243,25 +243,7 @@ void loop() {
         
         
         // avoid crashing into terrain
-        if (!onSite 
-        and (game.getTerrainHeight(mySquare) > game.getTerrainHeight(siteCoords) 
-        or dist(myPos, positionTarget) > 0.05f)) {
-            
-            // target a point above our target so that we don't move vertically
-            positionTarget[2] = 0.27f;
-            
-            // if we are already very close to the surface
-            if (myPos[2] > 0.29f) {
-                // set the x and y of positionTarget to current x and y in
-                // order to stop moving horizontally
-                memcpy(positionTarget, myPos, 8);
-            }
-        }
-        // if we are not in danger of hitting the terrain
-        else {
-            // go to an appropriate drilling height
-            positionTarget[2] = game.getTerrainHeight(siteCoords) - 0.13f;
-        }
+        positionTarget[2] = game.getTerrainHeight(siteCoords) - 0.13f;
         DEBUG(("target square: (%i, %i)", siteCoords[0],siteCoords[1]));
         DEBUG(("current square: (%i %i)", mySquare[0],mySquare[1]));
         
@@ -302,27 +284,20 @@ void loop() {
     else {
         memcpy(positionTarget, myPos, 12);
         
-        // if we are down in the terrain
-        if (myPos[2] > 0.29f) {
-            // move straight up
-            positionTarget[2] = 0.05f;
+        // if we have more points than them and
+        // we're closer to the origin than them
+        guarding = (game.getScore() > enScore and game.getScore() > 38.0f 
+                    and (mathVecMagnitude(enPos, 3) > mathVecMagnitude(myPos, 3) + 0.1f
+                         or guarding));
+        if (guarding) {
+            memcpy(positionTarget, enPos, 12);
         }
-        else {
-            // if we have more points than them and
-            // we're closer to the origin than them
-            guarding = (game.getScore() > enScore and game.getScore() > 38.0f 
-                        and (mathVecMagnitude(enPos, 3) > mathVecMagnitude(myPos, 3) + 0.1f
-                             or guarding));
-            if (guarding) {
-                memcpy(positionTarget, enPos, 12);
-            }
-            // scale either enPos or myPos depending if we are guarding or not
-            #define BASE_STATION_RADIUS 0.24f
-            // depending on whether or not we are guarding, there are two
-            // different target distances from the origin
-            scale(positionTarget, (((BASE_STATION_RADIUS-0.1f) - (0.11f * guarding))
-                  / mathVecMagnitude(positionTarget, 3)));
-        }
+        // scale either enPos or myPos depending if we are guarding or not
+        #define BASE_STATION_RADIUS 0.24f
+        // depending on whether or not we are guarding, there are two
+        // different target distances from the origin
+        scale(positionTarget, (((BASE_STATION_RADIUS-0.1f) - (0.11f * guarding))
+              / mathVecMagnitude(positionTarget, 3)));
         // rotate to satisfy drop off requirement
         zeroVec[2] -= 1;
         api.setAttitudeTarget(zeroVec);
