@@ -148,7 +148,7 @@ void loop() {
                         float sqrPos [3];
                         game.square2pos(usefulIntVec, sqrPos);
                         sqrPos[2] = game.getTerrainHeight(usefulIntVec);
-                        if (dist(usefulVec, sqrPos) < minDist && dist(enPos, sqrPos) > 0.35f) {
+                        if (dist(usefulVec, sqrPos) < minDist && dist(enPos, sqrPos) > 0.25f) {
                             minDist = dist(usefulVec, sqrPos);
                             memcpy(siteCoords, usefulIntVec, 8);
                         }
@@ -221,13 +221,6 @@ void loop() {
     // if we are not drilling, then drop off samples
     else {
         memcpy(positionTarget, myPos, 12);
-        
-        // if we are down in the terrain
-        if (myPos[2] > 0.29f) {
-            // move straight up
-            positionTarget[2] = 0.05f;
-        }
-        else {
             // if we have more points than them and
             // we're closer to the origin than them
             guarding = (game.getScore() > enScore and game.getScore() > 38.0f 
@@ -242,10 +235,6 @@ void loop() {
             // different target distances from the origin
             scale(positionTarget, (((BASE_STATION_RADIUS-0.01f) - (0.11f * guarding))
             / mathVecMagnitude(positionTarget, 3)));
-            if (geyserOnMe) {
-                positionTarget[2] = myPos[2];
-            }
-        }
         // rotate to satisfy drop off requirement
         zeroVec[2] -= 1;
         api.setAttitudeTarget(zeroVec);
@@ -261,8 +250,8 @@ void loop() {
     if (drilling) {
         api.setAttRateTarget(usefulVec);
         //Cornering now is always towards center if we have samples when we start, as we will likely have to upload next
-        positionTarget[0] += (0.03f+.007f*drilling);
-        positionTarget[1] += (0.03f+.007f*drilling);
+        positionTarget[0] += (0.01f)*(((positionTarget[0]<0)-(positionTarget[0]>0))&&samplesHeld>3);
+        positionTarget[1] += (0.01f)*(((positionTarget[1]<0)-(positionTarget[1]>0))&&samplesHeld>3);
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
@@ -337,23 +326,8 @@ void loop() {
     int checkSqrs[2];
     game.pos2square(checker, checkSqrs);
     if (game.isGeyserHere(checkSqrs)) {
-        fvector[0]=0;
+        fvector[0]*=-1;
     }
-    /*int checkSqrs [2];
-    checkSqrs[0] = mySquare[0]+(fvector[0] > 0)-(fvector[0]<0);
-    for (int i = -1; i < 2; i++) {
-        checkSqrs[1]=mySquare[1]+i;
-        if (game.isGeyserHere(checkSqrs)) {
-            fvector[1]+=0.08f;
-        }
-    }
-    checkSqrs[1] = mySquare[1]+(fvector[1] > 0)-(fvector[1]<0);
-    for (int i = -1; i < 2; i++) {
-        checkSqrs[0]=mySquare[0]+i;
-        if (game.isGeyserHere(checkSqrs)) {
-            fvector[0]+=0.08f;
-        }
-    }*/
     api.setVelocityTarget(fvector);
 }
 
