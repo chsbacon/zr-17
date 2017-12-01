@@ -309,6 +309,9 @@ void loop() {
     while (mathVecMagnitude(fvector,3)>0.045f){
         scale(fvector,.99f);
     }
+    if(api.getTime()>174 && game.getFuelRemaining() >= 0.08f) {
+        scale(fvector, 3);
+    }
     //if on 3rd drill
     for (int i = 0; i < 3; i++) {
         fvector[i]*=(0.25f*scDown+!scDown);
