@@ -109,7 +109,9 @@ void loop() {
     // update state arrays
     api.getMySphState(myState);
     api.getOtherZRState(enState);
-    
+    if (dist(myPos, enPos)<0.08 && myPos[2] > 0.24) {
+        newLoc=true;
+    }
     //convert quaternion into attitude vector
     float myAtt[3];
     zeroVec[0] -= 1; // we avoid a new vector to save space
