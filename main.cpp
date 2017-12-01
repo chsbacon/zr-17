@@ -153,7 +153,7 @@ void loop() {
                         
                         
                         // map terrain height [0.4-0.64] to
-                        // index in `heights` array [0-3]
+                        // index in heights array [0-3]
                         int index = (game.getTerrainHeight(usefulIntVec) * 12.5f)
                             - 5.0f;
                         // make sure the square is either undrilled or close to us
