@@ -8,8 +8,8 @@
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
 #define enRot (&enState[9])
-#define MAXDRILLS 3
-
+//#define MAXDRILLS 3
+int maxDrills;
 // stores the target drilling location
 int siteCoords[3];
 
@@ -52,6 +52,7 @@ void init(){
 }
 
 void loop() {
+    maxDrills = 2*(game.getNumSamplesHeld ()>=3||game.getFuelRemaining()<0.09f||api.getTime()>165) + 3*(game.getNumSamplesHeld()<3);
     // variable used in multiple contexts to save space
     float flocal;
     
@@ -122,7 +123,15 @@ void loop() {
     game.square2pos(mySquare, usefulVec);
     
     bool geyserOnMe = game.isGeyserHere(mySquare);
-    
+    if (geyserOnMe
+    or game.getDrills(mySquare) > maxDrills - 1) {
+        DEBUG(("Broke"));
+        if (samplesHeld > 3) {
+            dropping = true;
+        }
+        newLoc = true;
+        drilling = false;
+    }
     // must be larger than all distances we check
     float minDist = 100;
 
@@ -222,7 +231,7 @@ void loop() {
             // if we have more points than them and
             // we're closer to the origin than them
             guarding = (game.getScore() > enScore and game.getScore() > 38.0f 
-                        and (mathVecMagnitude(enPos, 3) > mathVecMagnitude(myPos, 3) + 0.1f
+                        and game.getFuelRemaining()>0.06f && (mathVecMagnitude(enPos, 3) > mathVecMagnitude(myPos, 3) + 0.1f
                              or guarding));
             if (guarding) {
                 memcpy(positionTarget, enPos, 12);
@@ -257,21 +266,13 @@ void loop() {
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
-    if (geyserOnMe
-    or game.getDrills(mySquare) > MAXDRILLS - 1) {
-        DEBUG(("Broke"));
-        if (samplesHeld > 3) {
-            dropping = true;
-        }
-        newLoc = true;
-        drilling = false;
-    }
+    
     // @ FLOCAL IS NOW REMAINING FUEL @
     flocal = game.getFuelRemaining();
     // if we have samples and either time or fuel is running out
     if (!drilling //not in the middle of drilling (possibly the 3rd drill which gives 3 pts)
     and (api.getTime()>157 // time is greater than 157 
-    or (flocal < 0.16f and flocal >  0.09f))) {
+    or (flocal < 0.16f and flocal >  0.07f))) {
         // drop off what we have
         dropping=true;
     }
@@ -292,6 +293,12 @@ void loop() {
     if (not drilling) {
         game.stopDrill();
     }
+    bool scDown = 0;
+    if (samplesHeld%2==0 && samplesHeld>0 && drilling) {
+        newLoc = true;
+        scDown++;
+        DEBUG(("SCALE DOWN MVMENT"));
+    }
 
     // create aliases for variables with potentially confusing names
 	#define destination positionTarget
@@ -311,6 +318,10 @@ void loop() {
     while (mathVecMagnitude(fvector,3)>0.045f){
         scale(fvector,.99f);
     }
+    //if on 3rd drill
+    for (int i = 0; i < 3; i++) {
+        fvector[i]*=(0.25f*scDown+!scDown);
+    }
     // if we're on a geyser
     if (geyserOnMe) {
         scale(fvector, 15 / mathVecMagnitude(fvector, 3));
@@ -321,14 +332,16 @@ void loop() {
     for (int i = -1; i < 2; i++) {
         checkSqrs[1]=mySquare[1]+i;
         if (game.isGeyserHere(checkSqrs)) {
-            fvector[0] = 0;
+            newLoc = true;
+            fvector[0]*=-1;
         }
     }
     checkSqrs[1] = mySquare[1]+(fvector[1] > 0)-(fvector[1]<0);
     for (int i = -1; i < 2; i++) {
         checkSqrs[0]=mySquare[0]+i;
         if (game.isGeyserHere(checkSqrs)) {
-            fvector[1] = 0;
+            newLoc = true;
+            fvector[1]*=-1;
         }
     }
     api.setVelocityTarget(fvector);
