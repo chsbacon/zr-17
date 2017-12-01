@@ -322,13 +322,14 @@ void loop() {
     memcpy(checker, fvector, 8);
     mathVecNormalize(checker, 2);
     for (int i = 0; i < 2; i++) {
-        checker[i]*=0.15;
+        checker[i]*=0.12;
         checker[i]+=myPos[i];
     }
     int checkSqrs[2];
     game.pos2square(checker, checkSqrs);
     if (game.isGeyserHere(checkSqrs)) {
         fvector[0]*=-1;
+        fvector[1]*=2;
     }
     api.setVelocityTarget(fvector);
 }
