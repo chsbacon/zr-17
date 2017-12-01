@@ -1,3 +1,4 @@
+//{"sha":"5f38a13ab6badd0811c7d9bfcf9894b4bfc6e0d4"}
 // Macro definitions and pointers
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
@@ -325,7 +326,7 @@ void loop() {
     memcpy(checker, fvector, 8);
     mathVecNormalize(checker, 2);
     for (int i = 0; i < 2; i++) {
-        checker[i]*=0.11314f;
+        checker[i]*=0.079;
         checker[i]+=myPos[i];
     }
     int checkSqrs[2];
