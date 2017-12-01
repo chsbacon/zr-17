@@ -322,7 +322,7 @@ void loop() {
     memcpy(checker, fvector, 8);
     mathVecNormalize(checker, 2);
     for (int i = 0; i < 2; i++) {
-        checker[i]*=0.08;
+        checker[i]*=0.11314f;
         checker[i]+=myPos[i];
     }
     int checkSqrs[2];
