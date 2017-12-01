@@ -328,8 +328,13 @@ void loop() {
     int checkSqrs[2];
     game.pos2square(checker, checkSqrs);
     if (game.isGeyserHere(checkSqrs)) {
-        fvector[0]*=-1;
-        fvector[1]*=2;
+        if (fabsf (fvector[0]>fvector[1])) {
+            fvector[1]*=-1;
+            fvector[0]*=2;
+        } else {
+            fvector[0]*=-1;
+            fvector[1]*=2;
+        }
     }
     api.setVelocityTarget(fvector);
 }
