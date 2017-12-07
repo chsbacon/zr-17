@@ -197,8 +197,8 @@ void loop(){
         }
         //adjust positiontarget to the corner of a square
         game.pos2square(positionTarget,siteCoords);
-        positionTarget[0]+=(nextSquare[0]>mySquare[0]-mySquare[0]>nextSquare[0])*0.025f;
-        positionTarget[1]+=(nextSquare[1]>mySquare[1]-mySquare[1]>nextSquare[1])*0.025f;
+        positionTarget[0]+=(nextSquare[0]>mySquare[0]-mySquare[0]>nextSquare[0])*(0.025f+drilling*.01f);
+        positionTarget[1]+=(nextSquare[1]>mySquare[1]-mySquare[1]>nextSquare[1])*(0.025f+drilling*.01f);
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
@@ -312,27 +312,24 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.04f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal);
+    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    scale(myVel,.2f+flocal*1.01f);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.25f-.09f*flocal);//+.5*geyserOnMe);
+    scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
         fvector[2]=0;
+        // flocal=mathVecMagnitude(fvector,3)/15;
+        // fvector[0]/=flocal;
+        // fvector[1]/=flocal;
+        scale(fvector,15/mathVecMagnitude(fvector,3));
+        //fvector[2]=0.05f;
     }
-    // if (geyserOnMe){
-    //     fvector[2]=0;
-    //     // flocal=mathVecMagnitude(fvector,3)/15;
-    //     // fvector[0]/=flocal;
-    //     // fvector[1]/=flocal;
-    //     scale(fvector,15/mathVecMagnitude(fvector,3));
-    //     //fvector[2]=0.05f;
-    // }
     if (!tenFound and game.hasAnalyzer()){
         fvector[2]=.05f*(.2f-myPos[2]);
         mathVecNormalize(fvector,3);
         //fvector[2]=.1f*(.27f-myPos[2]);
         //while (mathVecMagnitude(fvector,3)>.039f){
-        scale(fvector,.04f);
+        scale(fvector,.03f);
         //}
     }
     api.setVelocityTarget(fvector);
