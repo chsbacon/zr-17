@@ -67,6 +67,7 @@ void loop(){
     float maxDist=100;//Sets this large
     
     bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
+    int nextSquare[2];
     if (!game.hasAnalyzer()){
         positionTarget[0]=.3f;
         positionTarget[1]=-.48f;
@@ -161,7 +162,6 @@ void loop(){
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
     else if ((not dropping)){
-        int nextSquare[2];
         memcpy(nextSquare,mySquare,8);
         float maxDist=1000;
         for (int i=-6;i<7;i++){
@@ -177,7 +177,7 @@ void loop(){
                             //     usefulIntVec[1]*=-1;
                             // }
                             flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.1f*(usefulIntVec[2]>game.getTerrainHeight(mySquare));
-                            if (flocal<maxDist and dist(enPos,usefulVec)>.3f){
+                            if (flocal<maxDist and dist(enPos,usefulVec)>.3f and !game.isGeyserHere(usefulIntVec)){
                                 if (drilling and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
                                     memcpy(nextSquare,usefulIntVec,8);
                                     maxDist=flocal;
@@ -197,8 +197,7 @@ void loop(){
         }
         //adjust positiontarget to the corner of a square
         game.pos2square(positionTarget,siteCoords);
-        positionTarget[0]+=(nextSquare[0]>mySquare[0]-mySquare[0]>nextSquare[0])*(0.025f+drilling*.01f);
-        positionTarget[1]+=(nextSquare[1]>mySquare[1]-mySquare[1]>nextSquare[1])*(0.025f+drilling*.01f);
+        
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
@@ -331,6 +330,14 @@ void loop(){
         //while (mathVecMagnitude(fvector,3)>.039f){
         scale(fvector,.03f);
         //}
+    }
+    if (drilling){
+        fvector[2]=.5f*(positionTarget[2]-myPos[2]);
+        for (int i=0;i<2;i++){
+            fvector[i]=((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.04f+positionTarget[i]-myPos[i])/(13-4*game.getDrills(mySquare));
+        }
+        // positionTarget[0]+=;
+        // positionTarget[1]+=(nextSquare[1]>mySquare[1]-mySquare[1]>nextSquare[1])*(0.025f+drilling*.01f);
     }
     api.setVelocityTarget(fvector);
 }
