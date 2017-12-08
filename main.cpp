@@ -1,3 +1,4 @@
+// Macros / pointers
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
@@ -6,155 +7,215 @@
 #define enPos (&enState[0])
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
-#define enRot (&enState[9])//These are pointers. They will have the values that
+#define enRot (&enState[9])
 #define MAXDRILLS 3
-int siteCoords[3];
+
+int targetSquare[3];
+
+// behaviour flags
 bool dropping;
 bool drilling;
-//are described in their names, and act as length-3 float arrays
+
 int samples;
 int corner;
-bool valArray[12][8];
+
+// we only store half of the possible ten squares
+#define TEN_ZONE_HEIGHT 8
+#define TEN_ZONE_WIDTH 12
+bool concArray[TEN_ZONE_WIDTH][TEN_ZONE_HEIGHT];
+
 int tenCoords[2];
 bool tenFound;
 bool concFound;
-void init(){
-    // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
-	
-	#define SPEEDCONST .35f
+
+void init() {
+    // movement parameters
+    #define SPEEDCONST 0.35f
     #define DERIVCONST 2.35f
-    api.setPosGains(SPEEDCONST,0,DERIVCONST);
-    //api.setAttGains(0.7f,0.1f,3.f);
-    //api.setAttGains(0.f,0.f,0.f);
-    dropping=false;
-    samples=0;
-	drilling=false;
-	concFound=false;
-	memset(valArray,true,96);
-	tenFound=false;
+    api.setPosGains(SPEEDCONST, 0, DERIVCONST);
+    
+    // initialize everything
+    dropping = false;
+    drilling = false;
+	concFound = false;
+	samples = 0;
+	memset(concArray, true, 96);
+	tenFound = false;
 }
 
-void loop(){
+void loop() {
+    // multi-purpose variable
     float flocal;
+    
+    // where we are going
     float positionTarget[3];
+    
+    // never used as (0,0,0) even though it is sometimes that value
     float zeroVec[3];
+    
     float myState[13];
+    api.getMySphState(myState);
+    
+    float enState[12];
+    api.getOtherZRState(enState);
+    
     float usefulVec[3];
     int usefulIntVec[2];
     int mySquare[3];
-    float enState[12];
+
     memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
-    if (game.checkSample()){
+    
+    
+    // if a sample is ready for pick-up
+    if (game.checkSample()) {
+        // dumps a sample if we are already full, otherwise does nothing
         game.dropSample(4);
-        samples+=(bool)(game.pickupSample());
+        
+        //pick up the sample and record it
+        samples += (bool)(game.pickupSample());
     }
-    if (game.atBaseStation()){
-        for (int i=0;i<5;i++){
+    
+    
+    if (game.atBaseStation()) {
+        // drop off
+        for (int i=0; i<5; i++){
             game.dropSample(i);
         }
-        dropping=false;
+        dropping = false;
     }
-    api.getMySphState(myState);
-    float myAtt[3];
-    zeroVec[0]-=1;
-    api.quat2AttVec(zeroVec,myQuatAtt,myAtt);
-    zeroVec[0]+=1;
-    api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
-    game.pos2square(myPos,mySquare);
-    game.square2pos(mySquare,usefulVec);
-    bool geyserOnMe;
-    geyserOnMe=game.isGeyserHere(mySquare);
-    float maxDist=100;//Sets this large
     
-    bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
+    // turn quaternion attitude into nice normal vector
+    float myAtt[3];
+    zeroVec[0] -= 1;
+    api.quat2AttVec(zeroVec, myQuatAtt, myAtt);
+    zeroVec[0] += 1;
+    
+    game.pos2square(myPos, mySquare);
+    // store the center of our current square in usefulVec
+    game.square2pos(mySquare, usefulVec);
+    
+    bool geyserOnMe = game.isGeyserHere(mySquare);
+    
+    float maxDist = 100;
+    
+    // are we on our target square?
+    bool onSite = (mySquare[0]==targetSquare[0] and mySquare[1]==targetSquare[1]);
+    
     int nextSquare[2];
+    
+    // get the analyzer
     if (!game.hasAnalyzer()){
-        positionTarget[0]=.3f;
-        positionTarget[1]=-.48f;
-        if (myPos[1]>0){
-            scale(positionTarget,-1);
+        // coordinates of one analyzer
+        positionTarget[0] = 0.3f;
+        positionTarget[1] = -0.48f;
+        // if we are closer to the other analyzer, go for it instead
+        if (myPos[1] > 0){
+            scale(positionTarget, -1);
         }
-        positionTarget[2]=-.16f;
+        // the height of the analyzers
+        positionTarget[2] = -0.16f;
     }
+    // searching
     else if (!tenFound){
-        float terrain=game.analyzeTerrain();
-        DEBUG(("%f",terrain));
-        if (terrain>.9f){
-            game.pos2square(myPos,tenCoords);
-            tenFound=true;
+        // concentration of the square below us
+        float concentration = game.analyzeTerrain();
+        DEBUG(("%f", concentration));
+        
+        // if we are above the ten
+        if (concentration > 0.9f) {
+            // take note
+            game.pos2square(myPos, tenCoords);
+            tenFound = true;
         }
-        else{
-           
-            if (myPos[1]<0){
-                mySquare[0]*=-1;
-                mySquare[1]*=-1;
+        else {
+            // reflect onto the top half if not already there
+            if (myPos[1] < 0){
+                mySquare[0] *= -1;
+                mySquare[1] *= -1;
             }
-            valArray[mySquare[0]+6-(mySquare[0]>0)][mySquare[1]-1]=false;
-            int valCount=0;
-            memset(siteCoords,0,8);
-            for (int i=-6;i<7;i++){
-                if (i){
-                    for (int j=1;j<9;j++){
-                        usefulIntVec[0]=i;usefulIntVec[1]=j;
-                        int sqDist=intDist(usefulIntVec,mySquare);
-                        usefulIntVec[0]*=-1;
-                        usefulIntVec[1]*=-1;
-                        int sqDist2=intDist(usefulIntVec,mySquare);
-                        if (sqDist>sqDist2){
-                            sqDist=sqDist2;
+            // rule this out as a possible ten
+            // we need to map squares to positions in concArray
+            // special code to handle the lack of a zero column in the game
+            concArray[mySquare[0] + (TEN_ZONE_WIDTH/2) - (mySquare[0] > 0)]
+                [mySquare[1] - 1] = false;
+            
+            int valCount = 0;
+            memset(targetSquare, 0, 8);
+            for (int i = -TEN_ZONE_WIDTH; i <= TEN_ZONE_WIDTH; i++) {
+                // don't check zero column
+                if (i) {
+                    for (int j = 1; j <= TEN_ZONE_HEIGHT; j++) {
+                        // store the square being evaluated
+                        usefulIntVec[0] = i;
+                        usefulIntVec[1] = j;
+                        int sqDist = intDist(usefulIntVec, mySquare);
+                        
+                        // the mirror of the square being evaluated
+                        usefulIntVec[0] *= -1;
+                        usefulIntVec[1] *= -1;
+                        int sqDist2 = intDist(usefulIntVec,mySquare);
+                        
+                        if (sqDist > sqDist2){
+                            sqDist = sqDist2;
                         }
-                        bool inRad=sqDist<=(terrain>.5f?3:7);
-                        if (terrain>.15f){
+                        
+                        // sqDist now contains the squared distance between
+                        // us and the closer of the square being examined and
+                        // its mirror
+                        
+                        bool inRadius = sqDist <= (concentration>0.5f ? 3 : 7);
+                        // if we are over a 3 or a 6
+                        if (concentration > 0.15f) {
                             concFound=true;
-                            inRad=!inRad;
+                            inRadius=!inRadius;
                         }
-                        if (inRad){
-                            valArray[i+6-(i>0)][j-1]=false;
+                        if (inRadius){
+                            concArray[i+6-(i>0)][j-1]=false;
                         }
-                        if (valArray[i+6-(i>0)][j-1]){
-                            siteCoords[0]+=i;
-                            siteCoords[1]+=j;
+                        if (concArray[i+6-(i>0)][j-1]){
+                            targetSquare[0]+=i;
+                            targetSquare[1]+=j;
                             valCount++;
                         }
                     }
                 }
             }
-            //siteCoords[0]+=(siteCoords[0]-mySquare[0]*valCount);
-            //siteCoords[1]+=(siteCoords[1]-mySquare[1]*valCount);
-            siteCoords[0]/=valCount;siteCoords[1]/=valCount;
-            if (!siteCoords[0]){
-                siteCoords[0]++;
+            //targetSquare[0]+=(targetSquare[0]-mySquare[0]*valCount);
+            //targetSquare[1]+=(targetSquare[1]-mySquare[1]*valCount);
+            targetSquare[0]/=valCount;targetSquare[1]/=valCount;
+            if (!targetSquare[0]){
+                targetSquare[0]++;
             }
             if (!concFound){
-                if (valArray[0][0]){
-                    siteCoords[0]=-5;
-                    siteCoords[1]=2;
+                if (concArray[0][0]){
+                    targetSquare[0]=-5;
+                    targetSquare[1]=2;
                 }
-                else if (valArray[11][0]){
-                    siteCoords[0]=4;
-                    siteCoords[1]=2;
+                else if (concArray[11][0]){
+                    targetSquare[0]=4;
+                    targetSquare[1]=2;
                 }
-                else if (valArray[11][7]){
-                    siteCoords[0]=4;
-                    siteCoords[1]=7;
+                else if (concArray[11][7]){
+                    targetSquare[0]=4;
+                    targetSquare[1]=7;
                 }
             }
-            while (!valArray[siteCoords[0]+6-(siteCoords[0]>-1)][siteCoords[1]-1]){
-                siteCoords[0]+=1;
-                if (siteCoords[0]>6){
-                    siteCoords[0]=-6;
-                    siteCoords[1]++;
+            while (!concArray[targetSquare[0]+6-(targetSquare[0]>-1)][targetSquare[1]-1]){
+                targetSquare[0]+=1;
+                if (targetSquare[0]>6){
+                    targetSquare[0]=-6;
+                    targetSquare[1]++;
                 }//removing the x=0 skip here shouldn't break things because of how the boolean subtraction is structured in the while condition (ends up same as prev) but may be wrong
-                if (siteCoords[1]>8){
-                    siteCoords[1]=1;
+                if (targetSquare[1]>8){
+                    targetSquare[1]=1;
                 }
             }
             if (myPos[1]<0){
-                siteCoords[1]*=-1;
-                siteCoords[0]*=-1;
+                targetSquare[1]*=-1;
+                targetSquare[0]*=-1;
             }
-            game.square2pos(siteCoords,positionTarget);
-            DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+            game.square2pos(targetSquare,positionTarget);
+            DEBUG(("%i %i", targetSquare[0],targetSquare[1]));
             positionTarget[2]=0.f;
             
         }
@@ -196,12 +257,12 @@ void loop(){
             memset(nextSquare,0,8);
         }
         //adjust positiontarget to the corner of a square
-        game.pos2square(positionTarget,siteCoords);
+        game.pos2square(positionTarget,targetSquare);
         
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
-        if (!onSite){// and (game.getTerrainHeight(mySquare)<game.getTerrainHeight(siteCoords))){
+        if (!onSite){// and (game.getTerrainHeight(mySquare)<game.getTerrainHeight(targetSquare))){
             positionTarget[2]=.27f;
             DEBUG(("O"));
             if (myPos[2]>.29f){
@@ -211,9 +272,9 @@ void loop(){
         }
         else{
             DEBUG(("D"));
-            positionTarget[2]=game.getTerrainHeight(siteCoords)-.13f;
+            positionTarget[2]=game.getTerrainHeight(targetSquare)-.13f;
         }
-        DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
+        DEBUG(("%i %i", targetSquare[0],targetSquare[1]));
         DEBUG(("%i %i", mySquare[0],mySquare[1]));
         DEBUG(("%i %i", nextSquare[0],nextSquare[1]));
         
@@ -341,11 +402,13 @@ void loop(){
     }
     api.setVelocityTarget(fvector);
 }
+
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
     mathVecSubtract(ansVec, vec1, vec2, 3);
     return mathVecMagnitude(ansVec, 3);
 }
+
 void fixEdge(int coorVec[2]){
     if (coorVec[1]==0){
         coorVec[1]=1;
@@ -354,11 +417,18 @@ void fixEdge(int coorVec[2]){
         coorVec[0]=1;
     }
 }
+
 void scale (float* vec, float scale) {//This function scales a length-3 vector by a coeff.
     for (int i=0; i<3; i++) {
         vec[i] *= scale;
     }
 }
-int intDist(int a1[2],int a2[2]){
+
+/**
+ * @param a1 - a square
+ * @param a2 - another square
+ * @return the distance between a1 and a2, squared
+ */
+int intDist(int a1[2],int a2[2]) {
     return ((a1[0]-a2[0])*(a1[0]-a2[0])+(a1[1]-a2[1])*(a1[1]-a2[1]));
 }
