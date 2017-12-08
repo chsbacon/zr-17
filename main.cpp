@@ -311,8 +311,8 @@ void loop(){
     #define ACCEL .014f
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
-    flocal=0.0333333f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal*1.01f);
+    flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
+    scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.27f-.09f*flocal);
     if (geyserOnMe){
@@ -334,10 +334,8 @@ void loop(){
     if (drilling){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
-            fvector[i]=((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.04f+positionTarget[i]-myPos[i])/(13-4*game.getDrills(mySquare));
+            fvector[i]=((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.038f+positionTarget[i]-myPos[i])/(15-5.5f*game.getDrills(mySquare));
         }
-        // positionTarget[0]+=;
-        // positionTarget[1]+=(nextSquare[1]>mySquare[1]-mySquare[1]>nextSquare[1])*(0.025f+drilling*.01f);
     }
     api.setVelocityTarget(fvector);
 }
