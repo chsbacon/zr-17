@@ -208,6 +208,23 @@ void loop(){
             if (myPos[2]>.29f){
                 DEBUG(("U"));
                 memcpy(positionTarget,myPos,8);
+                
+                float shortestDist;
+                shortestDist = 1000;
+                float bestCorner[3];
+                for(int theta = 3.14/4;theta < 7*3.14/4; theta += 3.14 / 2) {
+                    float addedVec[3];
+                    addedVec[0] = .2*cosf(theta);
+                    addedVec[1] = .2*sinf(theta);
+                    addedVec[2] = 0;
+                    if(dist(addedVec, zeroVec) < shortestDist) {
+                        shortestDist = dist(addedVec, zeroVec);
+                        memcpy(bestCorner, addedVec, 12);
+                        
+                    }
+                }
+                mathVecAdd(positionTarget, bestCorner, positionTarget,3);
+                
             }
         }
         else{
