@@ -259,6 +259,24 @@ void loop() {
                 // set the x and y of positionTarget to current x and y in
                 // order to stop moving horizontally
                 memcpy(positionTarget, myPos, 8);
+                
+                float shortestDist;
+                shortestDist = 1000;
+                float bestCorner[3];
+                for(int theta = 3.14/4;theta < 7*3.14/4; theta += 3.14 / 2) {
+                    float addedVec[3];
+                    addedVec[0] = .05*cosf(theta);
+                    addedVec[1] = .05*sinf(theta);
+                    addedVec[2] = 0;
+                    //compares this distance 
+                    if(dist(addedVec, zeroVec) < shortestDist) {
+                        shortestDist = dist(addedVec, zeroVec);
+                        memcpy(bestCorner, addedVec, 12);
+                        
+                    }
+                }
+                mathVecAdd(positionTarget, bestCorner, positionTarget,3);
+                
             }
         }
         // if we are not in danger of hitting the terrain
