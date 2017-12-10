@@ -214,8 +214,8 @@ void loop(){
                 float bestCorner[3];
                 for(int theta = 3.14/4;theta < 7*3.14/4; theta += 3.14 / 2) {
                     float addedVec[3];
-                    addedVec[0] = .2*cosf(theta);
-                    addedVec[1] = .2*sinf(theta);
+                    addedVec[0] = .05*cosf(theta);
+                    addedVec[1] = .05*sinf(theta);
                     addedVec[2] = 0;
                     if(dist(addedVec, zeroVec) < shortestDist) {
                         shortestDist = dist(addedVec, zeroVec);
