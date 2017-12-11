@@ -235,11 +235,13 @@ void loop() {
         siteCoords[1] *= -1;
     }
     
+    int nextSquare[2];
     // stores whether we are at the square we are targetubg
     bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
     
     // drilling translational movement
     if ((not dropping) and (not guarding)) {
+        memcpy(nextSquare,mySquare,8);
         // set positionTarget to the drill square
         game.square2pos(siteCoords, positionTarget);
         // adjust positionTarget to the corner of a square
@@ -269,7 +271,9 @@ void loop() {
         }
         DEBUG(("target square: (%i, %i)", siteCoords[0],siteCoords[1]));
         DEBUG(("current square: (%i %i)", mySquare[0],mySquare[1]));
-        
+        if (game.getNumSamplesHeld()>2){
+            memset(nextSquare,0,8);
+        }
         
         // @ USEFUL VEC IS NOW OUR ATTITUDE TARGET @
         // check drilling conditions
