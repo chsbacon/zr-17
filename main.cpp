@@ -335,7 +335,6 @@ void loop() {
             newLoc = true;
             //memcp
         }
-
         // rotate to satisfy drop off requirement
         zeroVec[2] -= 1;
         api.setAttitudeTarget(zeroVec);
@@ -416,14 +415,9 @@ void loop() {
     if (geyserOnMe) {
         // don't bother moving vertically
         fvector[2] = 0.0f;
-        scale(fvector, 5 / mathVecMagnitude(fvector, 3));
+        scale(fvector, 5 / mathVecMagnitude(fvector, 3));   
     }
     api.setVelocityTarget(fvector);
-}
-
-float angle(float* vec1, float* vec2, int len){
-    return acosf(mathVecInner(vec1, vec2, len)
-        / (mathVecMagnitude(vec1, len) * mathVecMagnitude(vec2, len)));
 }
 
 /**
