@@ -420,6 +420,11 @@ void loop() {
     api.setVelocityTarget(fvector);
 }
 
+float angle(float* vec1, float* vec2, int len){
+    return acosf(mathVecInner(vec1, vec2, len)
+        / (mathVecMagnitude(vec1, len) * mathVecMagnitude(vec2, len)));
+}
+
 /**
  * @param vec1 - a 3D position vector
  * @param vec2 - another 3D position vector
