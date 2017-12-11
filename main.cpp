@@ -260,23 +260,6 @@ void loop() {
                 // order to stop moving horizontally
                 memcpy(positionTarget, myPos, 8);
                 
-                float shortestDist;
-                shortestDist = 1000;
-                float bestCorner[3];
-                for(int theta = 3.14/4;theta < 7*3.14/4; theta += 3.14 / 2) {
-                    float addedVec[3];
-                    addedVec[0] = .05*cosf(theta);
-                    addedVec[1] = .05*sinf(theta);
-                    addedVec[2] = 0;
-                    //compares this distance 
-                    if(dist(addedVec, zeroVec) < shortestDist) {
-                        shortestDist = dist(addedVec, zeroVec);
-                        memcpy(bestCorner, addedVec, 12);
-                        
-                    }
-                }
-                mathVecAdd(positionTarget, bestCorner, positionTarget,3);
-                
             }
         }
         // if we are not in danger of hitting the terrain
@@ -426,6 +409,12 @@ void loop() {
         // don't bother moving vertically
         fvector[2] = 0.0f;
         scale(fvector, 5 / mathVecMagnitude(fvector, 3));
+    }
+    if (drilling){
+        fvector[2]=.5f*(positionTarget[2]-myPos[2]);
+        for (int i=0;i<2;i++){
+            fvector[i]=((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.038f+positionTarget[i]-myPos[i])/(15-5.5f*game.getDrills(mySquare));
+        }
     }
     api.setVelocityTarget(fvector);
 }
