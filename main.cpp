@@ -184,7 +184,9 @@ void loop(){
                                 }
                                 else{
                                     memcpy(positionTarget,usefulVec,12);
-                                    maxDist=flocal;
+                                    if (!drilling){
+                                        maxDist=flocal;
+                                    }
                                 }
                             }
                         }
@@ -314,7 +316,7 @@ void loop(){
     flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
     scale(myVel,.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
-    scale(fvector,.27f-.09f*flocal);
+    scale(fvector,.25f-.09f*flocal);
     if (geyserOnMe){
         fvector[2]=0;
         // flocal=mathVecMagnitude(fvector,3)/15;
@@ -334,7 +336,7 @@ void loop(){
     if (drilling){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
-            fvector[i]=((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.038f+positionTarget[i]-myPos[i])/(15-5.5f*game.getDrills(mySquare));
+            fvector[i]=(((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(10-4.f*game.getDrills(mySquare));
         }
     }
     api.setVelocityTarget(fvector);
