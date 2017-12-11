@@ -103,6 +103,7 @@ void loop() {
             game.dropSample(i);
         }
         //after dropping, find a new square
+        DEBUG(("--RETARGETING--"));
         newLoc = true;
         dropping = false;
     }
@@ -352,6 +353,9 @@ void loop() {
         if (game.getNumSamplesHeld() > 3) {
             dropping = true;
         }
+        if (game.getDrillError()) DEBUG(("--DRILL ERROR--"));
+        else if (geyserOnMe) DEBUG(("--GEYSER--"));
+        else if (game.getDrills(mySquare) > MAXDRILLS - 1) DEBUG(("--MAX DRILLS--"));
         newLoc = true;
         drilling = false;
     }
