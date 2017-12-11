@@ -312,7 +312,16 @@ void loop() {
         // rotate to satisfy drop off requirement
         zeroVec[2] -= 1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2] = 0.0f; //Slow down        
+        zeroVec[2] = 0.0f; //Slow down
+        
+        if(angle(myPos, enPos, 3) < 0.6f and mathVecMagnitude(enPos, 3) < BASE_STATION_RADIUS - SPHERE_RADIUS + 0.05f){
+            for (int i=0; i<5; i++) {
+                game.dropSample(i);
+            }
+            //after dropping, find a new square
+            newLoc = true;
+            //memcp
+        }
     }
     
     PRINTVEC("myQuatAtt", myQuatAtt);
@@ -380,6 +389,17 @@ void loop() {
         scale(fvector, 15 / mathVecMagnitude(fvector, 3));
     }
     api.setVelocityTarget(fvector);
+}
+
+/**
+ * @param vec1 - a 3D position vector
+ * @param vec2 - another 3D position vector
+ * @parem len - length of both 3D vectors
+ * @return the angle between vec1 and vec2
+ */
+float angle(float* vec1, float* vec2, int len){
+    return acosf(mathVecInner(vec1, vec2, len)
+        / (mathVecMagnitude(vec1, len) * mathVecMagnitude(vec2, len)));
 }
 
 /**
