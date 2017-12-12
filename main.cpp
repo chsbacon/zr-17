@@ -210,7 +210,7 @@ void loop() {
                             and dist(enPos, usefulVec) > 0.35f ) {
                                 // if it's good, store it in siteCoords
                                 
-                                if (drilling and abs(mySquare[0] - usefulIntVec[0]) < .1 and abs(mySquare[1] - usefulIntVec[1])){
+                                if (drilling and not (abs(mySquare[0] - usefulIntVec[0]) < .1 and abs(mySquare[1] - usefulIntVec[1]))){
                                     memcpy(nextSquare, usefulIntVec, 8);
                                 }
                                 else {
@@ -427,7 +427,7 @@ void loop() {
     if (drilling){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
-            fvector[i]=10*((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.038f+positionTarget[i]-myPos[i])/(15-5.5f*game.getDrills(mySquare));
+            fvector[i]=1*((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.038f+positionTarget[i]-myPos[i])/(15-5.5f*game.getDrills(mySquare));
         }
     }
     api.setVelocityTarget(fvector);
