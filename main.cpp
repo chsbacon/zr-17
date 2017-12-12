@@ -336,7 +336,7 @@ void loop(){
     if (drilling){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
-            fvector[i]=(((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(10-4.f*game.getDrills(mySquare));
+            fvector[i]=(((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(11-4.f*game.getDrills(mySquare));
         }
     }
     api.setVelocityTarget(fvector);
