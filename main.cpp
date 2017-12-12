@@ -176,7 +176,7 @@ void loop(){
                             //     usefulIntVec[0]*=-1;
                             //     usefulIntVec[1]*=-1;
                             // }
-                            flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.1f*(usefulIntVec[2]>game.getTerrainHeight(mySquare));
+                            flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.5f*(usefulVec[2]>=game.getTerrainHeight(mySquare));
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f and !game.isGeyserHere(usefulIntVec)){
                                 if (drilling and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
                                     memcpy(nextSquare,usefulIntVec,8);
@@ -336,7 +336,7 @@ void loop(){
     if (drilling){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
-            fvector[i]=(((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(11-4.f*game.getDrills(mySquare));
+            fvector[i]=(((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(12-4.f*game.getDrills(mySquare));
         }
     }
     api.setVelocityTarget(fvector);
