@@ -210,7 +210,7 @@ void loop() {
                             and dist(enPos, usefulVec) > 0.35f ) {
                                 // if it's good, store it in siteCoords
                                 
-                                if (drilling and intDist(siteCoords, mySquare) < .05){
+                                if (drilling and abs(mySquare[0] - usefulIntVec[0]) < .1 and abs(mySquare[1] - usefulIntVec[1])){
                                     memcpy(nextSquare, usefulIntVec, 8);
                                 }
                                 else {
