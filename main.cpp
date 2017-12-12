@@ -34,7 +34,11 @@ int corner;
 // the enemy's score
 float enScore;
 
+// right after they found the 10, before going towards it
+bool justFoundThe10;
+
 void init(){
+    
   // they start with 0 points
   enScore = 0;
 
@@ -56,6 +60,8 @@ void init(){
   drilling = false;
   // we start the game not guarding
   guarding = false;
+  
+  justFoundThe10 = false;
 	
 }
 
@@ -98,12 +104,12 @@ void loop() {
     }
     
     // if we are at the base, drop off our samples
-    if (game.atBaseStation()) {
+    if (game.atBaseStation() && game.getNumSamplesHeld() != 0) {
         for (int i=0; i<5; i++) {
             game.dropSample(i);
         }
         //after dropping, find a new square
-        newLoc = true;
+        newLoc = !justFoundThe10;
         dropping = false;
     }
     
@@ -132,7 +138,9 @@ void loop() {
     float modPos[3];
     memcpy(modPos, myPos, 8);
     modPos[2] = -10.0f;
-                  
+    
+    DEBUG(("Ba fra %d", justFoundThe10));
+    
     // selects the best square to drill
     if (newLoc and !game.checkSample() and not drilling) {
         for (int i = -6; i<6; i++){ // checks all clumps of 4 squares (blocks)
@@ -233,6 +241,7 @@ void loop() {
         game.pos2square(enPos, siteCoords);
         siteCoords[0] *= -1;
         siteCoords[1] *= -1;
+        justFoundThe10 = true;
     }
     
     // stores whether we are at the square we are targetubg
@@ -300,6 +309,7 @@ void loop() {
             zeroVec[2] = -0.04f;
         }
         api.setAttitudeTarget(usefulVec);
+        justFoundThe10 = false;
        
     }
     // if we are not drilling, then drop off samples
