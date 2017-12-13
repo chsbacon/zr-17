@@ -1,8 +1,8 @@
 #define PRINTVEC(str, vec) DEBUG(("%s %f %f %f", str, vec[0], vec[1], vec[2]));
 #define myPos (&myState[0])
 #define myVel (&myState[3])
-#define myQuatAtt (&myState[6])
-#define myRot (&myState[10])
+#define myAtt (&myState[6])
+#define myRot (&myState[9])
 #define enPos (&enState[0])
 #define enVel (&enState[3])
 #define enAtt (&enState[6])
@@ -38,7 +38,7 @@ void loop(){
     float flocal;
     float positionTarget[3];
     float zeroVec[3];
-    float myState[13];
+    float myState[12];
     float usefulVec[3];
     int usefulIntVec[2];
     int mySquare[3];
@@ -54,11 +54,8 @@ void loop(){
         }
         dropping=false;
     }
-    api.getMySphState(myState);
-    float myAtt[3];
-    zeroVec[0]-=1;
-    api.quat2AttVec(zeroVec,myQuatAtt,myAtt);
-    zeroVec[0]+=1;
+    api.getMyZRState(myState);
+
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
     game.square2pos(mySquare,usefulVec);
@@ -134,10 +131,10 @@ void loop(){
                     siteCoords[0]=4;
                     siteCoords[1]=2;
                 }
-                else if (valArray[11][7]){
-                    siteCoords[0]=4;
-                    siteCoords[1]=7;
-                }
+                // else if (valArray[11][7]){
+                //     siteCoords[0]=4;
+                //     siteCoords[1]=7;
+                // }
             }
             while (!valArray[siteCoords[0]+6-(siteCoords[0]>-1)][siteCoords[1]-1]){
                 siteCoords[0]+=1;
@@ -278,10 +275,10 @@ void loop(){
     //     api.setAttRateTarget(usefulVec);
     // }
     //if our drill breaks or we get a geyser, stop the current drill
-    flocal=game.getFuelRemaining();
-    if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)))){// or (flocal<.18f and flocal> .12f))){//at the end of the game, drop off what we have
-        dropping=true;
-    }
+    // flocal=game.getFuelRemaining();
+    // if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)))){// or (flocal<.18f and flocal> .12f))){//at the end of the game, drop off what we have
+    //     dropping=true;
+    // }
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1
