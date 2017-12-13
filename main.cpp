@@ -328,16 +328,16 @@ void loop(){
     if (!tenFound and game.hasAnalyzer()){
         fvector[2]=.05f*(.2f-myPos[2]);
         mathVecNormalize(fvector,3);
-        //fvector[2]=.1f*(.27f-myPos[2]);
-        //while (mathVecMagnitude(fvector,3)>.039f){
-        scale(fvector,.03f);
-        //}
+        scale(fvector,.045f);
+        mathVecAdd(fvector,myVel,fvector,3);
+        scale(fvector,.33333f);
     }
     if (drilling){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
-            fvector[i]=(((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(12-4.f*game.getDrills(mySquare));
+            fvector[i]=((((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(12-4.f*game.getDrills(mySquare)));
         }
+        
     }
     api.setVelocityTarget(fvector);
 }
