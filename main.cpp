@@ -37,6 +37,8 @@ float enScore;
 // right after they found the 10, before going towards it
 bool justFoundThe10;
 
+int red;
+
 void init(){
     
   // they start with 0 points
@@ -62,6 +64,8 @@ void init(){
   guarding = false;
   
   justFoundThe10 = false;
+  
+  red = 2;
 	
 }
 
@@ -117,6 +121,9 @@ void loop() {
     api.getMySphState(myState);
     api.getOtherZRState(enState);
     
+    //if(red == 2)
+    red = (myState[1]>0?1:-1);
+    
     //convert quaternion into attitude vector
     float myAtt[3];
     zeroVec[0] -= 1; // we avoid a new vector to save space
@@ -132,107 +139,143 @@ void loop() {
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
     // must be larger than all distances we check
-    float minDist = 100;
-    
+    float minDist = 100.0;
     // contains a position above us, so that we favor high drill spots
     float modPos[3];
     memcpy(modPos, myPos, 8);
     modPos[2] = -10.0f;
     
-    DEBUG(("Ba fra %d", justFoundThe10));
+    // DEBUG(("Ba fra %d", justFoundThe10));
     
-    // selects the best square to drill
     if (newLoc and !game.checkSample() and not drilling) {
-        for (int i = -6; i<6; i++){ // checks all clumps of 4 squares (blocks)
-        // and sees which is both closest to us and in the center.
-            for (int j = -8; j<8; j++){
-                if (i*j !=0 and (i < -3 or i > 2 or j < -3 or j > 2)) {
+         for (int i = /*game.getNumSamplesHeld()==0?*/-6/*:mySquare[0]*/; i<=6; i++) {
+             for (int j = (red==1?-8:mySquare[1]); j<=(red==1?mySquare[1]:8); j++) {
+                 if (i*j !=0 and (i < -2 or i > 2 or j < -2 or j > 2)) {
+                     
+                    usefulIntVec[0] = i;
+                    usefulIntVec[1] = j;
+                    game.square2pos(usefulIntVec, usefulVec);
+                    usefulVec[2] = game.getTerrainHeight(usefulIntVec);
+                     
+                    float di = dist(usefulVec, myPos);
                     
-                    // initialize array to store number of squares at each level
-                    int heights[4];
-                    memset(heights, 0, 16);
-                    
-                    // Decides which square to drill
-                    for (int a=0; a<4; a++) { // cycles through all 4 squares
-                        // @ USEFUL INT VEC IS NOW THE SQUARE WE ARE CHECKING @
-                        usefulIntVec[0] = i + a%2; // goes 0 1 0 1
-                        usefulIntVec[1] = j + a/2; // goes 0 0 1 1
-                        fixEdge(usefulIntVec);
+                    DEBUG(("AYYYYY %d", (usefulVec[2] != 0.64f || dist(usefulVec, enState) < 0.35f || game.getDrills(usefulIntVec) != 0)));
+                     
+                    if(usefulVec[2] != 0.40f || dist(usefulVec, enState) < 0.35f || game.getDrills(usefulIntVec) != 0)
+                        continue;
                         
+                    DEBUG(("TESTTT %f %f", minDist, di));
                         
-                        // map terrain height [0.4-0.64] to
-                        // index in heights array [0-3]
-                        int index = (game.getTerrainHeight(usefulIntVec) * 12.5f)
-                            - 5.0f;
-                        // make sure the square is either undrilled or close to us
-                        if (game.getDrills(usefulIntVec) == 0
-                        or (mySquare[0] - i == (mySquare[0] - i) % 2 
-                        and (mySquare[1] - j) == (mySquare[1] - j) % 2)) {
-                            // tally up how many squares for each height exist in a block
-                            heights[index] += 1;
-                        }
+                    if(minDist > di) {
+                        
+                        DEBUG(("BAAA"));
+                        
+                        memcpy(siteCoords, usefulIntVec, 8);
+                        minDist = di;
+                        corner = 0;
+                        
                     }
-                    
-                    // Our goal is to find a block with many squares
-                    // at the same height.
-    
-                    // stores the height with the most squares
-                    float goodHeight = 0.4f;
-                    for (int other=1; other<4; other++) { // go over each height
-                        // if a there are three squares at one level
-                        if (heights[other] == 3) {
-                            // to save space, we store the highest number of
-                            // squares in heights[0]
-                            heights[0] = 3;
-                            
-                            // update the height with the most squares
-                            goodHeight = (other * 0.08f) + 0.4f;
-                        }
-                    }
-                    
-                    // if the height with the most squares has 3 squares
-                    if (heights[0] > 1) {
-                        // go over each square in the block
-                        for (int a=0; a<4; a++) {
-                            usefulIntVec[0] = i + a%2;
-                            usefulIntVec[1] = j + a/2; // see above
-                            fixEdge(usefulIntVec);
-                            
-                            // @ USEFUL VEC IS NOW THE SQUARE WE ARE CHECKING @
-                            game.square2pos(usefulIntVec, usefulVec);
-                            usefulVec[2] = game.getTerrainHeight(usefulIntVec);
-                            
-                            // give this square a score based on how far
-                            // it is from a position above us (modPos)
-                            float score = dist(usefulVec, modPos);
-                            
-                            // check if this square is better than our
-                            // previous choice of square
-                            if (usefulVec[2] == goodHeight
-                            and score < minDist 
-                            and game.getDrills(usefulIntVec) < 1 
-                            and dist(enPos, usefulVec) > 0.35f) {
-                                // if it's good, store it in siteCoords
-                                memcpy(siteCoords, usefulIntVec, 8);
-                                
-                                // which square of the block this is
-                                corner = a;
-                                
-                                // update minDist to reflect that this square
-                                // is the closest we've seen
-                                minDist = score;
-                            }
-                        }
-                    }
-                    
-                    
-                }
-            }
-        }
-        // once we have selected a new drill square, we set this flag so that
-        // we don't immediately pick a different one
-        newLoc = false;
+                     
+                 }
+             }
+         }
+         newLoc = false;
     }
+    
+    DEBUG(("BA %d %d", siteCoords[0], siteCoords[1]));
+    
+    // // selects the best square to drill
+    // if (newLoc and !game.checkSample() and not drilling) {
+    //     for (int i = -6; i<6; i++){ // checks all clumps of 4 squares (blocks)
+    //     // and sees which is both closest to us and in the center.
+    //         for (int j = -8; j<8; j++){
+    //             if (i*j !=0 and (i < -3 or i > 2 or j < -3 or j > 2)) {
+                    
+    //                 // initialize array to store number of squares at each level
+    //                 int heights[4];
+    //                 memset(heights, 0, 16);
+                    
+    //                 // Decides which square to drill
+    //                 for (int a=0; a<4; a++) { // cycles through all 4 squares
+    //                     // @ USEFUL INT VEC IS NOW THE SQUARE WE ARE CHECKING @
+    //                     usefulIntVec[0] = i + a%2; // goes 0 1 0 1
+    //                     usefulIntVec[1] = j + a/2; // goes 0 0 1 1
+    //                     fixEdge(usefulIntVec);
+                        
+                        
+    //                     // map terrain height [0.4-0.64] to
+    //                     // index in heights array [0-3]
+    //                     int index = (game.getTerrainHeight(usefulIntVec) * 12.5f)
+    //                         - 5.0f;
+    //                     // make sure the square is either undrilled or close to us
+    //                     if (game.getDrills(usefulIntVec) == 0
+    //                     or (mySquare[0] - i == (mySquare[0] - i) % 2 
+    //                     and (mySquare[1] - j) == (mySquare[1] - j) % 2)) {
+    //                         // tally up how many squares for each height exist in a block
+    //                         heights[index] += 1;
+    //                     }
+    //                 }
+                    
+    //                 // Our goal is to find a block with many squares
+    //                 // at the same height.
+    
+    //                 // stores the height with the most squares
+    //                 float goodHeight = 0.4f;
+    //                 for (int other=1; other<4; other++) { // go over each height
+    //                     // if a there are three squares at one level
+    //                     if (heights[other] == 3) {
+    //                         // to save space, we store the highest number of
+    //                         // squares in heights[0]
+    //                         heights[0] = 3;
+                            
+    //                         // update the height with the most squares
+    //                         goodHeight = (other * 0.08f) + 0.4f;
+    //                     }
+    //                 }
+                    
+    //                 // if the height with the most squares has 3 squares
+    //                 if (heights[0] > 1) {
+    //                     // go over each square in the block
+    //                     for (int a=0; a<4; a++) {
+    //                         usefulIntVec[0] = i + a%2;
+    //                         usefulIntVec[1] = j + a/2; // see above
+    //                         fixEdge(usefulIntVec);
+                            
+    //                         // @ USEFUL VEC IS NOW THE SQUARE WE ARE CHECKING @
+    //                         game.square2pos(usefulIntVec, usefulVec);
+    //                         usefulVec[2] = game.getTerrainHeight(usefulIntVec);
+                            
+    //                         // give this square a score based on how far
+    //                         // it is from a position above us (modPos)
+    //                         float score = dist(usefulVec, modPos);
+                            
+    //                         // check if this square is better than our
+    //                         // previous choice of square
+    //                         if (usefulVec[2] == goodHeight
+    //                         and score < minDist 
+    //                         and game.getDrills(usefulIntVec) < 1 
+    //                         and dist(enPos, usefulVec) > 0.35f) {
+    //                             // if it's good, store it in siteCoords
+    //                             memcpy(siteCoords, usefulIntVec, 8);
+                                
+    //                             // which square of the block this is
+    //                             corner = a;
+                                
+    //                             // update minDist to reflect that this square
+    //                             // is the closest we've seen
+    //                             minDist = score;
+    //                         }
+    //                     }
+    //                 }
+                    
+                    
+    //             }
+    //         }
+    //     }
+    //     // once we have selected a new drill square, we set this flag so that
+    //     // we don't immediately pick a different one
+    //     newLoc = false;
+    // }
     
     // if they found the 10
     if (enDeltaScore == 3.5f) {
@@ -247,14 +290,23 @@ void loop() {
     // stores whether we are at the square we are targetubg
     bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
     
+    corner = 1;
+    if(myPos[0] < 0)
+        corner *= -1;
+    if(game.getNumSamplesHeld() >= 4)
+        corner *= -1;
+    corner = 1-(corner+1)/2;
+    
     // drilling translational movement
     if ((not dropping) and (not guarding)) {
         // set positionTarget to the drill square
         game.square2pos(siteCoords, positionTarget);
+        DEBUG(("TESTY %f %f", positionTarget[0], positionTarget[1]));
         // adjust positionTarget to the corner of a square
-        positionTarget[0] += ((corner % 2) * -2 + 1) * 0.029f;
-        positionTarget[1] += ((corner / 2) * -2 + 1) * 0.029f;
         
+        positionTarget[0] += ((corner % 2) * -2 + 1) * 0.029f * red;
+        //positionTarget[1] += ((corner / 2) * -2 + 1) * 0.029f * red;
+
         // avoid crashing into terrain
         if (!onSite 
         and (game.getTerrainHeight(mySquare) > game.getTerrainHeight(siteCoords) 
