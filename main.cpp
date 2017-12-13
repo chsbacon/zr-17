@@ -328,7 +328,7 @@ void loop(){
     if (!tenFound and game.hasAnalyzer()){
         fvector[2]=.05f*(.2f-myPos[2]);
         mathVecNormalize(fvector,3);
-        scale(fvector,.045f);
+        scale(fvector,.075f);
         mathVecAdd(fvector,myVel,fvector,3);
         scale(fvector,.33333f);
     }
