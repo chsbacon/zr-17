@@ -121,7 +121,8 @@ void loop() {
     api.getMySphState(myState);
     api.getOtherZRState(enState);
     
-    red = (myState[1]>0?1:-1);
+    //if(red == 2)
+    red = (myState[0]>0?1:-1);
     
     //convert quaternion into attitude vector
     float myAtt[3];
@@ -146,7 +147,7 @@ void loop() {
     
     if (newLoc and !game.checkSample() and not drilling) {
          for (int i = -6; i<=6; i++) {
-             for (int j = (red==1?-8:mySquare[1]); j<=(red==1?mySquare[1]:8); j++) {
+             for (int j = (red==1?-8:(mySquare[1]+1)); j<=(red==1?(mySquare[1]-1):8); j++) {
                  if (i*j !=0 and (i < -2 or i > 2 or j < -2 or j > 2)) {
                      
                     usefulIntVec[0] = i;
@@ -155,16 +156,11 @@ void loop() {
                     usefulVec[2] = game.getTerrainHeight(usefulIntVec);
                      
                     float di = dist(usefulVec, myPos);
-                    
-                    DEBUG(("AYYYYY %d", (usefulVec[2] != 0.64f || dist(usefulVec, enState) < 0.35f || game.getDrills(usefulIntVec) != 0)));
                      
-                    if(usefulVec[2] != 0.40f || dist(usefulVec, enPos) < 0.35f
-                    || game.getDrills(usefulIntVec) != 0)
+                    if(usefulVec[2] != 0.40f || dist(usefulVec, enState) < 0.35f || game.getDrills(usefulIntVec) != 0)
                         continue;
                         
-                    DEBUG(("TESTTT %f %f", minDist, di));
-                        
-                    if (minDist > di) {
+                    if(minDist > di) {
                         
                         DEBUG(("BAAA"));
                         
@@ -195,12 +191,15 @@ void loop() {
     // stores whether we are at the square we are targetubg
     bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
     
-    corner = 1;
-    if(myPos[0] < 0)
+    corner = -1;
+    if(myPos[1] < 0)
         corner *= -1;
-    if(game.getNumSamplesHeld() >= 4)
-        corner *= -1;
-    corner = 1-(corner+1)/2;
+    if(game.getNumSamplesHeld() >= 4) {
+     
+        corner = myPos[1]>0?-1:1;
+        
+    }
+    //corner = 1-(corner+1)/2;
     
     // drilling translational movement
     if ((not dropping) and (not guarding)) {
@@ -209,8 +208,7 @@ void loop() {
         DEBUG(("TESTY %f %f", positionTarget[0], positionTarget[1]));
         // adjust positionTarget to the corner of a square
         
-        positionTarget[0] += ((corner % 2) * -2 + 1) * 0.029f * red;
-        //positionTarget[1] += ((corner / 2) * -2 + 1) * 0.029f * red;
+        positionTarget[1] += corner * 0.029f;
 
         // avoid crashing into terrain
         if (!onSite 
