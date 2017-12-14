@@ -133,8 +133,12 @@ void loop() {
     memcpy(modPos, myPos, 8);
     modPos[2] = -10.0f;
                   
+    
+    int nextSquare[2];
+    
     // selects the best square to drill
-    if (newLoc and !game.checkSample() and not drilling) {
+    if (newLoc and !game.checkSample() /*and not drilling*/) {
+        memcpy(nextSquare,mySquare,8);
         for (int i = -6; i<6; i++){ // checks all clumps of 4 squares (blocks)
         // and sees which is both closest to us and in the center.
             for (int j = -8; j<8; j++){
@@ -203,10 +207,15 @@ void loop() {
                             if (usefulVec[2] == goodHeight
                             and score < minDist 
                             and game.getDrills(usefulIntVec) < 1 
-                            and dist(enPos, usefulVec) > 0.35f) {
+                            and dist(enPos, usefulVec) > 0.35f ) {
                                 // if it's good, store it in siteCoords
-                                memcpy(siteCoords, usefulIntVec, 8);
                                 
+                                if (drilling and not (abs(mySquare[0] - usefulIntVec[0]) < .1 and abs(mySquare[1] - usefulIntVec[1]))){
+                                    memcpy(nextSquare, usefulIntVec, 8);
+                                }
+                                else {
+                                    memcpy(siteCoords, usefulIntVec, 8);
+                                }
                                 // which square of the block this is
                                 corner = a;
                                 
@@ -220,6 +229,9 @@ void loop() {
                     
                 }
             }
+        }
+        if (game.getNumSamplesHeld()>2){
+            memset(nextSquare,0,8);
         }
         // once we have selected a new drill square, we set this flag so that
         // we don't immediately pick a different one
@@ -235,11 +247,13 @@ void loop() {
         siteCoords[1] *= -1;
     }
     
+    
     // stores whether we are at the square we are targetubg
     bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
     
     // drilling translational movement
     if ((not dropping) and (not guarding)) {
+        
         // set positionTarget to the drill square
         game.square2pos(siteCoords, positionTarget);
         // adjust positionTarget to the corner of a square
@@ -259,6 +273,7 @@ void loop() {
                 // set the x and y of positionTarget to current x and y in
                 // order to stop moving horizontally
                 memcpy(positionTarget, myPos, 8);
+                
             }
         }
         // if we are not in danger of hitting the terrain
@@ -409,7 +424,14 @@ void loop() {
         fvector[2] = 0.0f;
         scale(fvector, 5 / mathVecMagnitude(fvector, 3));
     }
+    if (drilling){
+        fvector[2]=.5f*(positionTarget[2]-myPos[2]);
+        for (int i=0;i<2;i++){
+            fvector[i]=((nextSquare[i]>mySquare[i]-mySquare[i]>nextSquare[i])*.038f+positionTarget[i]-myPos[i])/(15-5.5f*game.getDrills(mySquare));
+        }
+    }
     api.setVelocityTarget(fvector);
+    DEBUG(("%f speed", mathVecMagnitude(myVel, 3)));
 }
 
 /**
