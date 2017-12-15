@@ -144,6 +144,9 @@ void loop() {
     
     if(drilling and game.isGeyserHere(mySquare))
         justHitGeyser = true;
+        
+    corner = myPos[1]<0?1:-1;
+    int corner2 = myPos[0]<0?1:-1;
     
     // must be larger than all distances we check
     float minDist = 100.0;
@@ -154,8 +157,14 @@ void loop() {
     
     if (newLoc and !game.checkSample() and not drilling) {
         DEBUG(("TESTTTTTT %d", justHitGeyser));
-         for (int i = -6; i<=6; i++) {
-             for (int j = justHitGeyser?(red==1?-8:(mySquare[1]+1)):-8; j <= (justHitGeyser?(red==1?(mySquare[1]-1):8):8); j++) {
+         for (int i = -6; i <= 6; i++) {
+             for (int j = -8; j <= 8; j++) {
+                
+                if(justHitGeyser &&
+                i*corner2*-1 + 1 >= mySquare[0]*corner2*-1 &&
+                j*corner*-1 + 1 >= mySquare[1]*corner*-1)
+                    continue;
+                
                  if (i*j !=0 and (i < -2 or i > 2 or j < -2 or j > 2)) {
                      
                     usefulIntVec[0] = i;
@@ -193,14 +202,11 @@ void loop() {
         siteCoords[0] *= -1;
         siteCoords[1] *= -1;
         justFoundThe10 = true;
+        
     }
     
     // stores whether we are at the square we are targetubg
     bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
-    
-    corner = -1;
-    if(myPos[1] < 0)
-        corner *= -1;
     
     // drilling translational movement
     if ((not dropping) and (not guarding)) {
@@ -208,6 +214,7 @@ void loop() {
         game.square2pos(siteCoords, positionTarget);
         
         // adjust positionTarget to the corner of a square
+        positionTarget[0] += corner2 * 0.029f;
         positionTarget[1] += corner * 0.029f;
         
         positionTarget[2] = game.getTerrainHeight(siteCoords) - 0.13f;
