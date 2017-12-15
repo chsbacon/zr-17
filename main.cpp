@@ -177,7 +177,7 @@ void loop(){
                             
                             flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.5f*(usefulVec[2]>=game.getTerrainHeight(mySquare));
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f and !game.isGeyserHere(usefulIntVec)){
-                                if (drilling and onPos){
+                                if (drilling and !onPos){
                                     memcpy(nextSquare,usefulIntVec,8);
                                     maxDist=flocal;
                                 }
@@ -295,9 +295,7 @@ void loop(){
     //     memcpy(positionTarget,myPos,12);
     //     positionTarget[2]-=1;
     // }
-    if (!game.getNumSamplesHeld()){//don't drop off with no samples
-        dropping=false;
-    }
+
     if (not drilling){//don't drill if we aren't drilling
         game.stopDrill();
     }
