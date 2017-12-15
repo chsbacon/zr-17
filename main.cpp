@@ -12,7 +12,6 @@ int siteCoords[3];
 bool dropping;
 bool drilling;
 //are described in their names, and act as length-3 float arrays
-int samples;
 int corner;
 bool valArray[12][8];
 int tenCoords[2];
@@ -24,10 +23,7 @@ void init(){
 	#define SPEEDCONST .35f
     #define DERIVCONST 2.35f
     api.setPosGains(SPEEDCONST,0,DERIVCONST);
-    //api.setAttGains(0.7f,0.1f,3.f);
-    //api.setAttGains(0.f,0.f,0.f);
     dropping=false;
-    samples=0;
 	drilling=false;
 	concFound=false;
 	memset(valArray,true,96);
@@ -46,7 +42,7 @@ void loop(){
     memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
     if (game.checkSample()){
         game.dropSample(4);
-        samples+=(bool)(game.pickupSample());
+        game.pickupSample();
     }
     if (game.atBaseStation()){
         for (int i=0;i<5;i++){
@@ -58,12 +54,11 @@ void loop(){
 
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
-    game.square2pos(mySquare,usefulVec);
-    bool geyserOnMe;
-    geyserOnMe=game.isGeyserHere(mySquare);
+    bool geyserOnMe = game.isGeyserHere(mySquare);
     float maxDist=100;//Sets this large
     
-    bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
+    bool onSite=((mySquare[0]==siteCoords[0])
+        bitand (mySquare[1]==siteCoords[1]));
     int nextSquare[2];
     if (!game.hasAnalyzer()){
         positionTarget[0]=.3f;
@@ -74,11 +69,11 @@ void loop(){
         positionTarget[2]=-.16f;
     }
     else if (!tenFound){
-        float terrain=game.analyzeTerrain();
+        float terrain = game.analyzeTerrain();
         DEBUG(("%f",terrain));
         if (terrain>.9f){
             game.pos2square(myPos,tenCoords);
-            tenFound=true;
+            tenFound = true;
         }
         else{
            
@@ -118,7 +113,8 @@ void loop(){
             }
             //siteCoords[0]+=(siteCoords[0]-mySquare[0]*valCount);
             //siteCoords[1]+=(siteCoords[1]-mySquare[1]*valCount);
-            siteCoords[0]/=valCount;siteCoords[1]/=valCount;
+            siteCoords[0]/=valCount;
+            siteCoords[1]/=valCount;
             if (!siteCoords[0]){
                 siteCoords[0]++;
             }
@@ -131,10 +127,6 @@ void loop(){
                     siteCoords[0]=4;
                     siteCoords[1]=2;
                 }
-                // else if (valArray[11][7]){
-                //     siteCoords[0]=4;
-                //     siteCoords[1]=7;
-                // }
             }
             while (!valArray[siteCoords[0]+6-(siteCoords[0]>-1)][siteCoords[1]-1]){
                 siteCoords[0]+=1;
@@ -152,13 +144,13 @@ void loop(){
             }
             game.square2pos(siteCoords,positionTarget);
             DEBUG(("%i %i", siteCoords[0],siteCoords[1]));
-            positionTarget[2]=0.f;
+            positionTarget[2] = 0.0f;
             
         }
     }
     
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    else if ((not dropping)){
+    else if (not dropping){
         memcpy(nextSquare,mySquare,8);
         float maxDist=1000;
         for (int i=-6;i<7;i++){
@@ -170,14 +162,15 @@ void loop(){
                             usefulIntVec[0]*=-1;
                             usefulIntVec[1]*=-1;
                         }
-                        bool onPos=mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1];
-                        if (((drilling and onPos) or !game.getDrills(usefulIntVec))){
+                        bool onPos = (mySquare[0]==usefulIntVec[0])
+                            bitand (mySquare[1]==usefulIntVec[1]);
+                        if (((drilling bitand onPos) bitor !game.getDrills(usefulIntVec))){
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
                             
                             flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.5f*(usefulVec[2]>=game.getTerrainHeight(mySquare));
-                            if (flocal<maxDist and dist(enPos,usefulVec)>.3f and !game.isGeyserHere(usefulIntVec)){
-                                if (drilling and !onPos){
+                            if ((flocal<maxDist) bitand (dist(enPos,usefulVec)>.3f) bitand !game.isGeyserHere(usefulIntVec)){
+                                if (drilling bitand !onPos){
                                     memcpy(nextSquare,usefulIntVec,8);
                                     maxDist=flocal;
                                 }
@@ -221,32 +214,25 @@ void loop(){
         
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if ((mathVecMagnitude(myVel,3)<.01f
-        and (mathVecMagnitude(myRot,3)<.035f or drilling)
-        and (onSite))
-        //and not game.getDrillError()
-        ){//and (myPos[2]-positionTarget[2]<0.02f and myPos[2]-positionTarget[2]>-0.02f)){
-            usefulVec[0]=-myAtt[1];usefulVec[1]=myAtt[0];usefulVec[2]=0;//myAtt[2]*-5;
+        bitand ((mathVecMagnitude(myRot,3)<.035f) bitor drilling)
+        bitand onSite)){
+            usefulVec[0]=-myAtt[1];
+            usefulVec[1]=myAtt[0];
+            usefulVec[2]=0;
             
-            // usefulVec[0]=0;
-            // usefulVec[1]=0;
-            // usefulVec[2]=0;
-            // api.setAttRateTarget(usefulVec);
             if (!game.getDrillEnabled()){
                 game.startDrill();
             }
-            //zeroVec[2]=.04f;
             drilling=true;
             
         }
         else{
-            usefulVec[0]=myAtt[0];usefulVec[1]=myAtt[1];usefulVec[2]=0;
+            usefulVec[0]=myAtt[0];
+            usefulVec[1]=myAtt[1];
+            usefulVec[2]=0;
             
-            // memcpy(usefulVec,myRot,12);
-            // scale(usefulVec,-0.6f);
-            // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
             drilling=false;
-            //zeroVec[2]=-.04f;
         }
         api.setAttitudeTarget(usefulVec);
         
@@ -265,25 +251,12 @@ void loop(){
         }
         zeroVec[2]-=1;
         api.setAttitudeTarget(zeroVec);
-        //zeroVec[2]=0;//.01f;//Slow down
-        
-        
+
     }
     
-    //PRINTVEC("myQuatAtt",myQuatAtt);
-    // myQuatAtt[3]*=-1;//inverts rotation - now rotates fundamental basis rotation vector (k-hat) to our basis
-    // api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
-    // if (drilling){
-    //     api.setAttRateTarget(usefulVec);
-    // }
-    //if our drill breaks or we get a geyser, stop the current drill
-    // flocal=game.getFuelRemaining();
-    // if (game.getNumSamplesHeld()>1 and ((!(int)((api.getTime()-161)/4)))){// or (flocal<.18f and flocal> .12f))){//at the end of the game, drop off what we have
-    //     dropping=true;
-    // }
     if (game.getDrillError() 
-    or geyserOnMe 
-    or game.getDrills(mySquare)>MAXDRILLS-1){
+    bitor geyserOnMe 
+    bitor (game.getDrills(mySquare)>MAXDRILLS-1)){
         DEBUG(("Broke"));
         if (game.getNumSamplesHeld()>3){
             dropping=true;
@@ -310,7 +283,7 @@ void loop(){
     //mathVecSubtract(fvector, destination, myPos, 3);//Gets the vector from us to the target
     mathVecSubtract(fvector, destination, myPos, 3);
     flocal=0.05f/(.05f+mathVecMagnitude(fvector,3));//Just storing this value as a functional boolean
-    scale(myVel,.2f+flocal);
+    scale(myVel,0.2f+flocal);
     mathVecSubtract(fvector,fvector,myVel,3);
     scale(fvector,.25f-.09f*flocal);
     if (geyserOnMe){
@@ -319,13 +292,14 @@ void loop(){
         // fvector[0]/=flocal;
         // fvector[1]/=flocal;
         
-        scale(fvector,15/mathVecMagnitude(fvector,3));
+        scale(fvector,15.0f/mathVecMagnitude(fvector,3));
         //fvector[2]=0.05f;
     }
     else if (drilling){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
-            fvector[i]=((((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(12-4.f*game.getDrills(mySquare)));
+            fvector[i]=((((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))
+                *0.038f+positionTarget[i]-myPos[i])/(12.0f-4.0f*game.getDrills(mySquare)));
         }
         
     }
