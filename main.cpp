@@ -9,32 +9,34 @@
 #define enRot (&enState[9])//These are pointers. They will have the values that
 #define MAXDRILLS 3
 int siteCoords[3];
-bool dropping;
-bool drilling;
+char mode;
+
+// 'a' searching for the concentration / everything false (never used)
+// 'b' searching for the ten in the concentration / concfound = true / tenfound = false / drilling = false / dropping = false 
+// 'c' preparing to drill the ten / tenfound = true drilling = false dropping = false 
+// 'd' drilling the ten / tenfound = true drilling = false dropping = false
+// 'e' dropping off / tenfound = true drilling = false dropping = true
+
 //are described in their names, and act as length-3 float arrays
 int samples;
 int corner;
 bool valArray[12][8];
 int tenCoords[2];
-bool tenFound;
-bool concFound;
+
 void init(){
-    // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
-	
+
 	#define SPEEDCONST .35f
     #define DERIVCONST 2.35f
     api.setPosGains(SPEEDCONST,0,DERIVCONST);
     //api.setAttGains(0.7f,0.1f,3.f);
     //api.setAttGains(0.f,0.f,0.f);
-    dropping=false;
     samples=0;
-	drilling=false;
-	concFound=false;
 	memset(valArray,true,96);
-	tenFound=false;
+    mode = '!';
 }
 
 void loop(){
+    DEBUG(("This is our mode at start, %c", mode));
     float flocal;
     float positionTarget[3];
     float zeroVec[3];
@@ -48,11 +50,11 @@ void loop(){
         game.dropSample(4);
         samples+=(bool)(game.pickupSample());
     }
-    if (game.atBaseStation()){
+    if (game.atBaseStation() and samples != 0){
         for (int i=0;i<5;i++){
             game.dropSample(i);
         }
-        dropping=false;
+        mode = 'c';
     }
     api.getMyZRState(myState);
 
@@ -66,6 +68,7 @@ void loop(){
     bool onSite=(mySquare[0]==siteCoords[0] and mySquare[1]==siteCoords[1]);
     int nextSquare[2];
     if (!game.hasAnalyzer()){
+        DEBUG(("We gettin that analyzer, yo"));
         positionTarget[0]=.3f;
         positionTarget[1]=-.48f;
         if (myPos[1]>0){
@@ -73,15 +76,14 @@ void loop(){
         }
         positionTarget[2]=-.16f;
     }
-    else if (!tenFound){
+    else{
         float terrain=game.analyzeTerrain();
         DEBUG(("%f",terrain));
         if (terrain>.9f){
             game.pos2square(myPos,tenCoords);
-            tenFound=true;
+            mode = 'c';
         }
-        else{
-           
+        else if (mode != 'a'){
             if (myPos[1]<0){
                 mySquare[0]*=-1;
                 mySquare[1]*=-1;
@@ -102,8 +104,8 @@ void loop(){
                         }
                         bool inRad=sqDist<=(terrain>.5f?3:7);
                         if (terrain>.15f){
-                            concFound=true;
                             inRad=!inRad;
+                            mode = 'b';
                         }
                         if (inRad){
                             valArray[i+6-(i>0)][j-1]=false;
@@ -122,7 +124,7 @@ void loop(){
             if (!siteCoords[0]){
                 siteCoords[0]++;
             }
-            if (!concFound){
+            if (mode == 'a'){
                 if (valArray[0][0]){
                     siteCoords[0]=-5;
                     siteCoords[1]=2;
@@ -155,10 +157,8 @@ void loop(){
             positionTarget[2]=0.f;
             
         }
-    }
-    
     //drill if we have less than 5 samples and we either have enough fuel or we're close to the surface and don't have many samples already, drill
-    else if ((not dropping)){
+    else if (mode == 'c'){
         memcpy(nextSquare,mySquare,8);
         float maxDist=1000;
         for (int i=-6;i<7;i++){
@@ -166,7 +166,7 @@ void loop(){
                 for (int j=-8;j<9;j++){
                     if (j){
                         usefulIntVec[0]=i;usefulIntVec[1]=j;
-                        if (((drilling and mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1]) or !game.getDrills(usefulIntVec))){
+                        if (((mode == 'd' and mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1]) or !game.getDrills(usefulIntVec))){
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
                             // if (usefulIntVec[1]<0){
@@ -175,13 +175,13 @@ void loop(){
                             // }
                             flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.5f*(usefulVec[2]>=game.getTerrainHeight(mySquare));
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f and !game.isGeyserHere(usefulIntVec)){
-                                if (drilling and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
+                                if (mode == 'd' and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
                                     memcpy(nextSquare,usefulIntVec,8);
                                     maxDist=flocal;
                                 }
                                 else{
                                     memcpy(positionTarget,usefulVec,12);
-                                    if (!drilling){
+                                    if (mode != 'd'){
                                         maxDist=flocal;
                                     }
                                 }
@@ -219,7 +219,7 @@ void loop(){
         
         //if we are on the right square and all the conditions line up, start spinning and drilling
         if ((mathVecMagnitude(myVel,3)<.01f
-        and (mathVecMagnitude(myRot,3)<.035f or drilling)
+        and (mathVecMagnitude(myRot,3)<.035f or mode == 'd')
         and (onSite))
         //and not game.getDrillError()
         ){//and (myPos[2]-positionTarget[2]<0.02f and myPos[2]-positionTarget[2]>-0.02f)){
@@ -233,7 +233,7 @@ void loop(){
                 game.startDrill();
             }
             //zeroVec[2]=.04f;
-            drilling=true;
+            mode = 'd';
             
         }
         else{
@@ -243,7 +243,7 @@ void loop(){
             // scale(usefulVec,-0.6f);
             // api.setAttRateTarget(usefulVec);
             DEBUG(("Slowing"));
-            drilling=false;
+            mode = 'c';
             //zeroVec[2]=-.04f;
         }
         api.setAttitudeTarget(usefulVec);
@@ -252,7 +252,7 @@ void loop(){
        
     }
     //otherwise, drop off our samples
-    else{
+    else if (mode != 'a'){
         memcpy(positionTarget,myPos,12);
         if (myPos[2]>.29f){
             positionTarget[2]=.05f;
@@ -282,26 +282,23 @@ void loop(){
     if (game.getDrillError() 
     or geyserOnMe 
     or game.getDrills(mySquare)>MAXDRILLS-1
-    or dropping){
+    or mode == 'e'){
         DEBUG(("Broke"));
         if (game.getNumSamplesHeld()>3){
-            dropping=true;
+            mode = 'e';
         }
-        drilling=false;
     }
     
     // if (flocal<.03f and myVel[2]>0){
     //     memcpy(positionTarget,myPos,12);
     //     positionTarget[2]-=1;
     // }
-    if (!game.getNumSamplesHeld()){//don't drop off with no samples
-        dropping=false;
-    }
-    if (not drilling){//don't drill if we aren't drilling
+    if (mode != 'd'){//don't drill if we aren't drilling
         game.stopDrill();
     }
-
     
+    DEBUG(("This is our mode at end, %c", mode));
+    PRINTVEC("PositionzTarget", positionTarget);
     
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
@@ -322,21 +319,23 @@ void loop(){
         scale(fvector,15/mathVecMagnitude(fvector,3));
         //fvector[2]=0.05f;
     }
-    if (!tenFound and game.hasAnalyzer()){
-        fvector[2]=.05f*(.2f-myPos[2]);
-        mathVecNormalize(fvector,3);
-        scale(fvector,.075f);
-        mathVecAdd(fvector,myVel,fvector,3);
-        scale(fvector,.33333f);
-    }
-    if (drilling){
+    else if (mode =='d'){
         fvector[2]=.5f*(positionTarget[2]-myPos[2]);
         for (int i=0;i<2;i++){
             fvector[i]=((((nextSquare[i]>mySquare[i])-(mySquare[i]>nextSquare[i]))*.038f+positionTarget[i]-myPos[i])/(12-4.f*game.getDrills(mySquare)));
         }
         
     }
+    else if (mode == 'a' and game.hasAnalyzer()){
+        fvector[2]=.05f*(.2f-myPos[2]);
+        mathVecNormalize(fvector,3);
+        scale(fvector,.075f);
+        mathVecAdd(fvector,myVel,fvector,3);
+        scale(fvector,.33333f);
+    }
+    
     api.setVelocityTarget(fvector);
+    }
 }
 float dist(float* vec1, float* vec2) {
     float ansVec[3];
