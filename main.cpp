@@ -166,13 +166,14 @@ void loop(){
                 for (int j=-8;j<9;j++){
                     if (j){
                         usefulIntVec[0]=i;usefulIntVec[1]=j;
+                        if (usefulIntVec[1]*tenCoords[1]<0){
+                            usefulIntVec[0]*=-1;
+                            usefulIntVec[1]*=-1;
+                        }
                         if (((drilling and mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1]) or !game.getDrills(usefulIntVec))){
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
-                            // if (usefulIntVec[1]<0){
-                            //     usefulIntVec[0]*=-1;
-                            //     usefulIntVec[1]*=-1;
-                            // }
+                            
                             flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.5f*(usefulVec[2]>=game.getTerrainHeight(mySquare));
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f and !game.isGeyserHere(usefulIntVec)){
                                 if (drilling and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
