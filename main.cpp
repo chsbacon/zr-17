@@ -37,6 +37,8 @@ float enScore;
 // right after they found the 10, before going towards it
 bool justFoundThe10;
 
+bool justHitGeyser;
+
 int red;
 
 void init(){
@@ -66,6 +68,8 @@ void init(){
   justFoundThe10 = false;
   
   red = 2;
+  
+  justHitGeyser = false;
 	
 }
 
@@ -122,7 +126,7 @@ void loop() {
     api.getOtherZRState(enState);
     
     //if(red == 2)
-    red = (myState[0]>0?1:-1);
+    red = (myState[1]>0?1:-1);
     
     //convert quaternion into attitude vector
     float myAtt[3];
@@ -138,6 +142,9 @@ void loop() {
     
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
+    if(drilling and game.isGeyserHere(mySquare))
+        justHitGeyser = true;
+    
     // must be larger than all distances we check
     float minDist = 100.0;
     // contains a position above us, so that we favor high drill spots
@@ -146,8 +153,9 @@ void loop() {
     modPos[2] = -10.0f;
     
     if (newLoc and !game.checkSample() and not drilling) {
+        DEBUG(("TESTTTTTT %d", justHitGeyser));
          for (int i = -6; i<=6; i++) {
-             for (int j = (red==1?-8:(mySquare[1]+1)); j<=(red==1?(mySquare[1]-1):8); j++) {
+             for (int j = justHitGeyser?(red==1?-8:(mySquare[1]+1)):-8; j <= (justHitGeyser?(red==1?(mySquare[1]-1):8):8); j++) {
                  if (i*j !=0 and (i < -2 or i > 2 or j < -2 or j > 2)) {
                      
                     usefulIntVec[0] = i;
@@ -162,7 +170,7 @@ void loop() {
                         
                     if(minDist > di) {
                         
-                        DEBUG(("BAAA"));
+                        //DEBUG(("BAAA"));
                         
                         memcpy(siteCoords, usefulIntVec, 8);
                         minDist = di;
@@ -174,9 +182,8 @@ void loop() {
              }
          }
          newLoc = false;
+         justHitGeyser = false;
     }
-    
-    DEBUG(("BA %d %d", siteCoords[0], siteCoords[1]));
     
     // if they found the 10
     if (enDeltaScore == 3.5f) {
@@ -194,44 +201,16 @@ void loop() {
     corner = -1;
     if(myPos[1] < 0)
         corner *= -1;
-    if(game.getNumSamplesHeld() >= 4) {
-     
-        corner = myPos[1]>0?-1:1;
-        
-    }
-    //corner = 1-(corner+1)/2;
     
     // drilling translational movement
     if ((not dropping) and (not guarding)) {
         // set positionTarget to the drill square
         game.square2pos(siteCoords, positionTarget);
-        DEBUG(("TESTY %f %f", positionTarget[0], positionTarget[1]));
-        // adjust positionTarget to the corner of a square
         
+        // adjust positionTarget to the corner of a square
         positionTarget[1] += corner * 0.029f;
-
-        // avoid crashing into terrain
-        if (!onSite 
-        and (game.getTerrainHeight(mySquare) > game.getTerrainHeight(siteCoords) 
-        or dist(myPos, positionTarget) > 0.05f)) {
-            
-            // target a point above our target so that we don't move vertically
-            positionTarget[2] = 0.27f;
-            
-            // if we are already very close to the surface
-            if (myPos[2] > 0.29f) {
-                // set the x and y of positionTarget to current x and y in
-                // order to stop moving horizontally
-                memcpy(positionTarget, myPos, 8);
-            }
-        }
-        // if we are not in danger of hitting the terrain
-        else {
-            // go to an appropriate drilling height
-            positionTarget[2] = game.getTerrainHeight(siteCoords) - 0.13f;
-        }
-        DEBUG(("target square: (%i, %i)", siteCoords[0],siteCoords[1]));
-        DEBUG(("current square: (%i %i)", mySquare[0],mySquare[1]));
+        
+        positionTarget[2] = game.getTerrainHeight(siteCoords) - 0.13f;
         
         
         // @ USEFUL VEC IS NOW OUR ATTITUDE TARGET @
@@ -259,7 +238,7 @@ void loop() {
             usefulVec[1] = myAtt[1];
             usefulVec[2] = 0.0f;
             
-            DEBUG(("Slowing"));
+            //DEBUG(("Slowing"));
             drilling = false;
             zeroVec[2] = -0.04f;
         }
@@ -298,7 +277,7 @@ void loop() {
         zeroVec[2] = 0.0f; //Slow down        
     }
     
-    PRINTVEC("myQuatAtt", myQuatAtt);
+    //PRINTVEC("myQuatAtt", myQuatAtt);
     
     // invert rotation
     // now rotates fundamental basis rotation vector (k-hat) to our basis
@@ -310,10 +289,10 @@ void loop() {
     }
     
     // if our drill breaks or we get a geyser, stop the current drill
-    if (game.getDrillError() 
+    if ((game.getDrillError() 
     or geyserOnMe
-    or game.getDrills(mySquare) > MAXDRILLS - 1) {
-        DEBUG(("Broke"));
+    or game.getDrills(mySquare) > MAXDRILLS - 1) and drilling) {
+        //DEBUG(("Broke"));
         if (game.getNumSamplesHeld() > 3) {
             dropping = true;
         }
