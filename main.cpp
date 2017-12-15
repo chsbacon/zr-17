@@ -170,13 +170,14 @@ void loop(){
                             usefulIntVec[0]*=-1;
                             usefulIntVec[1]*=-1;
                         }
-                        if (((drilling and mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1]) or !game.getDrills(usefulIntVec))){
+                        bool onPos=mySquare[0]==usefulIntVec[0] and mySquare[1]==usefulIntVec[1];
+                        if (((drilling and onPos) or !game.getDrills(usefulIntVec))){
                             game.square2pos(usefulIntVec,usefulVec);
                             usefulVec[2]=game.getTerrainHeight(usefulIntVec);
                             
                             flocal=dist(usefulVec,myPos)+intDist(usefulIntVec,tenCoords)-.5f*(usefulVec[2]>=game.getTerrainHeight(mySquare));
                             if (flocal<maxDist and dist(enPos,usefulVec)>.3f and !game.isGeyserHere(usefulIntVec)){
-                                if (drilling and (mySquare[0]!=usefulIntVec[0] or mySquare[1]!=usefulIntVec[1])){
+                                if (drilling and onPos){
                                     memcpy(nextSquare,usefulIntVec,8);
                                     maxDist=flocal;
                                 }
@@ -282,8 +283,7 @@ void loop(){
     // }
     if (game.getDrillError() 
     or geyserOnMe 
-    or game.getDrills(mySquare)>MAXDRILLS-1
-    or dropping){
+    or game.getDrills(mySquare)>MAXDRILLS-1){
         DEBUG(("Broke"));
         if (game.getNumSamplesHeld()>3){
             dropping=true;
