@@ -39,7 +39,12 @@ bool justFoundThe10;
 
 bool justHitGeyser;
 
+int crrSquare[2];
+
 int red;
+
+bool justDrilledThe10;
+float befScore;
 
 void init(){
     
@@ -70,6 +75,9 @@ void init(){
   red = 2;
   
   justHitGeyser = false;
+  
+  justDrilledThe10 = false;
+  befScore = 0;
 	
 }
 
@@ -103,6 +111,10 @@ void loop() {
     float enDeltaScore = game.getOtherScore() - enScore;
     // updates the enemy's score
     enScore = enScore + enDeltaScore;
+    
+    if(game.getScore() - befScore == 4.5f)
+        justDrilledThe10 = true;
+    befScore = game.getScore();
     
     // if a sample is ready to pick up, pick it up
     if (game.checkSample()) {
@@ -142,21 +154,20 @@ void loop() {
     
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
-    if(drilling and geyserOnMe)
+    if(drilling and game.isGeyserHere(mySquare))
         justHitGeyser = true;
         
     corner = myPos[1]<0?1:-1;
     int corner2 = myPos[0]<0?1:-1;
     
     // must be larger than all distances we check
-    float minDist = 100.0f;
+    float minDist = 100.0;
     // contains a position above us, so that we favor high drill spots
     float modPos[3];
     memcpy(modPos, myPos, 8);
     modPos[2] = -10.0f;
     
     if (newLoc and !game.checkSample() and not drilling) {
-        DEBUG(("TESTTTTTT %d", justHitGeyser));
          for (int i = -6; i <= 6; i++) {
              for (int j = -8; j <= 8; j++) {
                 
@@ -171,10 +182,26 @@ void loop() {
                     usefulIntVec[1] = j;
                     game.square2pos(usefulIntVec, usefulVec);
                     usefulVec[2] = game.getTerrainHeight(usefulIntVec);
+                    game.pos2square(myPos, crrSquare);
+                    
+                    int magicX = (usefulIntVec[0]-crrSquare[0]);
+                    int magicY = (usefulIntVec[1]-crrSquare[1]);
+                    bool cont = false;
+                    
+                    for(int i2 = crrSquare[0] + magicX; i2 < usefulIntVec[0]; i += magicX) {
+                        for(int j2 = crrSquare[1] + magicY; j2 < usefulIntVec[1]; j += magicY) {
+                            if(i2*j2 == 0)
+                                continue;
+                            usefulIntVec[0] = i2;
+                            usefulIntVec[1] = j2;
+                            if(game.isGeyserHere(usefulIntVec))
+                                cont = true;
+                        }
+                    }
                      
                     float di = dist(usefulVec, myPos);
                      
-                    if(usefulVec[2] != 0.40f || dist(usefulVec, enState) < 0.35f || game.getDrills(usefulIntVec) != 0)
+                    if(usefulVec[2] != 0.40f || dist(usefulVec, enState) < 0.35f || game.getDrills(usefulIntVec) != 0 || cont)
                         continue;
                         
                     if(minDist > di) {
@@ -300,7 +327,7 @@ void loop() {
     or geyserOnMe
     or game.getDrills(mySquare) > MAXDRILLS - 1) and drilling) {
         //DEBUG(("Broke"));
-        if (game.getNumSamplesHeld() > 3) {
+        if (game.getNumSamplesHeld() > 3 || justDrilledThe10) {
             dropping = true;
         }
         newLoc = true;
