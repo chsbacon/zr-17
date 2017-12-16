@@ -195,7 +195,7 @@ void loop(){
         
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
-        if (!onSite){// and (game.getTerrainHeight(mySquare)<game.getTerrainHeight(siteCoords))){
+        if (!onSite and (game.getTerrainHeight(mySquare)<game.getTerrainHeight(siteCoords))){
             positionTarget[2]=.27f;
             DEBUG(("O"));
             if (myPos[2]>.29f){
@@ -272,8 +272,10 @@ void loop(){
     if (not drilling){//don't drill if we aren't drilling
         game.stopDrill();
     }
-
     
+    if(game.getFuelRemaining() < 0.03f){
+        positionTarget[2] = 0;
+    }
     
 	#define destination positionTarget//This (next 20 or so lines) is movement code.
 	//It is fairly strange - we will go over exactly how it works eventually
