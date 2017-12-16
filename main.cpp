@@ -142,14 +142,14 @@ void loop() {
     
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
-    if(drilling and game.isGeyserHere(mySquare))
+    if(drilling and geyserOnMe)
         justHitGeyser = true;
         
     corner = myPos[1]<0?1:-1;
     int corner2 = myPos[0]<0?1:-1;
     
     // must be larger than all distances we check
-    float minDist = 100.0;
+    float minDist = 100.0f;
     // contains a position above us, so that we favor high drill spots
     float modPos[3];
     memcpy(modPos, myPos, 8);
