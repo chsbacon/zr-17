@@ -17,9 +17,9 @@ bool valArray[12][8];
 int tenCoords[2];
 bool tenFound;
 bool concFound;
+
 void init(){
-    // zeroVec[0]=zeroVec[1]=zeroVec[2]=0;
-	
+
 	#define SPEEDCONST .35f
     #define DERIVCONST 2.35f
     api.setPosGains(SPEEDCONST,0,DERIVCONST);
@@ -33,13 +33,18 @@ void init(){
 void loop(){
     float flocal;
     float positionTarget[3];
-    float zeroVec[3];
     float myState[12];
     float usefulVec[3];
     int usefulIntVec[2];
     int mySquare[3];
     float enState[12];
-    memset(zeroVec, 0.0f, 12);//Sets all places in an array to 0
+    int nextSquare[2];
+    bool geyserOnMe = game.isGeyserHere(mySquare);
+    float maxDist=100;//Sets this large
+    
+    bool onSite=((mySquare[0]==siteCoords[0])
+        bitand (mySquare[1]==siteCoords[1]));
+
     if (game.checkSample()){
         game.dropSample(4);
         game.pickupSample();
@@ -54,12 +59,8 @@ void loop(){
 
     api.getOtherZRState(enState);//Makes sure our data on where they are is up to date
     game.pos2square(myPos,mySquare);
-    bool geyserOnMe = game.isGeyserHere(mySquare);
-    float maxDist=100;//Sets this large
     
-    bool onSite=((mySquare[0]==siteCoords[0])
-        bitand (mySquare[1]==siteCoords[1]));
-    int nextSquare[2];
+
     if (!game.hasAnalyzer()){
         positionTarget[0]=.3f;
         positionTarget[1]=-.48f;
@@ -78,8 +79,8 @@ void loop(){
         else{
            
             if (myPos[1]<0){
-                mySquare[0]*=-1;
-                mySquare[1]*=-1;
+                mySquare[0] = -mySquare[0];
+                mySquare[1] = -mySquare[1];
             }
             valArray[mySquare[0]+6-(mySquare[0]>0)][mySquare[1]-1]=false;
             int valCount=0;
@@ -240,7 +241,7 @@ void loop(){
        
     }
     //otherwise, drop off our samples
-    else{
+    else {
         memcpy(positionTarget,myPos,12);
         if (myPos[2]>.29f){
             positionTarget[2]=.05f;
@@ -249,8 +250,11 @@ void loop(){
             //maybe take out the mathvecMagnitude expression for codesize
             scale(positionTarget,(.23f)/mathVecMagnitude(positionTarget,3));//go to a position that is .09 in the same direction at the enemy. In other words, between them and the origin.
         }
-        zeroVec[2]-=1;
-        api.setAttitudeTarget(zeroVec);
+        float dropOffAtt[3];
+        dropOffAtt[0] = 0.0f;
+        dropOffAtt[1] = 0.0f;
+        dropOffAtt[2] = -1.0f;
+        api.setAttitudeTarget(dropOffAtt);
 
     }
     
@@ -320,14 +324,7 @@ float dist(float* vec1, float* vec2) {
     mathVecSubtract(ansVec, vec1, vec2, 3);
     return mathVecMagnitude(ansVec, 3);
 }
-void fixEdge(int coorVec[2]){
-    if (coorVec[1]==0){
-        coorVec[1]=1;
-    }
-    if (coorVec[0]==0){
-        coorVec[0]=1;
-    }
-}
+
 void scale (float* vec, float scale) {//This function scales a length-3 vector by a coeff.
     for (int i=0; i<3; i++) {
         vec[i] *= scale;
