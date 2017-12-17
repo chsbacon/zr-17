@@ -34,17 +34,13 @@ int corner;
 // the enemy's score
 float enScore;
 
-// right after they found the 10, before going towards it
-bool justFoundThe10;
-
 bool justHitGeyser;
 
 int crrSquare[2];
 
-int red;
-
 bool justDrilledThe10;
 float befScore;
+bool TT;
 
 void init(){
     
@@ -70,15 +66,12 @@ void init(){
   // we start the game not guarding
   guarding = false;
   
-  justFoundThe10 = false;
-  
-  red = 2;
-  
   justHitGeyser = false;
   
   justDrilledThe10 = false;
   befScore = 0;
-	
+  TT = false;
+  
 }
 
 void loop() {
@@ -112,14 +105,10 @@ void loop() {
     // updates the enemy's score
     enScore = enScore + enDeltaScore;
     
-    if(game.getScore() - befScore == 4.5f)
-        justDrilledThe10 = true;
-    befScore = game.getScore();
-    
     // if a sample is ready to pick up, pick it up
     if (game.checkSample()) {
         // if we want to drill more than 5, we have to drop the last one
-        game.dropSample(4);
+        game.dropSample(game.getNumSamplesHeld()>=5?0:4);
         samples += (bool)(game.pickupSample());
     }
     
@@ -129,7 +118,7 @@ void loop() {
             game.dropSample(i);
         }
         //after dropping, find a new square
-        newLoc = !justFoundThe10;
+        newLoc = true;
         dropping = false;
     }
     
@@ -137,14 +126,11 @@ void loop() {
     api.getMySphState(myState);
     api.getOtherZRState(enState);
     
-    //if(red == 2)
-    red = (myState[1]>0?1:-1);
-    
     //convert quaternion into attitude vector
     float myAtt[3];
-    zeroVec[0] -= 1; // we avoid a new vector to save space
+    zeroVec[0]--; // we avoid a new vector to save space
     api.quat2AttVec(zeroVec, myQuatAtt, myAtt);
-    zeroVec[0] += 1; // zeroVec should be restored to its original value
+    zeroVec[0]++; // zeroVec should be restored to its original value
     
     
     game.pos2square(myPos,mySquare);
@@ -162,18 +148,19 @@ void loop() {
     
     // must be larger than all distances we check
     float minDist = 100.0;
-    // contains a position above us, so that we favor high drill spots
-    float modPos[3];
-    memcpy(modPos, myPos, 8);
-    modPos[2] = -10.0f;
     
     if (newLoc and !game.checkSample() and not drilling) {
          for (int i = -6; i <= 6; i++) {
              for (int j = -8; j <= 8; j++) {
                 
+                /*bool cond2 = i*corner2 <= mySquare[0]*corner2 &&
+                j*corner <= mySquare[1]*corner;*/
+                
+                //DEBUG(("%d %d %d %d %d %d", i, j, i*corner2 < mySquare[0]*corner2, j*corner < mySquare[1]*corner, corner, mySquare[1]));
+                
                 if(justHitGeyser &&
-                i*corner2*-1 + 1 >= mySquare[0]*corner2*-1 &&
-                j*corner*-1 + 1 >= mySquare[1]*corner*-1)
+                i*corner2 <= mySquare[0]*corner2 &&
+                j*corner <= mySquare[1]*corner)
                     continue;
                 
                  if (i*j !=0 and (i < -2 or i > 2 or j < -2 or j > 2)) {
@@ -210,7 +197,6 @@ void loop() {
                         
                         memcpy(siteCoords, usefulIntVec, 8);
                         minDist = di;
-                        corner = 0;
                         
                     }
                      
@@ -221,14 +207,17 @@ void loop() {
          justHitGeyser = false;
     }
     
+    enPos[0] *= -1;
+    enPos[1] *= -1;
+    float DI = dist(enPos, myPos);
+    
     // if they found the 10
-    if (enDeltaScore == 3.5f) {
+    DEBUG(("TT %f %f %f", game.getFuelRemaining() - DI/2.55f, api.getTime() + DI*4, justDrilledThe10));
+    if (enDeltaScore == 3.5f && (game.getFuelRemaining() - DI/2.55f > 0.27 && api.getTime() + DI*4 <= 120.0f)) {
         
         // drill at the other 10
         game.pos2square(enPos, siteCoords);
-        siteCoords[0] *= -1;
-        siteCoords[1] *= -1;
-        justFoundThe10 = true;
+        drilling = false;
         
     }
     
@@ -238,6 +227,7 @@ void loop() {
     // drilling translational movement
     if ((not dropping) and (not guarding)) {
         // set positionTarget to the drill square
+        
         game.square2pos(siteCoords, positionTarget);
         
         // adjust positionTarget to the corner of a square
@@ -255,7 +245,7 @@ void loop() {
         and not game.getDrillError()
         and (myPos[2] - positionTarget[2] < 0.02f 
         and myPos[2] - positionTarget[2] > -0.02f)) {
-            usefulVec[0] = -myAtt[1];
+            usefulVec[0] = -myAtt[1] * 2.0f;
             usefulVec[1] = myAtt[0];
             usefulVec[2] = myAtt[2] * -5.0f;
             if (!game.getDrillEnabled()) {
@@ -277,7 +267,6 @@ void loop() {
             zeroVec[2] = -0.04f;
         }
         api.setAttitudeTarget(usefulVec);
-        justFoundThe10 = false;
        
     }
     // if we are not drilling, then drop off samples
@@ -290,25 +279,16 @@ void loop() {
             positionTarget[2] = 0.05f;
         }
         else {
-            // if we have more points than them and
-            // we're closer to the origin than them
-            guarding = (game.getScore() > enScore and game.getScore() > 38.0f 
-                        and (mathVecMagnitude(enPos, 3) > mathVecMagnitude(myPos, 3) + 0.1f
-                             or guarding));
-            if (guarding) {
-                memcpy(positionTarget, enPos, 12);
-            }
             // scale either enPos or myPos depending if we are guarding or not
             #define BASE_STATION_RADIUS 0.24f
             // depending on whether or not we are guarding, there are two
             // different target distances from the origin
-            scale(positionTarget, ((BASE_STATION_RADIUS-0.01f) - (0.16f * guarding))
-                  / mathVecMagnitude(positionTarget, 3));
+            scale(positionTarget, ((BASE_STATION_RADIUS-0.01f)) / mathVecMagnitude(positionTarget, 3));
         }
         // rotate to satisfy drop off requirement
         zeroVec[2] -= 1;
         api.setAttitudeTarget(zeroVec);
-        zeroVec[2] = 0.0f; //Slow down        
+        zeroVec[2] = 0.0f; //Slow down
     }
     
     //PRINTVEC("myQuatAtt", myQuatAtt);
@@ -318,27 +298,40 @@ void loop() {
     myQuatAtt[3] *= -1;
     api.quat2AttVec(zeroVec,myQuatAtt,usefulVec);
     
-    if (drilling) {
+    if (drilling)
         api.setAttRateTarget(usefulVec);
-    }
     
     // if our drill breaks or we get a geyser, stop the current drill
     if ((game.getDrillError() 
     or geyserOnMe
     or game.getDrills(mySquare) > MAXDRILLS - 1) and drilling) {
         //DEBUG(("Broke"));
-        if (game.getNumSamplesHeld() > 3 || justDrilledThe10) {
+        if (game.getNumSamplesHeld() > 3 || (justDrilledThe10 && game.getNumSamplesHeld() >= 2)) { // !!!
             dropping = true;
         }
         newLoc = true;
         drilling = false;
+        TT = false;
     }
+    
+    float a = game.getOtherScore() - befScore;
+    
+    if(a != (int)a) {
+        justDrilledThe10 = true;
+        TT = true;
+    }
+    if(drilling)
+        justDrilledThe10 = false;
+    
+    befScore = game.getOtherScore();
+    
     // @ FLOCAL IS NOW REMAINING FUEL @
     flocal = game.getFuelRemaining();
     // if we have samples and either time or fuel is running out
     if (game.getNumSamplesHeld() > 1 
     and ((!(int)((api.getTime() - 161) / 4)) // time is within 4 sec of 161 
-    or (flocal < 0.16f and flocal >  0.9f))) {
+    or (flocal < 0.16f and flocal >  0.9f)
+    or !drilling and api.getTime() > 170)) {
         // drop off what we have
         dropping=true;
     }
@@ -388,6 +381,7 @@ void loop() {
         scale(fvector, 5 / mathVecMagnitude(fvector, 3));
     }
     api.setVelocityTarget(fvector);
+    
 }
 
 /**
