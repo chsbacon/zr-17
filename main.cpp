@@ -197,7 +197,7 @@ void loop(){
         game.pos2square(positionTarget,siteCoords);
         
         //positionTarget[2]=myPos[2];//vertical movement to avoid terrain
-        if (!onSite bitand (game.getTerrainHeight(mySquare)>game.getTerrainHeight(siteCoords) or intDist(mySquare,siteCoords))){
+        if (!onSite bitand (game.getTerrainHeight(mySquare)>game.getTerrainHeight(siteCoords) or intDist(mySquare,siteCoords)>1)){
             positionTarget[2]=.27f;
             DEBUG(("O"));
             if (myPos[2]>.29f){
