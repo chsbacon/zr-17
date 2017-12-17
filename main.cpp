@@ -379,7 +379,7 @@ void loop() {
     flocal = 0.05f / (0.05f + mathVecMagnitude(fvector, 3));
     scale(myVel, 0.2f + flocal);
     mathVecSubtract(fvector, fvector, myVel, 3);
-    scale(fvector, 0.27f - (0.09f * flocal));
+    scale(fvector, 0.25f - (0.09f * flocal));
     
     // if we're on a geyser
     if (geyserOnMe) {
