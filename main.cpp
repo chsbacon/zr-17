@@ -83,8 +83,9 @@ void loop(){
                 mySquare[0] = -mySquare[0];
                 mySquare[1] = -mySquare[1];
             }
-            valArray[mySquare[0]+6-(mySquare[0]>0)][mySquare[1]-1]=false;
-            int valCount=0;
+            // flocal counts the number of possible tens
+            // in order to find the centroid (average) spot
+            flocal = 0;
             memset(siteCoords,0,8);
             // loop over valArray with i and j
             for (int i=0;i<12;i++){
@@ -104,18 +105,21 @@ void loop(){
                         concFound=true;
                         inRad=!inRad;
                     }
-                    if (inRad){
+                    // inRad or we are on the current square
+                    if (inRad bitor (sqDist == 0)) {
                         valArray[i][j]=false;
                     }
                     if (valArray[i][j]){
+                        // flip the signs back to normal
+                        // and add them to our sums
                         siteCoords[0] += -usefulIntVec[0];
                         siteCoords[1] += -usefulIntVec[1];
-                        valCount++;
+                        flocal++;
                     }
                 }
             }
-            siteCoords[0]/=valCount;
-            siteCoords[1]/=valCount;
+            siteCoords[0]/=flocal;
+            siteCoords[1]/=flocal;
             if (!siteCoords[0]){
                 siteCoords[0]++;
             }
