@@ -70,6 +70,15 @@ void loop(){
         }
         positionTarget[2]=-.16f;
     }
+    if (game.getDrillError() 
+    bitor geyserOnMe
+    bitor (game.getDrills(mySquare)>MAXDRILLS-1)){
+        DEBUG(("Broke"));
+        if (game.getNumSamplesHeld()>3){
+            dropping=true;
+        }
+        drilling=false;
+    }
     else if (!tenFound){
         float terrain = game.analyzeTerrain();
         DEBUG(("%f",terrain));
@@ -256,15 +265,7 @@ void loop(){
 
     }
 
-    if (game.getDrillError() 
-    bitor geyserOnMe
-    bitor (game.getDrills(mySquare)>MAXDRILLS-1)){
-        DEBUG(("Broke"));
-        if (game.getNumSamplesHeld()>3){
-            dropping=true;
-        }
-        drilling=false;
-    }
+    
 
     if (not drilling){//don't drill if we aren't drilling
         game.stopDrill();
