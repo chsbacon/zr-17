@@ -210,7 +210,8 @@ void loop() {
     
     // if they found the 10
     DEBUG(("TT %f %f", game.getFuelRemaining() - DI/2.55f, api.getTime() + DI*4));
-    if (enDeltaScore == 3.5f bitand (game.getFuelRemaining() - DI/2.55f > 0.27 bitand api.getTime() + DI*4 <= 120.0f)) {
+    game.pos2square(enPos, usefulIntVec);
+    if (enDeltaScore == 3.5f bitand (game.getFuelRemaining() - DI/2.55f > 0.27 bitand api.getTime() + DI*4 <= 120.0f) bitand game.getDrills(usefulIntVec) == 0) {
         
         // drill at the other 10
         game.pos2square(enPos, siteCoords);
@@ -412,6 +413,3 @@ void scale (float* vec, float scale) {
         vec[i] *= scale;
     }
 }
-
-
-
