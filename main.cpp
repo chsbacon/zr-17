@@ -107,7 +107,7 @@ void loop() {
     }
     
     // if we are at the base, drop off our samples
-    if (game.atBaseStation() and game.getNumSamplesHeld() != 0) {
+    if (game.atBaseStation() bitand game.getNumSamplesHeld() != 0) {
         for (int i=0; i<5; i++) {
             game.dropSample(i);
         }
@@ -137,7 +137,7 @@ void loop() {
     
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
-    if(drilling and game.isGeyserHere(mySquare))
+    if(drilling bitand game.isGeyserHere(mySquare))
         justHitGeyser = true;
         
     corner = myPos[1]<0?1:-1;
@@ -146,7 +146,7 @@ void loop() {
     // must be larger than all distances we check
     float minDist = 100.0;
     
-    if (newLoc and !game.checkSample() and not drilling and !just10[0]) {
+    if (newLoc bitand !game.checkSample() bitand not drilling bitand !just10[0]) {
          for (int i = -6; i <= 6; i++) {
              for (int j = -8; j <= 8; j++) {
                 
@@ -155,12 +155,12 @@ void loop() {
                 
                 //DEBUG(("%d %d %d %d %d %d", i, j, i*corner2 < mySquare[0]*corner2, j*corner < mySquare[1]*corner, corner, mySquare[1]));
                 
-                if(justHitGeyser and
-                i*corner2 <= mySquare[0]*corner2 and
+                if(justHitGeyser bitand
+                i*corner2 <= mySquare[0]*corner2 bitand
                 j*corner <= mySquare[1]*corner)
                     continue;
                 
-                 if (i*j !=0 and (i < -2 or i > 2 or j < -2 or j > 2)) {
+                 if (i*j !=0 bitand (i < -2 bitor i > 2 bitor j < -2 bitor j > 2)) {
                      
                     usefulIntVec[0] = i;
                     usefulIntVec[1] = j;
@@ -210,7 +210,7 @@ void loop() {
     
     // if they found the 10
     DEBUG(("TT %f %f", game.getFuelRemaining() - DI/2.55f, api.getTime() + DI*4));
-    if (enDeltaScore == 3.5f and (game.getFuelRemaining() - DI/2.55f > 0.27 and api.getTime() + DI*4 <= 120.0f)) {
+    if (enDeltaScore == 3.5f bitand (game.getFuelRemaining() - DI/2.55f > 0.27 bitand api.getTime() + DI*4 <= 120.0f)) {
         
         // drill at the other 10
         game.pos2square(enPos, siteCoords);
@@ -220,7 +220,7 @@ void loop() {
     }
     
     // stores whether we are at the square we are targetubg
-    bool onSite = (mySquare[0] == siteCoords[0] and mySquare[1] == siteCoords[1]);
+    bool onSite = (mySquare[0] == siteCoords[0] bitand mySquare[1] == siteCoords[1]);
     
     // drilling translational movement
     if ((not dropping)) {
