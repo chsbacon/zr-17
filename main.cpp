@@ -137,8 +137,22 @@ void loop() {
     
     bool geyserOnMe = game.isGeyserHere(mySquare);
     
+    
+    
     if(drilling bitand game.isGeyserHere(mySquare))
         justHitGeyser = true;
+        
+    // if our drill breaks or we get a geyser, stop the current drill
+    if ((game.getDrillError() 
+    or geyserOnMe
+    or game.getDrills(mySquare) > MAXDRILLS - 1) and drilling) {
+        //DEBUG(("Broke"));
+        if (game.getNumSamplesHeld() > 3 || (just10[1] and game.getNumSamplesHeld() > 1)) { // !!!
+            dropping = true;
+        }
+        newLoc = true;
+        drilling = false;
+    }
         
     corner = myPos[1]<0?1:-1;
     int corner2 = myPos[0]<0?1:-1;
@@ -300,17 +314,7 @@ void loop() {
     if (drilling)
         api.setAttRateTarget(usefulVec);
     
-    // if our drill breaks or we get a geyser, stop the current drill
-    if ((game.getDrillError() 
-    or geyserOnMe
-    or game.getDrills(mySquare) > MAXDRILLS - 1) and drilling) {
-        //DEBUG(("Broke"));
-        if (game.getNumSamplesHeld() > 3 || (just10[1] and game.getNumSamplesHeld() > 1)) { // !!!
-            dropping = true;
-        }
-        newLoc = true;
-        drilling = false;
-    }
+    
     
     if(game.getScore() - befScore == 3.5f) {
         just10[0] = false;
