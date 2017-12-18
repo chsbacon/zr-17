@@ -158,7 +158,7 @@ void loop() {
     int corner2 = myPos[0]<0?1:-1;
     
     // must be larger than all distances we check
-    float minDist = 100.0;
+    float minDist = 100.0f;
     
     if (newLoc bitand !game.checkSample() bitand not drilling bitand !just10[0]) {
          for (int i = -6; i <= 6; i++) {
@@ -225,7 +225,7 @@ void loop() {
     // if they found the 10
     DEBUG(("TT %f %f", game.getFuelRemaining() - DI/2.55f, api.getTime() + DI*4));
     game.pos2square(enPos, usefulIntVec);
-    if (enDeltaScore == 3.5f bitand (game.getFuelRemaining() - DI/2.55f > 0.27 bitand api.getTime() + DI*4 <= 120.0f) bitand game.getDrills(usefulIntVec) == 0) {
+    if (enDeltaScore == 3.5f bitand (game.getFuelRemaining() - DI/2.55f > 0.27f bitand api.getTime() + DI*4 <= 120.0f) bitand game.getDrills(usefulIntVec) == 0) {
         
         // drill at the other 10
         game.pos2square(enPos, siteCoords);
