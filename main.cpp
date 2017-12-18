@@ -93,7 +93,6 @@ void loop() {
     // their state
     float enState[17];
     
-
     // contains the change in the enemy's score since the last second
     float enDeltaScore = game.getOtherScore() - enScore;
     // updates the enemy's score
@@ -102,7 +101,8 @@ void loop() {
     // if a sample is ready to pick up, pick it up
     if (game.checkSample()) {
         // if we want to drill more than 5, we have to drop the last one
-        game.dropSample(game.getNumSamplesHeld()>=5?0:4);
+        if(game.getNumSamplesHeld() >= 5)
+            game.dropSample(game.getDrills(mySquare));
         samples += (bool)(game.pickupSample());
     }
     
